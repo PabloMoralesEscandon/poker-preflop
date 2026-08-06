@@ -16,25 +16,34 @@ function renderAt(path: string) {
 }
 
 describe('app shell and routing', () => {
-  it('renders the shell on every route', () => {
+  it('renders the shell on every route', async () => {
     renderAt('/');
     expect(
       screen.getByRole('link', { name: 'Poker Learner' })
     ).toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
+    await screen.findByRole('link', { name: /Raise First In/ });
   });
 
-  it('renders the drill picker at /', () => {
+  it('renders the drill picker at /, listing drills from the server', async () => {
     renderAt('/');
     expect(
       screen.getByRole('heading', { level: 1, name: 'Drills' })
     ).toBeInTheDocument();
+
+    const link = await screen.findByRole('link', { name: /Raise First In/ });
+    expect(link).toHaveAttribute('href', '/drill/rfi');
   });
 
-  it('renders the drill route with its id parameter', () => {
+  it('renders the drill runner for the id in the route', async () => {
     renderAt('/drill/rfi');
+    // The runner resolves the id against the server's drill list, so the
+    // heading is the drill's name rather than the raw route parameter.
     expect(
-      screen.getByRole('heading', { level: 1, name: 'rfi' })
+      await screen.findByRole('heading', { level: 1, name: 'Raise First In' })
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Start session' })
     ).toBeInTheDocument();
   });
 

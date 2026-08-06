@@ -108,7 +108,41 @@ describe('mock session lifecycle', () => {
     expect(question.prompt.folded_before).not.toContain(
       question.prompt.hero_position
     );
-    expect(question.actions.map((a) => a.id)).toEqual(['fold', 'raise']);
+    // Fold is always offered and always first; the rest come from the range's
+    // own action list, which is three-wide at the small blind.
+    expect(question.actions[0]?.id).toBe('fold');
+    expect(question.actions.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('offers three actions at the small blind and two elsewhere', async () => {
+    const client = new MockApiClient();
+
+    const sb = await client.createSession({
+      drill_id: 'rfi',
+      config: { ...BASE_CONFIG.config, positions: ['SB'] },
+      seed: 4,
+    });
+    const sbQuestion = await currentQuestion(client, sb.session_id);
+    expect(sbQuestion.actions.map((a) => a.id)).toEqual([
+      'fold',
+      'raise',
+      'limp',
+    ]);
+    // Labels are server-provided; the SB opens larger (RFI-CALIBRATION §2.2).
+    expect(sbQuestion.actions.map((a) => a.label)).toEqual([
+      'Fold',
+      'Raise 3bb',
+      'Limp 1bb',
+    ]);
+
+    const co = await client.createSession({
+      drill_id: 'rfi',
+      config: { ...BASE_CONFIG.config, positions: ['CO'] },
+      seed: 4,
+    });
+    const coQuestion = await currentQuestion(client, co.session_id);
+    expect(coQuestion.actions.map((a) => a.id)).toEqual(['fold', 'raise']);
+    expect(coQuestion.actions[1]?.label).toBe('Raise 2.5bb');
   });
 
   it('replays identically for the same seed', async () => {
@@ -432,5 +466,84 @@ describe('mock static endpoints', () => {
       code: 'range_not_found',
       status: 404,
     });
+  });
+
+  it('serves the small blind as a two-non-fold-action range', async () => {
+    const client = new MockApiClient();
+    const range = await client.getRange('rfi_6max_SB');
+
+    expect(range.actions).toEqual(['raise', 'limp']);
+    expect(range.open_size_bb).toBe(3);
+    expect(Object.keys(range.grid)).toHaveLength(169);
+
+    const actionIds = new Set(
+      Object.values(range.grid).flatMap((cell) => Object.keys(cell))
+    );
+    expect(actionIds).toEqual(new Set(['raise', 'limp']));
+
+    // Grid values only ever contain ids listed in `actions`
+    // (RANGE-DATA-FORMAT §3.3).
+    for (const id of actionIds) expect(range.actions).toContain(id);
+  });
+
+  it('grades against the same chart it serves for that position', async () => {
+    const client = new MockApiClient();
+    const range = await client.getRange('rfi_6max_SB');
+
+    const session = await client.createSession({
+      drill_id: 'rfi',
+      config: { ...BASE_CONFIG.config, positions: ['SB'], question_count: 40 },
+      seed: 11,
+    });
+
+    for (let i = 0; i < 40; i += 1) {
+      const question = await currentQuestion(client, session.session_id);
+      const answer = await client.submitAnswer(session.session_id, {
+        question_id: question.question_id,
+        action_id: 'limp',
+      });
+
+      const cell = range.grid[question.prompt.hand.notation] ?? {};
+      const played = Object.values(cell).reduce((sum, v) => sum + v, 0);
+      const expectedId =
+        played >= 0.5
+          ? (Object.entries(cell).sort(([, a], [, b]) => b - a)[0]?.[0] ??
+            'fold')
+          : 'fold';
+
+      expect(answer.expected.action_id).toBe(expectedId);
+      expect(answer.explanation.range_id).toBe('rfi_6max_SB');
+    }
+  });
+
+  it('reports limp as the expected action where the chart limps', async () => {
+    const client = new MockApiClient();
+    const range = await client.getRange('rfi_6max_SB');
+    const limped = Object.entries(range.grid).find(
+      ([, cell]) => cell['limp'] === 1
+    );
+    expect(limped).toBeDefined();
+
+    const session = await client.createSession({
+      drill_id: 'rfi',
+      config: { ...BASE_CONFIG.config, positions: ['SB'], question_count: 200 },
+      seed: 3,
+    });
+
+    for (let i = 0; i < 200; i += 1) {
+      const question = await currentQuestion(client, session.session_id);
+      const isLimp = range.grid[question.prompt.hand.notation]?.['limp'] === 1;
+      const answer = await client.submitAnswer(session.session_id, {
+        question_id: question.question_id,
+        action_id: 'limp',
+      });
+      if (isLimp) {
+        expect(answer.correct).toBe(true);
+        expect(answer.expected.action_id).toBe('limp');
+        expect(answer.expected.label).toBe('Limp 1bb');
+        return;
+      }
+    }
+    throw new Error('no limp hand came up');
   });
 });

@@ -53,12 +53,24 @@ npm run build          # tsc --noEmit && vite build
 ```text
 src/
   api/          # types, ApiClient interface, live + mock implementations
-  drills/       # registry.ts maps prompt.kind -> component; one dir per drill
-  components/   # drill-agnostic UI (HandGrid, AppShell, ...)
+  drills/       # DrillRunner + registry.ts (prompt.kind -> component)
+    register.ts # the one place the app learns which drills exist
+    rfi/        # drill #1
+  components/   # drill-agnostic UI (HandGrid, ConfigForm, FeedbackPanel, ...)
   pages/        # routed screens
-  lib/          # small helpers
+  lib/          # small helpers and pure rules
 tests/          # vitest + React Testing Library
 ```
+
+### Adding a drill
+
+1. Add `src/drills/<id>/<Id>Prompt.tsx` rendering only the prompt and calling
+   `onAction(actionId)`.
+2. Register it in `src/drills/register.ts`.
+
+Nothing else changes. `DrillRunner` owns the session loop, `ConfigForm` builds
+the settings screen from the drill's `config_schema`, and `SummaryView` renders
+`breakdown` from `key`/`label`/`accuracy` — none of them know a drill exists.
 
 Two rules keep this modular, and both are enforced by `tests/api/boundary.test.ts`:
 
@@ -74,6 +86,23 @@ Two rules keep this modular, and both are enforced by `tests/api/boundary.test.t
 | `/`               | drill picker                                 |
 | `/drill/:drillId` | session runner for one drill                 |
 | `/dev/grid`       | development preview of the 13×13 range chart |
+
+## Running a session
+
+```bash
+cd frontend && npm run dev
+# then open http://localhost:5173/ and pick "Raise First In"
+```
+
+No backend needed — mock mode is the default. Pick positions and a hand count,
+answer each spot, and the feedback shows the verdict, the chart action, the
+explanation, and the range chart with the hand you just played highlighted.
+Feedback is dismissible with Enter or Escape as well as the button.
+
+Select **Small blind** to see a three-action spot (fold / limp / raise): the SB
+is the one position with two non-fold actions (`docs/ranges/RFI-CALIBRATION.md`
+§2.2). Action buttons and chart colours both come from the range's own `actions`
+list, never from hardcoded names.
 
 ## Seeing the hand grid
 

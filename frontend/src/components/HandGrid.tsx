@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { cn } from '../lib/cn';
-import { gridIndexOf, notationAt, RANKS } from '../lib/hands';
+import { notationAt, RANKS } from '../lib/hands';
 
 /**
  * The standard 13×13 range chart.
@@ -389,6 +389,3 @@ function HandGridLegend({
     </ul>
   );
 }
-
-/** Re-exported so callers can validate a notation before highlighting it. */
-export { gridIndexOf };

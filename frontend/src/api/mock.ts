@@ -13,13 +13,17 @@
  * only advances on an answer, and grading against the fixture chart — while
  * matching the fixtures' shape exactly.
  *
- * Two honest limitations, both contained in this file:
+ * Three honest limitations, all contained in this file:
  *
- *  1. `range_rfi_6max_CO.json` is the only chart that exists before the backend
- *     lands, so every position is graded against it. Mock feedback is therefore
- *     shaped correctly and varies by hand, but it is NOT poker advice and the
+ *  1. `range_rfi_6max_CO.json` is the only chart that exists as a fixture, so
+ *     every position is derived from it. Mock feedback is therefore shaped
+ *     correctly and varies by hand, but it is NOT poker advice and the
  *     per-position differences a real chart set would show are absent.
- *  2. `weighting: "borderline"` is approximated (combo weight × 6 on mixed
+ *  2. The small blind is a three-action spot (RFI-CALIBRATION §2.2), so the SB
+ *     chart here is the CO chart with its offsuit opens mechanically relabelled
+ *     `limp`. That is a shape, not a strategy — its only job is to exercise a
+ *     multi-action range end to end before the real SB data is served.
+ *  3. `weighting: "borderline"` is approximated (combo weight × 6 on mixed
  *     hands) rather than implementing the neighbour scan in
  *     RANGE-DATA-FORMAT §6. The real sampler is the backend's.
  */
@@ -31,6 +35,8 @@ import rangeCoFixture from '@fixtures/range_rfi_6max_CO.json';
 import { ApiError, type ApiClient } from './client';
 import {
   POSITIONS_BY_FORMAT,
+  type ActionFrequencies,
+  type ActionOption,
   type AnswerRequest,
   type AnswerResponse,
   type BreakdownRow,
@@ -46,6 +52,8 @@ import {
   type Question,
   type RangeDetail,
   type RangeFilter,
+  type RangeGrid,
+  type RangeStats,
   type RangesResponse,
   type SessionResponse,
   type SessionSummary,
@@ -56,6 +64,7 @@ import {
   cardsForNotation,
   combosOf,
   gridIndexOf,
+  handTypeOf,
 } from '../lib/hands';
 
 const DRILLS = drillsFixture as DrillsResponse;
@@ -64,6 +73,108 @@ const CO_RANGE = rangeCoFixture as unknown as RangeDetail;
 
 const FOLD_ACTION_ID = 'fold';
 const RAISE_ACTION_ID = 'raise';
+const LIMP_ACTION_ID = 'limp';
+
+// ---------------------------------------------------------------------------
+// Per-position charts, derived from the one fixture chart
+// ---------------------------------------------------------------------------
+
+/**
+ * A chart the mock can both drill from and serve as a range.
+ *
+ * Deriving both from one place is what keeps the mock self-consistent: the
+ * chart shown in the feedback panel is exactly the chart the answer was graded
+ * against.
+ */
+interface MockChart {
+  actions: string[];
+  grid: RangeGrid;
+  openSizeBb: number;
+  /** Label for each non-fold action, including its sizing. */
+  actionLabels: Record<string, string>;
+}
+
+function formatBb(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+/**
+ * The SB opens for 3bb and can also limp (RFI-CALIBRATION §2.2). Offsuit opens
+ * become limps here purely so a two-non-fold-action range exists to render;
+ * see the limitation note at the top of this file.
+ */
+function toSmallBlindGrid(grid: RangeGrid): RangeGrid {
+  const derived: RangeGrid = {};
+  for (const hand of ALL_HANDS) {
+    const frequencies = grid[hand] ?? {};
+    const raise = frequencies[RAISE_ACTION_ID];
+    if (raise === undefined) {
+      derived[hand] = {};
+      continue;
+    }
+    derived[hand] =
+      handTypeOf(hand) === 'offsuit'
+        ? { [LIMP_ACTION_ID]: raise }
+        : { [RAISE_ACTION_ID]: raise };
+  }
+  return derived;
+}
+
+const SB_GRID = toSmallBlindGrid(CO_RANGE.grid);
+
+function chartFor(position: Position): MockChart {
+  if (position === 'SB') {
+    return {
+      actions: [RAISE_ACTION_ID, LIMP_ACTION_ID],
+      grid: SB_GRID,
+      openSizeBb: 3,
+      actionLabels: {
+        [RAISE_ACTION_ID]: 'Raise 3bb',
+        [LIMP_ACTION_ID]: 'Limp 1bb',
+      },
+    };
+  }
+  return {
+    actions: [RAISE_ACTION_ID],
+    grid: CO_RANGE.grid,
+    openSizeBb: CO_RANGE.open_size_bb,
+    actionLabels: {
+      [RAISE_ACTION_ID]: `Raise ${formatBb(CO_RANGE.open_size_bb)}bb`,
+    },
+  };
+}
+
+/** Fold is always first and is never stored in a grid. */
+function actionOptionsFor(position: Position): ActionOption[] {
+  const chart = chartFor(position);
+  return [
+    { id: FOLD_ACTION_ID, label: 'Fold' },
+    ...chart.actions.map((id) => ({
+      id,
+      label: chart.actionLabels[id] ?? id,
+    })),
+  ];
+}
+
+/** RANGE-DATA-FORMAT §4: combo-weighted stats over the 1326 starting combos. */
+function statsFor(grid: RangeGrid): RangeStats {
+  let combos = 0;
+  let handsPlayed = 0;
+  for (const hand of ALL_HANDS) {
+    const frequencies = grid[hand] ?? {};
+    const played = Object.values(frequencies).reduce(
+      (sum, value) => sum + value,
+      0
+    );
+    if (played > 0) handsPlayed += 1;
+    combos += played * combosOf(hand);
+  }
+  return {
+    combos: Math.round(combos * 100) / 100,
+    vpip: Math.round((combos / 1326) * 10000) / 10000,
+    hands_played: handsPlayed,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Seeded randomness — a session replays identically for a given seed.
@@ -289,14 +400,20 @@ export class MockApiClient implements ApiClient {
         404
       );
     }
-    // Only the CO chart exists as a fixture. Serving it under the requested id
-    // keeps the mock self-consistent: this is the chart the answer was graded
-    // against. It is illustrative data, not a real chart for that position.
+    // Only the CO chart exists as a fixture, so every position is derived from
+    // it. Serving exactly what `grade` used keeps the mock self-consistent: the
+    // chart in the feedback panel is the chart the answer was graded against.
+    // It is illustrative data, not a real chart for that position.
+    const chart = chartFor(listed.position);
     return {
       ...clone(CO_RANGE),
       range_id: listed.range_id,
       position: listed.position,
       table_format: listed.table_format,
+      open_size_bb: chart.openSizeBb,
+      actions: [...chart.actions],
+      grid: clone(chart.grid),
+      stats: statsFor(chart.grid),
     };
   }
 
@@ -398,15 +515,16 @@ function configuredPositions(config: DrillConfig): Position[] {
 // Question generation
 // ---------------------------------------------------------------------------
 
-/** Hand weights, recomputed once because the chart never changes. */
+/** Hand weights, computed once because the charts never change. */
 const UNIFORM_WEIGHTS = ALL_HANDS.map((hand) => combosOf(hand));
 const BORDERLINE_WEIGHTS = ALL_HANDS.map((hand) => {
-  const frequency = raiseFrequency(hand);
-  return combosOf(hand) * (frequency > 0 && frequency < 1 ? 6 : 1);
+  const played = playedFrequency(CO_RANGE.grid[hand] ?? {});
+  return combosOf(hand) * (played > 0 && played < 1 ? 6 : 1);
 });
 
-function raiseFrequency(hand: string): number {
-  return CO_RANGE.grid[hand]?.[RAISE_ACTION_ID] ?? 0;
+/** Total non-fold frequency. Fold frequency is `1 - played` and never stored. */
+function playedFrequency(frequencies: ActionFrequencies): number {
+  return Object.values(frequencies).reduce((sum, value) => sum + value, 0);
 }
 
 function generateQuestion(session: MockSession, total: number): Question {
@@ -423,7 +541,6 @@ function generateQuestion(session: MockSession, total: number): Question {
   const cards = cardsForNotation(notation, (bound) => session.rng.pick(bound));
 
   const index = session.answered.length + 1;
-  const openSize = heroPosition === 'SB' ? 3 : CO_RANGE.open_size_bb;
 
   return {
     question_id: `q_${index}`,
@@ -439,10 +556,7 @@ function generateQuestion(session: MockSession, total: number): Question {
       folded_before: seatsBefore(format, heroPosition),
       pot_bb: 1.5,
     },
-    actions: [
-      { id: FOLD_ACTION_ID, label: 'Fold' },
-      { id: RAISE_ACTION_ID, label: `Raise ${formatBb(openSize)}bb` },
-    ],
+    actions: actionOptionsFor(heroPosition),
   };
 }
 
@@ -452,24 +566,31 @@ function seatsBefore(format: TableFormat, hero: Position): Position[] {
   return heroIndex <= 0 ? [] : [...order.slice(0, heroIndex)];
 }
 
-function formatBb(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
 // ---------------------------------------------------------------------------
 // Grading (API-CONTRACT §4.3)
 // ---------------------------------------------------------------------------
 
 type GradedAnswer = Omit<AnswerResponse, 'progress'>;
 
+/**
+ * §4.3, generalised past a single non-fold action: the expected action is the
+ * most frequent one in the chart when it is played at least half the time, and
+ * fold otherwise. `expected.frequency` is the frequency of the expected action.
+ */
 function grade(question: Question, chosenActionId: string): GradedAnswer {
+  const position = question.prompt.hero_position;
   const notation = question.prompt.hand.notation;
-  const raise = raiseFrequency(notation);
-  const isMixed = raise > 0 && raise < 1;
+  const frequencies = chartFor(position).grid[notation] ?? {};
+  const played = playedFrequency(frequencies);
 
-  const expectedActionId = raise >= 0.5 ? RAISE_ACTION_ID : FOLD_ACTION_ID;
+  const best = Object.entries(frequencies).sort(([, a], [, b]) => b - a)[0];
+
+  const expectedActionId = best && best[1] >= 0.5 ? best[0] : FOLD_ACTION_ID;
   const expectedFrequency =
-    expectedActionId === RAISE_ACTION_ID ? raise : 1 - raise;
+    expectedActionId === FOLD_ACTION_ID ? 1 - played : (best?.[1] ?? 0);
+
+  // A hand is mixed when no single action is taken every time.
+  const isMixed = played > 0 && played < 1;
 
   const label = (actionId: string) =>
     question.actions.find((action) => action.id === actionId)?.label ??
@@ -477,8 +598,6 @@ function grade(question: Question, chosenActionId: string): GradedAnswer {
 
   // §4.3: a mixed hand answered either way is not a mistake.
   const correct = isMixed || chosenActionId === expectedActionId;
-
-  const rangeId = `rfi_${question.prompt.table_format}_${question.prompt.hero_position}`;
 
   const graded: GradedAnswer = {
     correct,
@@ -491,11 +610,17 @@ function grade(question: Question, chosenActionId: string): GradedAnswer {
     explanation: {
       summary: explanationSummary(
         notation,
-        question.prompt.hero_position,
-        raise
+        position,
+        expectedActionId,
+        label(expectedActionId),
+        expectedFrequency
       ),
-      detail: explanationDetail(notation, raise),
-      range_id: rangeId,
+      detail: explanationDetail(
+        notation,
+        label(expectedActionId),
+        expectedFrequency
+      ),
+      range_id: `rfi_${question.prompt.table_format}_${position}`,
     },
   };
 
@@ -505,22 +630,29 @@ function grade(question: Question, chosenActionId: string): GradedAnswer {
 function explanationSummary(
   notation: string,
   position: Position,
-  raise: number
+  expectedActionId: string,
+  expectedLabel: string,
+  frequency: number
 ): string {
-  if (raise === 1) return `${notation} is a pure open from ${position}.`;
-  if (raise === 0) return `${notation} is a fold from ${position}.`;
-  return `${notation} is a mixed spot from ${position} — either action is acceptable.`;
+  if (frequency < 1) {
+    return `${notation} is a mixed spot from ${position} — either action is acceptable.`;
+  }
+  if (expectedActionId === FOLD_ACTION_ID) {
+    return `${notation} is a fold from ${position}.`;
+  }
+  return `${notation} is a pure ${expectedLabel.toLowerCase()} from ${position}.`;
 }
 
-function explanationDetail(notation: string, raise: number): string {
-  const percent = `${Math.round(raise * 100)}%`;
-  if (raise === 1) {
-    return `The chart opens ${notation} every time from this position.`;
+function explanationDetail(
+  notation: string,
+  expectedLabel: string,
+  frequency: number
+): string {
+  const action = expectedLabel.toLowerCase();
+  if (frequency < 1) {
+    return `The chart plays ${notation} as ${action} ${Math.round(frequency * 100)}% of the time. Hands on this boundary are close enough that neither choice is a mistake.`;
   }
-  if (raise === 0) {
-    return `${notation} is outside the opening range for this position, so it folds.`;
-  }
-  return `The chart opens ${notation} ${percent} of the time. Hands on this boundary are close enough that neither choice is a mistake.`;
+  return `The chart plays ${notation} as ${action} every time from this position.`;
 }
 
 // ---------------------------------------------------------------------------
