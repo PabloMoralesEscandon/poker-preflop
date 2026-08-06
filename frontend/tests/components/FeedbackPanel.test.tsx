@@ -84,6 +84,47 @@ describe('feedback reads differently for each outcome', () => {
     expect(screen.queryByText('Not the chart action')).not.toBeInTheDocument();
   });
 
+  /**
+   * API-CONTRACT §4.3: `mixed` and `correct` are independent. On a split hand,
+   * a line the chart never takes comes back `mixed: true, correct: false` and
+   * must read as a miss — otherwise the UI tells the user a wrong answer was
+   * acceptable.
+   */
+  it('renders a wrong line in a mixed spot as a miss, not as acceptable', () => {
+    renderPanel({
+      ...MIXED,
+      correct: false,
+      mixed: true,
+      chosen: { action_id: 'limp', label: 'Limp 1bb' },
+    });
+
+    expect(verdict()).toBe('incorrect');
+    expect(screen.getByText('Not the chart action')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Acceptable — this is a mixed spot')
+    ).not.toBeInTheDocument();
+  });
+
+  it('still explains that the spot was mixed when the line was wrong', () => {
+    renderPanel({
+      ...MIXED,
+      correct: false,
+      mixed: true,
+      chosen: { action_id: 'limp', label: 'Limp 1bb' },
+    });
+
+    const note = screen.getByText(/is not one of the lines the chart takes/);
+    expect(note).toHaveTextContent('This hand is a mixed spot');
+    expect(note).toHaveTextContent('Limp 1bb');
+  });
+
+  it('does not add the mixed-miss note to an accepted mixed answer', () => {
+    renderPanel(MIXED);
+    expect(
+      screen.queryByText(/is not one of the lines the chart takes/)
+    ).not.toBeInTheDocument();
+  });
+
   it('gives the three outcomes three distinct verdicts', () => {
     const seen = new Set<string | null | undefined>();
     for (const answer of [CORRECT, INCORRECT, MIXED]) {

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { AnswerResponse, ApiClient, Question, RangeDetail } from '../api';
 import { getDrillEntry } from '../drills/registry';
 import { cn } from '../lib/cn';
-import { verdictOf, type Verdict } from '../lib/verdict';
+import { isMissInMixedSpot, verdictOf, type Verdict } from '../lib/verdict';
 import { useAutoFocus } from '../lib/useAutoFocus';
 import { HandGrid } from './HandGrid';
 
@@ -43,6 +43,7 @@ export function FeedbackPanel({
 }: FeedbackPanelProps) {
   const verdict = verdictOf(answer);
   const copy = VERDICT_COPY[verdict];
+  const missedInMixedSpot = isMissInMixedSpot(answer);
   const nextRef = useAutoFocus<HTMLButtonElement>(true);
 
   const rangeId = answer.explanation.range_id;
@@ -90,6 +91,17 @@ export function FeedbackPanel({
         style={{ borderLeftColor: copy.tone }}
       >
         <p className="text-fg text-base font-semibold">{copy.title}</p>
+
+        {missedInMixedSpot ? (
+          // The chart splits this hand, but not down the line that was taken.
+          // Without this the user reads "wrong" and concludes the spot has a
+          // single right answer.
+          <p className="text-fg-muted text-sm">
+            This hand is a mixed spot, but{' '}
+            <span className="text-fg font-medium">{answer.chosen.label}</span>{' '}
+            is not one of the lines the chart takes.
+          </p>
+        ) : null}
 
         <p className="text-fg-muted text-sm">
           You played{' '}
