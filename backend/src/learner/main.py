@@ -12,29 +12,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from learner import __version__
 from learner.api.v1 import router as v1_router
+from learner.errors import LearnerError
 
 DEFAULT_CORS_ORIGINS = (
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 )
-
-
-class LearnerError(Exception):
-    """A client-safe error represented by the API's standard envelope."""
-
-    def __init__(
-        self,
-        *,
-        code: str,
-        message: str,
-        status_code: int,
-        field: str | None = None,
-    ) -> None:
-        super().__init__(message)
-        self.code = code
-        self.message = message
-        self.status_code = status_code
-        self.field = field
 
 
 def _error_content(code: str, message: str, field: str | None = None) -> dict[str, Any]:
