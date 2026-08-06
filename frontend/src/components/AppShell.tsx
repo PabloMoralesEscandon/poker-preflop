@@ -1,0 +1,32 @@
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-full flex-col">
+      <header className="border-line bg-surface/80 sticky top-0 z-10 border-b backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl items-baseline gap-3 px-4 py-3 sm:px-6">
+          <Link
+            to="/"
+            className="text-fg text-base font-semibold tracking-tight"
+          >
+            Poker Learner
+          </Link>
+          <span className="text-fg-muted hidden text-sm sm:inline">
+            preflop and postflop drills
+          </span>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        {children}
+      </main>
+
+      <footer className="border-line text-fg-muted border-t px-4 py-4 text-xs sm:px-6">
+        <div className="mx-auto w-full max-w-5xl">
+          Free and self-hosted. No accounts, no paid data.
+        </div>
+      </footer>
+    </div>
+  );
+}
