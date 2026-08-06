@@ -227,18 +227,51 @@ Response `200`, example `docs/examples/answer_correct.json`:
 }
 ```
 
-Mixed-frequency spots: `expected.frequency` is the raise frequency in the chart.
-The grader marks the answer `correct` when the chosen action's frequency is
-`>= 0.5`. When `0 < frequency < 1` the response adds:
+### Grading
 
-```json
-{"mixed": true}
-```
+**This section was self-contradictory and was rewritten on 2026-08-07.** It used
+to say both "correct when the chosen action's frequency is `>= 0.5`" and "a mixed
+hand answered either way is not marked incorrect" — which disagree for any hand
+split `0.25 / 0.75`. It also assumed the only non-fold action was `raise`, which
+stopped being true when the small blind turned out to limp. The `>= 0.5`
+threshold is gone. Grade like this instead:
 
-and `explanation.summary` must say so. Examples:
-`docs/examples/answer_incorrect.json`, `docs/examples/answer_mixed.json`. A mixed hand answered either way is
-**not** marked incorrect; it returns `"correct": true` plus `"mixed": true` so
-the UI can show it as "acceptable — this is a mixed spot".
+**Fold is an action.** A grid cell stores only non-fold frequencies, so fold's
+frequency is `1 - sum(cell.values())`. Build the full action→frequency map for
+the hand by adding that entry, then everything below is uniform across actions.
+
+1. **`correct`** is `true` when the chosen action's frequency is `> 0`, and
+   `false` when it is `0`. If the chart ever takes that line, it is not a
+   mistake — the teaching point on a split hand is that the spot is close, not
+   that one branch is wrong.
+2. **`mixed`** is `true` when more than one action has non-zero frequency,
+   i.e. when no single action is `1.0`. Omit the field otherwise. When it is
+   `true`, `explanation.summary` must say so, and the UI must present the result
+   as "acceptable — this is a mixed spot" rather than as a win or a loss.
+3. **`expected`** is the highest-frequency action, ties broken by the order in
+   the range's `actions` list with fold last. `expected.frequency` is that
+   action's own frequency — including when it is fold, where a pure fold gives
+   `1.0`.
+
+Worked examples, all consistent with the fixtures:
+
+| Cell | Chose | `correct` | `mixed` | `expected` |
+|---|---|---|---|---|
+| `{"raise": 1.0}` | raise | `true` | — | raise `1.0` |
+| `{"raise": 1.0}` | fold | `false` | — | raise `1.0` |
+| `{}` (pure fold) | fold | `true` | — | fold `1.0` |
+| `{}` (pure fold) | raise | `false` | — | fold `1.0` |
+| `{"raise": 0.25}` | raise | `true` | `true` | fold `0.75` |
+| `{"raise": 0.25}` | fold | `true` | `true` | fold `0.75` |
+| `{"raise": 0.25}` | limp | `false` | `true` | fold `0.75` |
+| `{"raise": 0.4, "limp": 0.6}` | raise | `true` | `true` | limp `0.6` |
+
+Note the third-from-last row: on a mixed hand an action the chart never takes is
+still incorrect. "Mixed" widens what counts as acceptable; it does not make
+everything acceptable.
+
+Examples: `docs/examples/answer_correct.json`,
+`docs/examples/answer_incorrect.json`, `docs/examples/answer_mixed.json`.
 
 Answering a `question_id` that is not the current question → `409` with code
 `question_out_of_order`. Answering the same question twice → `409` with code

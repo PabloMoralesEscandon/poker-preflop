@@ -12,7 +12,7 @@
   },
   "explanation": {
     "summary": "K5s is a mixed spot from the cutoff — either action is acceptable.",
-    "detail": "The chart opens K5s half the time. Hands on this boundary are close enough that neither choice is a mistake; treat it as a coin flip.",
+    "detail": "The chart opens K5s half the time and folds it the other half. Hands on this boundary are close enough that neither choice is a mistake; treat it as a coin flip.",
     "range_id": "rfi_6max_CO"
   },
   "progress": {
