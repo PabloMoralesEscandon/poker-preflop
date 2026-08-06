@@ -31,6 +31,11 @@ KNOWN_SOURCE_IDS = frozenset(
     }
 )
 
+POSITION_ORDER = {
+    "6max": ("UTG", "HJ", "CO", "BTN", "SB"),
+    "9max": ("UTG", "UTG1", "UTG2", "LJ", "HJ", "CO", "BTN", "SB"),
+}
+
 
 class RangeLoadError(ValueError):
     """A range file failed startup validation."""
@@ -64,13 +69,21 @@ class RangeIndex:
     def list(
         self, *, spot: str | None = None, table_format: str | None = None
     ) -> list[RangeData]:
-        """List ranges in id order with optional contract filters."""
-        return [
+        """List ranges in table position order with optional contract filters."""
+        filtered = [
             item
-            for _, item in sorted(self._by_id.items())
+            for item in self._by_id.values()
             if (spot is None or item.spot == spot)
             and (table_format is None or item.table_format == table_format)
         ]
+        return sorted(
+            filtered,
+            key=lambda item: (
+                item.spot,
+                item.table_format,
+                POSITION_ORDER[item.table_format].index(item.position),
+            ),
+        )
 
 
 def load_ranges(

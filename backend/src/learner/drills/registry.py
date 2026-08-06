@@ -28,7 +28,7 @@ class DrillRegistry:
         except KeyError as exc:
             raise LearnerError(
                 code="drill_not_found",
-                message=f"Unknown drill id {drill_id}.",
+                message=f"Unknown drill id {drill_id!r}.",
                 status_code=404,
             ) from exc
 
