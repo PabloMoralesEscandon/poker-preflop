@@ -111,16 +111,41 @@ position's chart:
 | Hand's frequency in this position's chart | Factor |
 |---|---|
 | mixed (`0 < f < 1`) | 6 |
-| pure play (`f == 1`) but within 3 grid steps of a folded neighbour | 4 |
-| pure fold (`{}`) but within 3 grid steps of a played neighbour | 4 |
+| pure play (`f == 1`) with an **immediately adjacent** folded neighbour | 4 |
+| pure fold (`{}`) with an **immediately adjacent** played neighbour | 4 |
 | everything else | 1 |
 
-"Grid steps" is Chebyshev distance on the standard 13×13 layout (rows = higher
-rank, columns = lower rank, suited above the diagonal, offsuit below). The
-result is that `AA` and `72o` show up rarely while `K9s`, `A5o`, `QTo` and the
-suited-connector boundary show up often. Implement this as a pure function with
-its own unit test — it is the single biggest driver of whether the trainer
+"Adjacent" is Chebyshev distance **1** on the standard 13×13 layout — the eight
+surrounding cells — using the same coordinates as §5.
+
+The result is that `AA` and `72o` show up rarely while `K9s`, `A5o`, `QTo` and
+the suited-connector boundary show up often. Implement this as a pure function
+with its own unit test — it is the single biggest driver of whether the trainer
 actually teaches anything.
+
+### 6.1 Why distance 1, and not 3
+
+**An earlier version of this section said "within 3 grid steps". That was
+wrong**, and it is worth recording why so nobody widens it again.
+
+A radius of 3 reaches up to 48 of the 169 cells. Against a real range that plays
+a quarter of its hands, almost every cell then has *some* neighbour on the other
+side of the boundary, so nearly everything scores 4 and the weighting collapses
+back toward uniform. Measured against the real 6-max data:
+
+| Radius | Cells scoring > 1 | Share of draws on boundary hands | `AA` | `72o` |
+|---|---|---|---|---|
+| 1 | 56–77 of 169 | 62–77% | 0.21% | 0.41% |
+| 2 | 96–121 | 81–92% | 0.15% | 0.30% |
+| 3 | 130–146 | 91–97% | 0.13% | **1.04%** |
+
+Uniform for reference: `AA` 0.45%, `72o` 0.90%.
+
+At radius 3 the drill was **boosting `72o` above its natural frequency** — the
+single most obvious fold in poker, promoted as a "close decision". Radius 1
+halves both `AA` and `72o` relative to uniform while still putting roughly
+three-quarters of draws on genuinely close hands, which is the behaviour this
+section was always meant to describe.
 
 ## 7. Adding a new spot later
 
