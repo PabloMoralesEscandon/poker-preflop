@@ -33,6 +33,7 @@ import rangesListFixture from '@fixtures/ranges_list.json';
 import rangeCoFixture from '@fixtures/range_rfi_6max_CO.json';
 
 import { ApiError, type ApiClient } from './client';
+import { FOLD_ACTION_ID, gradeCell } from './grading';
 import {
   POSITIONS_BY_FORMAT,
   type ActionFrequencies,
@@ -71,7 +72,6 @@ const DRILLS = drillsFixture as DrillsResponse;
 const RANGES = rangesListFixture as unknown as RangesResponse;
 const CO_RANGE = rangeCoFixture as unknown as RangeDetail;
 
-const FOLD_ACTION_ID = 'fold';
 const RAISE_ACTION_ID = 'raise';
 const LIMP_ACTION_ID = 'limp';
 
@@ -580,51 +580,46 @@ type GradedAnswer = Omit<AnswerResponse, 'progress'>;
 function grade(question: Question, chosenActionId: string): GradedAnswer {
   const position = question.prompt.hero_position;
   const notation = question.prompt.hand.notation;
-  const frequencies = chartFor(position).grid[notation] ?? {};
-  const played = playedFrequency(frequencies);
+  const chart = chartFor(position);
 
-  const best = Object.entries(frequencies).sort(([, a], [, b]) => b - a)[0];
-
-  const expectedActionId = best && best[1] >= 0.5 ? best[0] : FOLD_ACTION_ID;
-  const expectedFrequency =
-    expectedActionId === FOLD_ACTION_ID ? 1 - played : (best?.[1] ?? 0);
-
-  // A hand is mixed when no single action is taken every time.
-  const isMixed = played > 0 && played < 1;
+  const result = gradeCell(
+    chart.grid[notation] ?? {},
+    chart.actions,
+    chosenActionId
+  );
 
   const label = (actionId: string) =>
     question.actions.find((action) => action.id === actionId)?.label ??
     actionId;
 
-  // §4.3: a mixed hand answered either way is not a mistake.
-  const correct = isMixed || chosenActionId === expectedActionId;
-
   const graded: GradedAnswer = {
-    correct,
+    correct: result.correct,
     chosen: { action_id: chosenActionId, label: label(chosenActionId) },
     expected: {
-      action_id: expectedActionId,
-      label: label(expectedActionId),
-      frequency: round(expectedFrequency, 2),
+      action_id: result.expectedActionId,
+      label: label(result.expectedActionId),
+      frequency: result.expectedFrequency,
     },
     explanation: {
       summary: explanationSummary(
         notation,
         position,
-        expectedActionId,
-        label(expectedActionId),
-        expectedFrequency
+        result.expectedActionId,
+        label(result.expectedActionId),
+        result.mixed
       ),
       detail: explanationDetail(
         notation,
-        label(expectedActionId),
-        expectedFrequency
+        result.frequencies,
+        label,
+        chart.actions,
+        result.mixed
       ),
       range_id: `rfi_${question.prompt.table_format}_${position}`,
     },
   };
 
-  return isMixed ? { ...graded, mixed: true } : graded;
+  return result.mixed ? { ...graded, mixed: true } : graded;
 }
 
 function explanationSummary(
@@ -632,10 +627,10 @@ function explanationSummary(
   position: Position,
   expectedActionId: string,
   expectedLabel: string,
-  frequency: number
+  isMixed: boolean
 ): string {
-  if (frequency < 1) {
-    return `${notation} is a mixed spot from ${position} — either action is acceptable.`;
+  if (isMixed) {
+    return `${notation} is a mixed spot from ${position} — more than one line is acceptable.`;
   }
   if (expectedActionId === FOLD_ACTION_ID) {
     return `${notation} is a fold from ${position}.`;
@@ -645,14 +640,25 @@ function explanationSummary(
 
 function explanationDetail(
   notation: string,
-  expectedLabel: string,
-  frequency: number
+  frequencies: ActionFrequencies,
+  label: (actionId: string) => string,
+  actionOrder: readonly string[],
+  isMixed: boolean
 ): string {
-  const action = expectedLabel.toLowerCase();
-  if (frequency < 1) {
-    return `The chart plays ${notation} as ${action} ${Math.round(frequency * 100)}% of the time. Hands on this boundary are close enough that neither choice is a mistake.`;
+  if (!isMixed) {
+    const only = [...actionOrder, FOLD_ACTION_ID].find(
+      (actionId) => (frequencies[actionId] ?? 0) > 0
+    );
+    return `The chart plays ${notation} as ${label(only ?? FOLD_ACTION_ID).toLowerCase()} every time from this position.`;
   }
-  return `The chart plays ${notation} as ${action} every time from this position.`;
+  const split = [...actionOrder, FOLD_ACTION_ID]
+    .filter((actionId) => (frequencies[actionId] ?? 0) > 0)
+    .map(
+      (actionId) =>
+        `${label(actionId).toLowerCase()} ${Math.round((frequencies[actionId] ?? 0) * 100)}%`
+    )
+    .join(', ');
+  return `The chart splits ${notation} between ${split}. Any of those is acceptable here; anything else is not.`;
 }
 
 // ---------------------------------------------------------------------------
