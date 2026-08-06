@@ -28,10 +28,12 @@ describe('api boundary', () => {
   });
 
   it('keeps fixture imports inside src/api', () => {
-    const offenders = outsideApi.filter((file) => {
-      const source = readFileSync(file, 'utf8');
-      return source.includes('@fixtures') || source.includes('docs/examples');
-    });
+    // Match import specifiers only — prose mentioning docs/examples is fine.
+    const fixtureImport =
+      /\bfrom\s+['"][^'"]*(?:@fixtures|docs\/examples)[^'"]*['"]|\bimport\s*\(\s*['"][^'"]*(?:@fixtures|docs\/examples)[^'"]*['"]/;
+    const offenders = outsideApi.filter((file) =>
+      fixtureImport.test(readFileSync(file, 'utf8'))
+    );
     expect(offenders.map((file) => relative(SRC, file))).toEqual([]);
   });
 

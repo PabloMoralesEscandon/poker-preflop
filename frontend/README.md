@@ -60,7 +60,7 @@ src/
 tests/          # vitest + React Testing Library
 ```
 
-Two rules keep this modular, and both are enforced by review:
+Two rules keep this modular, and both are enforced by `tests/api/boundary.test.ts`:
 
 - **Nothing outside `src/api/` knows whether the mock or the live client is in
   use.** No component, page, or hook may import from `../docs/examples/`.
@@ -69,7 +69,32 @@ Two rules keep this modular, and both are enforced by review:
 
 ## Routes
 
-| Route             | Screen                       |
-| ----------------- | ---------------------------- |
-| `/`               | drill picker                 |
-| `/drill/:drillId` | session runner for one drill |
+| Route             | Screen                                       |
+| ----------------- | -------------------------------------------- |
+| `/`               | drill picker                                 |
+| `/drill/:drillId` | session runner for one drill                 |
+| `/dev/grid`       | development preview of the 13×13 range chart |
+
+## Seeing the hand grid
+
+```bash
+cd frontend && npm run dev
+# then open http://localhost:5173/dev/grid
+```
+
+Mock mode is the default, so the chart loads `rfi_6max_CO` through the api
+client with no backend running. Pick a range and a highlighted hand from the two
+selects; clicking a cell highlights it.
+
+The chart encodes three states, never by colour alone:
+
+| State     | Encoding                                           |
+| --------- | -------------------------------------------------- |
+| pure play | full-height fill in the action's colour            |
+| mixed     | partial fill, height = frequency, with a 45° hatch |
+| pure fold | empty cell                                         |
+
+Colour identifies _which_ action, drawn from fixed categorical slots
+(`--viz-series-1…4` in `src/index.css`) that are validated for both light and
+dark surfaces. Action ids are opaque strings — the same component will render
+`{"call": 0.6, "raise": 0.4}` unchanged.
