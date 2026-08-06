@@ -2,6 +2,7 @@
 
 import os
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -13,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from learner import __version__
 from learner.api.v1 import router as v1_router
 from learner.errors import LearnerError
+from learner.ranges.loader import DEFAULT_RANGE_DATA_DIR, load_ranges
 
 DEFAULT_CORS_ORIGINS = (
     "http://localhost:5173",
@@ -34,9 +36,10 @@ def _cors_origins() -> Sequence[str]:
     return tuple(origin.strip() for origin in configured.split(",") if origin.strip())
 
 
-def create_app() -> FastAPI:
+def create_app(range_data_dir: str | Path = DEFAULT_RANGE_DATA_DIR) -> FastAPI:
     """Create and configure a Poker Learner API application."""
     application = FastAPI(title="Poker Learner API", version=__version__)
+    application.state.range_index = load_ranges(range_data_dir)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(_cors_origins()),
