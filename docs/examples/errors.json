@@ -1,0 +1,39 @@
+{
+  "session_not_found": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "session_not_found",
+        "message": "Unknown session id."
+      }
+    }
+  },
+  "invalid_config": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "invalid_config",
+        "message": "positions must be non-empty.",
+        "field": "positions"
+      }
+    }
+  },
+  "question_out_of_order": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "question_out_of_order",
+        "message": "q_2 is not the current question."
+      }
+    }
+  },
+  "range_not_found": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "range_not_found",
+        "message": "Unknown range id rfi_6max_BB."
+      }
+    }
+  }
+}

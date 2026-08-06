@@ -1,0 +1,18 @@
+{
+  "session_id": "s_01HZY8QK3M4N5P6R7S8T9V",
+  "drill_id": "rfi",
+  "config": {
+    "table_format": "6max",
+    "positions": [
+      "UTG",
+      "HJ",
+      "CO",
+      "BTN",
+      "SB"
+    ],
+    "question_count": 25,
+    "weighting": "borderline"
+  },
+  "seed": 12345,
+  "created_at": "2026-08-06T18:00:00Z"
+}

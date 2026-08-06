@@ -1,0 +1,125 @@
+{
+  "drills": [
+    {
+      "id": "rfi",
+      "name": "Raise First In",
+      "description": "Decide whether to open-raise or fold when the pot is unopened.",
+      "version": 1,
+      "config_schema": {
+        "fields": [
+          {
+            "key": "table_format",
+            "label": "Table format",
+            "type": "enum",
+            "default": "6max",
+            "options": [
+              {
+                "value": "6max",
+                "label": "6-max"
+              },
+              {
+                "value": "9max",
+                "label": "9-max (full ring)"
+              }
+            ]
+          },
+          {
+            "key": "positions",
+            "label": "Positions",
+            "type": "multi_enum",
+            "default": [
+              "UTG",
+              "HJ",
+              "CO",
+              "BTN",
+              "SB"
+            ],
+            "depends_on": "table_format",
+            "options_by": {
+              "6max": [
+                {
+                  "value": "UTG",
+                  "label": "UTG"
+                },
+                {
+                  "value": "HJ",
+                  "label": "Hijack"
+                },
+                {
+                  "value": "CO",
+                  "label": "Cutoff"
+                },
+                {
+                  "value": "BTN",
+                  "label": "Button"
+                },
+                {
+                  "value": "SB",
+                  "label": "Small blind"
+                }
+              ],
+              "9max": [
+                {
+                  "value": "UTG",
+                  "label": "UTG"
+                },
+                {
+                  "value": "UTG1",
+                  "label": "UTG+1"
+                },
+                {
+                  "value": "UTG2",
+                  "label": "UTG+2"
+                },
+                {
+                  "value": "LJ",
+                  "label": "Lojack"
+                },
+                {
+                  "value": "HJ",
+                  "label": "Hijack"
+                },
+                {
+                  "value": "CO",
+                  "label": "Cutoff"
+                },
+                {
+                  "value": "BTN",
+                  "label": "Button"
+                },
+                {
+                  "value": "SB",
+                  "label": "Small blind"
+                }
+              ]
+            }
+          },
+          {
+            "key": "question_count",
+            "label": "Hands",
+            "type": "int",
+            "default": 25,
+            "min": 5,
+            "max": 200
+          },
+          {
+            "key": "weighting",
+            "label": "Hand selection",
+            "type": "enum",
+            "default": "borderline",
+            "options": [
+              {
+                "value": "uniform",
+                "label": "Uniform — any of the 169 hands"
+              },
+              {
+                "value": "borderline",
+                "label": "Borderline — favour close decisions"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

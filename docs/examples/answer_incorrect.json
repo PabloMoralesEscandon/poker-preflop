@@ -1,0 +1,22 @@
+{
+  "correct": false,
+  "chosen": {
+    "action_id": "raise",
+    "label": "Raise 2.5bb"
+  },
+  "expected": {
+    "action_id": "fold",
+    "label": "Fold",
+    "frequency": 1.0
+  },
+  "explanation": {
+    "summary": "K9s is a fold from UTG.",
+    "detail": "With five players left to act, K9s is dominated by the hands that continue against an UTG open. It becomes an open from the hijack onward.",
+    "range_id": "rfi_6max_UTG"
+  },
+  "progress": {
+    "answered": 7,
+    "correct": 5,
+    "total": 25
+  }
+}

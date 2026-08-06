@@ -1,0 +1,39 @@
+{
+  "ranges": [
+    {
+      "range_id": "rfi_6max_UTG",
+      "spot": "rfi",
+      "table_format": "6max",
+      "position": "UTG",
+      "stack_bb": 100
+    },
+    {
+      "range_id": "rfi_6max_HJ",
+      "spot": "rfi",
+      "table_format": "6max",
+      "position": "HJ",
+      "stack_bb": 100
+    },
+    {
+      "range_id": "rfi_6max_CO",
+      "spot": "rfi",
+      "table_format": "6max",
+      "position": "CO",
+      "stack_bb": 100
+    },
+    {
+      "range_id": "rfi_6max_BTN",
+      "spot": "rfi",
+      "table_format": "6max",
+      "position": "BTN",
+      "stack_bb": 100
+    },
+    {
+      "range_id": "rfi_6max_SB",
+      "spot": "rfi",
+      "table_format": "6max",
+      "position": "SB",
+      "stack_bb": 100
+    }
+  ]
+}

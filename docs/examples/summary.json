@@ -1,0 +1,79 @@
+{
+  "session_id": "s_01HZY8QK3M4N5P6R7S8T9V",
+  "drill_id": "rfi",
+  "answered": 25,
+  "correct": 21,
+  "accuracy": 0.84,
+  "complete": true,
+  "breakdown": [
+    {
+      "key": "UTG",
+      "label": "UTG",
+      "answered": 5,
+      "correct": 3,
+      "accuracy": 0.6
+    },
+    {
+      "key": "HJ",
+      "label": "Hijack",
+      "answered": 5,
+      "correct": 4,
+      "accuracy": 0.8
+    },
+    {
+      "key": "CO",
+      "label": "Cutoff",
+      "answered": 5,
+      "correct": 5,
+      "accuracy": 1.0
+    },
+    {
+      "key": "BTN",
+      "label": "Button",
+      "answered": 5,
+      "correct": 5,
+      "accuracy": 1.0
+    },
+    {
+      "key": "SB",
+      "label": "Small blind",
+      "answered": 5,
+      "correct": 4,
+      "accuracy": 0.8
+    }
+  ],
+  "mistakes": [
+    {
+      "question_id": "q_7",
+      "position": "UTG",
+      "hand": "K9s",
+      "chosen": "raise",
+      "expected": "fold",
+      "range_id": "rfi_6max_UTG"
+    },
+    {
+      "question_id": "q_12",
+      "position": "UTG",
+      "hand": "A8o",
+      "chosen": "raise",
+      "expected": "fold",
+      "range_id": "rfi_6max_UTG"
+    },
+    {
+      "question_id": "q_18",
+      "position": "HJ",
+      "hand": "65s",
+      "chosen": "fold",
+      "expected": "raise",
+      "range_id": "rfi_6max_HJ"
+    },
+    {
+      "question_id": "q_22",
+      "position": "SB",
+      "hand": "Q8o",
+      "chosen": "fold",
+      "expected": "raise",
+      "range_id": "rfi_6max_SB"
+    }
+  ]
+}

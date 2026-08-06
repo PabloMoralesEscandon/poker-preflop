@@ -1,0 +1,22 @@
+{
+  "correct": true,
+  "chosen": {
+    "action_id": "raise",
+    "label": "Raise 2.5bb"
+  },
+  "expected": {
+    "action_id": "raise",
+    "label": "Raise 2.5bb",
+    "frequency": 1.0
+  },
+  "explanation": {
+    "summary": "AKo is a pure open from the cutoff.",
+    "detail": "AKo sits in the top 3% of starting hands and plays well against the three players left to act. It opens at a 100% frequency from every position.",
+    "range_id": "rfi_6max_CO"
+  },
+  "progress": {
+    "answered": 3,
+    "correct": 3,
+    "total": 25
+  }
+}

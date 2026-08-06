@@ -1,0 +1,23 @@
+{
+  "correct": true,
+  "mixed": true,
+  "chosen": {
+    "action_id": "raise",
+    "label": "Raise 2.5bb"
+  },
+  "expected": {
+    "action_id": "raise",
+    "label": "Raise 2.5bb",
+    "frequency": 0.5
+  },
+  "explanation": {
+    "summary": "K5s is a mixed spot from the cutoff — either action is acceptable.",
+    "detail": "The chart opens K5s half the time. Hands on this boundary are close enough that neither choice is a mistake; treat it as a coin flip.",
+    "range_id": "rfi_6max_CO"
+  },
+  "progress": {
+    "answered": 11,
+    "correct": 9,
+    "total": 25
+  }
+}
