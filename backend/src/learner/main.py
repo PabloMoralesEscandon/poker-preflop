@@ -13,8 +13,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from learner import __version__
 from learner.api.v1 import router as v1_router
+from learner.drills.registry import DrillRegistry
+from learner.drills.rfi import RfiDrill
 from learner.errors import LearnerError
 from learner.ranges.loader import DEFAULT_RANGE_DATA_DIR, load_ranges
+from learner.sessions.memory import MemorySessionStore
+from learner.sessions.service import SessionService
+from learner.sessions.store import SessionStore
 
 DEFAULT_CORS_ORIGINS = (
     "http://localhost:5173",
@@ -36,10 +41,18 @@ def _cors_origins() -> Sequence[str]:
     return tuple(origin.strip() for origin in configured.split(",") if origin.strip())
 
 
-def create_app(range_data_dir: str | Path = DEFAULT_RANGE_DATA_DIR) -> FastAPI:
+def create_app(
+    range_data_dir: str | Path = DEFAULT_RANGE_DATA_DIR,
+    session_store: SessionStore | None = None,
+) -> FastAPI:
     """Create and configure a Poker Learner API application."""
     application = FastAPI(title="Poker Learner API", version=__version__)
-    application.state.range_index = load_ranges(range_data_dir)
+    ranges = load_ranges(range_data_dir)
+    drills = DrillRegistry([RfiDrill(ranges)])
+    store = MemorySessionStore() if session_store is None else session_store
+    application.state.range_index = ranges
+    application.state.drill_registry = drills
+    application.state.session_service = SessionService(drills, store)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(_cors_origins()),
@@ -59,11 +72,15 @@ def create_app(range_data_dir: str | Path = DEFAULT_RANGE_DATA_DIR) -> FastAPI:
 
     @application.exception_handler(RequestValidationError)
     async def validation_error_handler(
-        _request: Request, _exc: RequestValidationError
+        _request: Request, exc: RequestValidationError
     ) -> JSONResponse:
+        malformed_json = any(error["type"] == "json_invalid" for error in exc.errors())
+        message = (
+            "Request body is not valid JSON." if malformed_json else "Invalid request."
+        )
         return JSONResponse(
             status_code=400,
-            content=_error_content("invalid_request", "Invalid request."),
+            content=_error_content("invalid_request", message),
         )
 
     @application.exception_handler(StarletteHTTPException)
@@ -73,7 +90,7 @@ def create_app(range_data_dir: str | Path = DEFAULT_RANGE_DATA_DIR) -> FastAPI:
         if exc.status_code >= 500:
             return JSONResponse(
                 status_code=500,
-                content=_error_content("internal_error", "Internal server error."),
+                content=_error_content("internal_error", "Unexpected server error."),
             )
         return JSONResponse(
             status_code=400,
@@ -86,7 +103,7 @@ def create_app(range_data_dir: str | Path = DEFAULT_RANGE_DATA_DIR) -> FastAPI:
     ) -> JSONResponse:
         return JSONResponse(
             status_code=500,
-            content=_error_content("internal_error", "Internal server error."),
+            content=_error_content("internal_error", "Unexpected server error."),
         )
 
     application.include_router(v1_router)
