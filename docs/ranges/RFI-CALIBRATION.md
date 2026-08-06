@@ -12,8 +12,12 @@ wrong position. If a faithfully transcribed chart lands outside its band by a
 small margin, record that in the file's `notes` and keep the chart's numbers. If
 it lands outside by a lot, something was transcribed wrong.
 
-VPIP here means combo-weighted percentage of the 1326 starting combos that open
-raise, i.e. `stats.vpip` from RANGE-DATA-FORMAT §4.
+Two different measures appear below, and confusing them has already caused one
+round-trip. **Raise VPIP** is the combo-weighted share of the 1326 starting
+combos that raise — that is what the §2 and §3 tables give. **Played frequency**
+is the share that takes any non-fold action, raise or limp — that is what the §4
+invariants use, because the small blind limps. `stats.vpip` in
+RANGE-DATA-FORMAT §4 is the played measure.
 
 ## 2. 6-max, 100bb, 2.5bb opens (3bb from SB)
 
@@ -83,6 +87,33 @@ Keep the mixed-frequency machinery anyway. It is specified, it is cheap, and the
 cells in these five files, and do not invent them to make the feature testable —
 test it with fixtures instead.
 
+### 2.4 Verified compositions
+
+Read off the rendered grids by bob-the-boss on 2026-08-06 and cross-checked
+against the chart's own printed totals. Use these to catch a systematic
+transcription error on the first file rather than the fifth.
+
+**UTG (the chart's "Lojack") — 226 combos, 17.0%**
+
+| Class | Hands | Combos |
+|---|---|---|
+| Pairs `AA`–`66` | 9 | 54 |
+| Suited | 22 | 88 |
+| Offsuit | 7 | 84 |
+| **Total** | **38** | **226** |
+
+The 22 suited hands are `A3s`+ (11), `K8s`+ (5), `Q9s`+ (3), `J9s`+ (2), `T9s`
+(1). The 7 offsuit hands are `ATo`+ (4), `KJo`+ (2), `QJo` (1). `A2s`, `55` and
+below, and everything else fold.
+
+**BTN — 574 combos, 43.3%.** All thirteen pairs open, including `22`.
+
+**SB — 322 raise + 504 limp = 826 combos played, 500 folded.** All thirteen
+pairs are played. Note that `AA` is a **limp**, not a raise — which is exactly
+why invariant §4.2 is written against played frequency rather than raise
+frequency.
+
+
 ## 3. 9-max full ring, 100bb, 2.5bb opens (3bb from SB)
 
 Primary source: `gtowizard-free-study`. Configure it to 100bb, cash, 2.5bb
@@ -132,8 +163,18 @@ specifically.
    position** for the wheel-ace hands (`A5s`, `A4s`, `A3s`, `A2s`), which many
    charts open ahead of `A7s`/`A6s`. Any other inversion is a transcription
    error.
-6. **Pairs never fold above 55.** All of `AA` through `55` have played frequency
+6. **Pairs never fold above 66.** All of `AA` through `66` have played frequency
    `1.0` from every position.
+
+   **This corrected an earlier version that said `55`, which was wrong.** The
+   UTG/Lojack grid folds `55`, `44`, `33` and `22` — see the verified
+   composition in §2.4. `55` and below vary by position (the button opens all
+   thirteen pairs, the small blind plays all thirteen), so no invariant binds
+   them.
+
+   The general trap: every invariant in this section must hold at **every**
+   position, which means it is bounded by the tightest one. When writing a new
+   invariant, check it against UTG first.
 7. **Coverage.** Every position in §2 and §3 has a file. `rfi/6max/` has 5
    files, `rfi/9max/` has 8. No `BB.json`.
 
