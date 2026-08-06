@@ -1,0 +1,426 @@
+{
+  "range_id": "rfi_6max_SB",
+  "spot": "rfi",
+  "table_format": "6max",
+  "position": "SB",
+  "stack_bb": 100,
+  "open_size_bb": 3,
+  "source_id": "jl-6max-preflop-charts",
+  "notes": "100bb RFI; 3bb raise size; typical $2/$5 online cash game with 5% rake capped at $3; chart p.3. Three-action strategy: red cells raise, blue cells limp, and uncoloured cells fold.",
+  "actions": [
+    "raise",
+    "limp"
+  ],
+  "grid": {
+    "22": {
+      "raise": 1
+    },
+    "33": {
+      "raise": 1
+    },
+    "44": {
+      "limp": 1
+    },
+    "55": {
+      "limp": 1
+    },
+    "66": {
+      "limp": 1
+    },
+    "77": {
+      "limp": 1
+    },
+    "88": {
+      "limp": 1
+    },
+    "99": {
+      "limp": 1
+    },
+    "AA": {
+      "limp": 1
+    },
+    "AKs": {
+      "raise": 1
+    },
+    "AQs": {
+      "limp": 1
+    },
+    "AJs": {
+      "limp": 1
+    },
+    "ATs": {
+      "raise": 1
+    },
+    "A9s": {
+      "raise": 1
+    },
+    "A8s": {
+      "raise": 1
+    },
+    "A7s": {
+      "raise": 1
+    },
+    "A6s": {
+      "limp": 1
+    },
+    "A5s": {
+      "raise": 1
+    },
+    "A4s": {
+      "limp": 1
+    },
+    "A3s": {
+      "limp": 1
+    },
+    "A2s": {
+      "limp": 1
+    },
+    "AKo": {
+      "limp": 1
+    },
+    "KK": {
+      "raise": 1
+    },
+    "KQs": {
+      "limp": 1
+    },
+    "KJs": {
+      "raise": 1
+    },
+    "KTs": {
+      "raise": 1
+    },
+    "K9s": {
+      "limp": 1
+    },
+    "K8s": {
+      "raise": 1
+    },
+    "K7s": {
+      "limp": 1
+    },
+    "K6s": {
+      "limp": 1
+    },
+    "K5s": {
+      "raise": 1
+    },
+    "K4s": {
+      "limp": 1
+    },
+    "K3s": {
+      "raise": 1
+    },
+    "K2s": {
+      "raise": 1
+    },
+    "AQo": {
+      "raise": 1
+    },
+    "KQo": {
+      "limp": 1
+    },
+    "QQ": {
+      "raise": 1
+    },
+    "QJs": {
+      "raise": 1
+    },
+    "QTs": {
+      "raise": 1
+    },
+    "Q9s": {
+      "limp": 1
+    },
+    "Q8s": {
+      "limp": 1
+    },
+    "Q7s": {
+      "limp": 1
+    },
+    "Q6s": {
+      "limp": 1
+    },
+    "Q5s": {
+      "raise": 1
+    },
+    "Q4s": {
+      "raise": 1
+    },
+    "Q3s": {
+      "raise": 1
+    },
+    "Q2s": {
+      "raise": 1
+    },
+    "AJo": {
+      "raise": 1
+    },
+    "KJo": {
+      "raise": 1
+    },
+    "QJo": {
+      "limp": 1
+    },
+    "JJ": {
+      "raise": 1
+    },
+    "JTs": {
+      "raise": 1
+    },
+    "J9s": {
+      "limp": 1
+    },
+    "J8s": {
+      "limp": 1
+    },
+    "J7s": {
+      "raise": 1
+    },
+    "J6s": {
+      "raise": 1
+    },
+    "J5s": {
+      "raise": 1
+    },
+    "J4s": {
+      "raise": 1
+    },
+    "J3s": {
+      "limp": 1
+    },
+    "J2s": {
+      "limp": 1
+    },
+    "ATo": {
+      "limp": 1
+    },
+    "KTo": {
+      "limp": 1
+    },
+    "QTo": {
+      "limp": 1
+    },
+    "JTo": {
+      "limp": 1
+    },
+    "TT": {
+      "limp": 1
+    },
+    "T9s": {
+      "raise": 1
+    },
+    "T8s": {
+      "limp": 1
+    },
+    "T7s": {
+      "limp": 1
+    },
+    "T6s": {
+      "raise": 1
+    },
+    "T5s": {
+      "raise": 1
+    },
+    "T4s": {
+      "limp": 1
+    },
+    "T3s": {
+      "limp": 1
+    },
+    "T2s": {},
+    "A9o": {
+      "limp": 1
+    },
+    "K9o": {
+      "raise": 1
+    },
+    "Q9o": {
+      "raise": 1
+    },
+    "J9o": {
+      "raise": 1
+    },
+    "T9o": {
+      "limp": 1
+    },
+    "98s": {
+      "limp": 1
+    },
+    "97s": {
+      "limp": 1
+    },
+    "96s": {
+      "raise": 1
+    },
+    "95s": {
+      "limp": 1
+    },
+    "94s": {
+      "limp": 1
+    },
+    "93s": {},
+    "92s": {},
+    "A8o": {
+      "raise": 1
+    },
+    "K8o": {
+      "raise": 1
+    },
+    "Q8o": {
+      "limp": 1
+    },
+    "J8o": {
+      "limp": 1
+    },
+    "T8o": {
+      "raise": 1
+    },
+    "98o": {
+      "raise": 1
+    },
+    "87s": {
+      "limp": 1
+    },
+    "86s": {
+      "limp": 1
+    },
+    "85s": {
+      "limp": 1
+    },
+    "84s": {
+      "limp": 1
+    },
+    "83s": {},
+    "82s": {},
+    "A7o": {
+      "raise": 1
+    },
+    "K7o": {
+      "raise": 1
+    },
+    "Q7o": {
+      "limp": 1
+    },
+    "J7o": {
+      "limp": 1
+    },
+    "T7o": {
+      "limp": 1
+    },
+    "97o": {
+      "limp": 1
+    },
+    "87o": {
+      "limp": 1
+    },
+    "76s": {
+      "limp": 1
+    },
+    "75s": {
+      "limp": 1
+    },
+    "74s": {
+      "limp": 1
+    },
+    "73s": {},
+    "72s": {},
+    "A6o": {
+      "raise": 1
+    },
+    "K6o": {
+      "limp": 1
+    },
+    "Q6o": {
+      "limp": 1
+    },
+    "J6o": {},
+    "T6o": {},
+    "96o": {},
+    "86o": {
+      "limp": 1
+    },
+    "76o": {
+      "limp": 1
+    },
+    "65s": {
+      "raise": 1
+    },
+    "64s": {
+      "raise": 1
+    },
+    "63s": {
+      "limp": 1
+    },
+    "62s": {},
+    "A5o": {
+      "limp": 1
+    },
+    "K5o": {
+      "limp": 1
+    },
+    "Q5o": {
+      "limp": 1
+    },
+    "J5o": {},
+    "T5o": {},
+    "95o": {},
+    "85o": {},
+    "75o": {},
+    "65o": {},
+    "54s": {
+      "raise": 1
+    },
+    "53s": {
+      "raise": 1
+    },
+    "52s": {},
+    "A4o": {
+      "raise": 1
+    },
+    "K4o": {
+      "limp": 1
+    },
+    "Q4o": {},
+    "J4o": {},
+    "T4o": {},
+    "94o": {},
+    "84o": {},
+    "74o": {},
+    "64o": {},
+    "54o": {},
+    "43s": {
+      "limp": 1
+    },
+    "42s": {},
+    "A3o": {
+      "limp": 1
+    },
+    "K3o": {},
+    "Q3o": {},
+    "J3o": {},
+    "T3o": {},
+    "93o": {},
+    "83o": {},
+    "73o": {},
+    "63o": {},
+    "53o": {},
+    "43o": {},
+    "32s": {},
+    "A2o": {
+      "limp": 1
+    },
+    "K2o": {},
+    "Q2o": {},
+    "J2o": {},
+    "T2o": {},
+    "92o": {},
+    "82o": {},
+    "72o": {},
+    "62o": {},
+    "52o": {},
+    "42o": {},
+    "32o": {}
+  }
+}
+

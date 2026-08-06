@@ -1,0 +1,367 @@
+{
+  "range_id": "rfi_6max_BTN",
+  "spot": "rfi",
+  "table_format": "6max",
+  "position": "BTN",
+  "stack_bb": 100,
+  "open_size_bb": 2.5,
+  "source_id": "jl-6max-preflop-charts",
+  "notes": "100bb RFI; 2.5bb open; typical $2/$5 online cash game with 5% rake capped at $3; chart p.3.",
+  "actions": [
+    "raise"
+  ],
+  "grid": {
+    "22": {
+      "raise": 1
+    },
+    "33": {
+      "raise": 1
+    },
+    "44": {
+      "raise": 1
+    },
+    "55": {
+      "raise": 1
+    },
+    "66": {
+      "raise": 1
+    },
+    "77": {
+      "raise": 1
+    },
+    "88": {
+      "raise": 1
+    },
+    "99": {
+      "raise": 1
+    },
+    "AA": {
+      "raise": 1
+    },
+    "AKs": {
+      "raise": 1
+    },
+    "AQs": {
+      "raise": 1
+    },
+    "AJs": {
+      "raise": 1
+    },
+    "ATs": {
+      "raise": 1
+    },
+    "A9s": {
+      "raise": 1
+    },
+    "A8s": {
+      "raise": 1
+    },
+    "A7s": {
+      "raise": 1
+    },
+    "A6s": {
+      "raise": 1
+    },
+    "A5s": {
+      "raise": 1
+    },
+    "A4s": {
+      "raise": 1
+    },
+    "A3s": {
+      "raise": 1
+    },
+    "A2s": {
+      "raise": 1
+    },
+    "AKo": {
+      "raise": 1
+    },
+    "KK": {
+      "raise": 1
+    },
+    "KQs": {
+      "raise": 1
+    },
+    "KJs": {
+      "raise": 1
+    },
+    "KTs": {
+      "raise": 1
+    },
+    "K9s": {
+      "raise": 1
+    },
+    "K8s": {
+      "raise": 1
+    },
+    "K7s": {
+      "raise": 1
+    },
+    "K6s": {
+      "raise": 1
+    },
+    "K5s": {
+      "raise": 1
+    },
+    "K4s": {
+      "raise": 1
+    },
+    "K3s": {
+      "raise": 1
+    },
+    "K2s": {
+      "raise": 1
+    },
+    "AQo": {
+      "raise": 1
+    },
+    "KQo": {
+      "raise": 1
+    },
+    "QQ": {
+      "raise": 1
+    },
+    "QJs": {
+      "raise": 1
+    },
+    "QTs": {
+      "raise": 1
+    },
+    "Q9s": {
+      "raise": 1
+    },
+    "Q8s": {
+      "raise": 1
+    },
+    "Q7s": {
+      "raise": 1
+    },
+    "Q6s": {
+      "raise": 1
+    },
+    "Q5s": {
+      "raise": 1
+    },
+    "Q4s": {
+      "raise": 1
+    },
+    "Q3s": {
+      "raise": 1
+    },
+    "Q2s": {},
+    "AJo": {
+      "raise": 1
+    },
+    "KJo": {
+      "raise": 1
+    },
+    "QJo": {
+      "raise": 1
+    },
+    "JJ": {
+      "raise": 1
+    },
+    "JTs": {
+      "raise": 1
+    },
+    "J9s": {
+      "raise": 1
+    },
+    "J8s": {
+      "raise": 1
+    },
+    "J7s": {
+      "raise": 1
+    },
+    "J6s": {
+      "raise": 1
+    },
+    "J5s": {
+      "raise": 1
+    },
+    "J4s": {
+      "raise": 1
+    },
+    "J3s": {},
+    "J2s": {},
+    "ATo": {
+      "raise": 1
+    },
+    "KTo": {
+      "raise": 1
+    },
+    "QTo": {
+      "raise": 1
+    },
+    "JTo": {
+      "raise": 1
+    },
+    "TT": {
+      "raise": 1
+    },
+    "T9s": {
+      "raise": 1
+    },
+    "T8s": {
+      "raise": 1
+    },
+    "T7s": {
+      "raise": 1
+    },
+    "T6s": {
+      "raise": 1
+    },
+    "T5s": {},
+    "T4s": {},
+    "T3s": {},
+    "T2s": {},
+    "A9o": {
+      "raise": 1
+    },
+    "K9o": {
+      "raise": 1
+    },
+    "Q9o": {
+      "raise": 1
+    },
+    "J9o": {
+      "raise": 1
+    },
+    "T9o": {
+      "raise": 1
+    },
+    "98s": {
+      "raise": 1
+    },
+    "97s": {
+      "raise": 1
+    },
+    "96s": {
+      "raise": 1
+    },
+    "95s": {},
+    "94s": {},
+    "93s": {},
+    "92s": {},
+    "A8o": {
+      "raise": 1
+    },
+    "K8o": {
+      "raise": 1
+    },
+    "Q8o": {},
+    "J8o": {},
+    "T8o": {
+      "raise": 1
+    },
+    "98o": {
+      "raise": 1
+    },
+    "87s": {
+      "raise": 1
+    },
+    "86s": {
+      "raise": 1
+    },
+    "85s": {
+      "raise": 1
+    },
+    "84s": {},
+    "83s": {},
+    "82s": {},
+    "A7o": {
+      "raise": 1
+    },
+    "K7o": {},
+    "Q7o": {},
+    "J7o": {},
+    "T7o": {},
+    "97o": {},
+    "87o": {},
+    "76s": {
+      "raise": 1
+    },
+    "75s": {
+      "raise": 1
+    },
+    "74s": {},
+    "73s": {},
+    "72s": {},
+    "A6o": {
+      "raise": 1
+    },
+    "K6o": {},
+    "Q6o": {},
+    "J6o": {},
+    "T6o": {},
+    "96o": {},
+    "86o": {},
+    "76o": {},
+    "65s": {
+      "raise": 1
+    },
+    "64s": {
+      "raise": 1
+    },
+    "63s": {},
+    "62s": {},
+    "A5o": {
+      "raise": 1
+    },
+    "K5o": {},
+    "Q5o": {},
+    "J5o": {},
+    "T5o": {},
+    "95o": {},
+    "85o": {},
+    "75o": {},
+    "65o": {},
+    "54s": {
+      "raise": 1
+    },
+    "53s": {
+      "raise": 1
+    },
+    "52s": {},
+    "A4o": {
+      "raise": 1
+    },
+    "K4o": {},
+    "Q4o": {},
+    "J4o": {},
+    "T4o": {},
+    "94o": {},
+    "84o": {},
+    "74o": {},
+    "64o": {},
+    "54o": {},
+    "43s": {},
+    "42s": {},
+    "A3o": {},
+    "K3o": {},
+    "Q3o": {},
+    "J3o": {},
+    "T3o": {},
+    "93o": {},
+    "83o": {},
+    "73o": {},
+    "63o": {},
+    "53o": {},
+    "43o": {},
+    "32s": {},
+    "A2o": {},
+    "K2o": {},
+    "Q2o": {},
+    "J2o": {},
+    "T2o": {},
+    "92o": {},
+    "82o": {},
+    "72o": {},
+    "62o": {},
+    "52o": {},
+    "42o": {},
+    "32o": {}
+  }
+}
+
