@@ -2,6 +2,7 @@ from random import Random
 
 import pytest
 
+from learner.ranges.loader import load_ranges
 from learner.ranges.models import (
     CANONICAL_HAND_SET,
     TOTAL_COMBOS,
@@ -113,6 +114,23 @@ def test_borderline_sampling_factors() -> None:
     assert difficulty_factor("AA", folded) == 4
     assert difficulty_factor("AKs", folded) == 4
     assert difficulty_factor("72o", folded) == 1
-    assert difficulty_factor("A5s", mixed) == 6
     assert difficulty_factor("AA", fully_open) == 1
     assert sampling_weight("A5s", mixed) == 24
+
+
+def test_mixed_frequency_fixture_keeps_factor_six() -> None:
+    grid = {hand: {} for hand in canonical_hands()}
+    grid["A5s"] = {"raise": 0.5}
+
+    assert difficulty_factor("A5s", grid) == 6
+
+
+def test_real_co_borderline_sampling_deemphasizes_obvious_hands() -> None:
+    grid = load_ranges().get("rfi_6max_CO").grid
+    weights = {hand: sampling_weight(hand, grid) for hand in canonical_hands()}
+    total_weight = sum(weights.values())
+
+    for hand in ("AA", "72o"):
+        borderline_share = weights[hand] / total_weight
+        uniform_share = combos(hand) / TOTAL_COMBOS
+        assert borderline_share < uniform_share

@@ -123,7 +123,7 @@ def difficulty_factor(notation: str, grid: dict[str, dict[str, float]]) -> int:
     played = frequency > 0.0
     for neighbour, cell in grid.items():
         neighbour_row, neighbour_column = grid_coordinates(neighbour)
-        if max(abs(row - neighbour_row), abs(column - neighbour_column)) > 3:
+        if max(abs(row - neighbour_row), abs(column - neighbour_column)) > 1:
             continue
         if (played_frequency(cell) > 0.0) != played:
             return 4
@@ -131,7 +131,10 @@ def difficulty_factor(notation: str, grid: dict[str, dict[str, float]]) -> int:
 
 
 def sampling_weight(notation: str, grid: dict[str, dict[str, float]]) -> int:
-    """Return combo count multiplied by the hand's difficulty factor."""
+    """Return the borderline-mode weight: combos times difficulty factor.
+
+    Uniform mode uses ``combos(notation)`` directly.
+    """
     return combos(notation) * difficulty_factor(notation, grid)
 
 
