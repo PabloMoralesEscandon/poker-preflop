@@ -31,7 +31,7 @@ listed in §2.
 
 | `source_id` | What | URL | Role | Verified |
 |---|---|---|---|---|
-| `jl-6max-preflop-charts` | Visual 6-max cash preflop chart set: 13×13 grids for RFI, facing an RFI in and out of position, and blind vs blind. Assumes 100bb, 2.5bb opens (3bb from SB), 5% rake capped at $3. Free, no account. | `https://jlsecrets.s3.amazonaws.com/advancedclasses/6maxcashgames/pdf/Online%206-max%20Cash%20Game%20Preflop%20Charts.pdf` | **PRIMARY for `rfi_6max_*`** | not yet |
+| `jl-6max-preflop-charts` | Visual 6-max cash preflop chart set, 6 pages. Page 3 is RFI (five 13×13 grids: Lojack, Hijack, Cutoff, Button, Small Blind); pages 4–6 cover facing an RFI in and out of position, and blind vs blind. "Implementable GTO" — a pure strategy with mixed frequencies rounded away. 100bb, 2.5bb opens, 3bb from SB. Free, no account. **Grids are images**; see RFI-CALIBRATION §5.0 for how to read them. | `https://jlsecrets.s3.amazonaws.com/advancedclasses/6maxcashgames/pdf/Online%206-max%20Cash%20Game%20Preflop%20Charts.pdf` | **PRIMARY for `rfi_6max_*`** | **2026-08-06** — HTTP 200, 1.9 MB, page 3 rendered and read by bob-the-boss |
 | `gtowizard-free-study` | Configurable free Study matrix — fold/call/raise charts at chosen rake, stack, and sizing. Free tier is enough for preflop. | `https://gtowizard.com/` | **PRIMARY for `rfi_9max_*`**, cross-check for 6-max | not yet |
 | `freebetrange-open-raises` | Opening-range PDF for 6-max cash, with written reasoning. Its blue hands are exploitative deviations, **not** part of a baseline range — exclude them. | `https://help.freebetrange.com/guides/Preflop_Charts_-_Open_Raises_in_6max_Cash_Games.pdf` | cross-check only | not yet |
 
@@ -76,9 +76,18 @@ not add a poker library to ship version 1.
 - **Anything requiring a subscription** — most of FreeBetRange's chart library,
   GTO Wizard's postflop solutions, PioSolver, Simple Preflop. If a task seems to
   need one, the task is wrong.
-- **Scraped chart images or OCR of PDFs.** Ranges get typed in by hand from a
-  chart a human read, and checked against the calibration table. It is slower
-  and it is the only version we can defend.
+- **Blind automated extraction.** No OCR pipeline, no colour-sampling script, no
+  "parse the PDF and trust the output". Ranges are read cell by cell and typed
+  in deliberately, then checked against the calibration figures.
+
+  **Rendering a chart page to an image in order to look at it is not
+  extraction — it is how you read it**, and it is required for
+  `jl-6max-preflop-charts`, whose grids are images. The rule being protected
+  here is that a person or agent has actually looked at every cell it is
+  claiming, and that the result is checked against the source's own printed
+  combo counts. The rendered image is a working file and never enters the repo.
+  This paragraph corrects an earlier version of this rule that forbade reading
+  image-based charts at all, which made the primary source unusable.
 - **LLM-invented ranges.** A range that cannot cite a chart does not ship.
   Filling gaps by interpolating between charted neighbours is allowed, but must
   be recorded in the file's `notes`.
