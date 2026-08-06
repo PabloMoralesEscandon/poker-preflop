@@ -193,7 +193,7 @@ answer is posted. Example `docs/examples/next_question.json`:
 }
 ```
 
-When the session is complete:
+When the session is complete, example `docs/examples/next_done.json`:
 
 ```json
 {"done": true, "question": null}
@@ -235,7 +235,8 @@ The grader marks the answer `correct` when the chosen action's frequency is
 {"mixed": true}
 ```
 
-and `explanation.summary` must say so. A mixed hand answered either way is
+and `explanation.summary` must say so. Examples:
+`docs/examples/answer_incorrect.json`, `docs/examples/answer_mixed.json`. A mixed hand answered either way is
 **not** marked incorrect; it returns `"correct": true` plus `"mixed": true` so
 the UI can show it as "acceptable — this is a mixed spot".
 
@@ -311,9 +312,20 @@ block:
   "source_id": "jl-6max-preflop-charts",
   "notes": "100bb, 2.5bb opens, 5% rake capped at $3.",
   "actions": ["raise"],
-  "grid": {"AA": {"raise": 1.0}, "AKo": {"raise": 1.0}, "A5s": {"raise": 0.5}, "72o": {}},
-  "stats": {"combos": 364, "vpip": 0.2745, "hands_played": 68}
+  "grid": {"AA": {"raise": 1.0}, "AKo": {"raise": 1.0}, "K5s": {"raise": 0.5}, "72o": {}},
+  "stats": {"combos": 328.0, "vpip": 0.2474, "hands_played": 65}
 }
+```
+
+The values above are elided from `docs/examples/range_rfi_6max_CO.json` and
+agree with it exactly. That fixture is the authority; this block is only here so
+the shape is readable in context.
+
+A range with more than one non-fold action — the small blind, which raises or
+limps — looks like this:
+
+```json
+{"actions": ["raise", "limp"], "grid": {"AA": {"raise": 1.0}, "K9s": {"limp": 1.0}, "72o": {}}}
 ```
 
 `grid` contains **all 169 keys**. Each value maps a non-fold action id to a
@@ -349,7 +361,8 @@ Ranges are static content: respond with `Cache-Control: public, max-age=3600`.
 {"error": {"code": "invalid_config", "message": "positions must be non-empty.", "field": "positions"}}
 ```
 
-`field` is optional. Closed set of codes for v1:
+`field` is optional. Every code below has a worked example in
+`docs/examples/errors.json`, keyed by code. Closed set for v1:
 
 | Code | Status |
 |---|---|

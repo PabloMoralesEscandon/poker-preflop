@@ -1,10 +1,10 @@
 {
-  "session_not_found": {
-    "status": 404,
+  "invalid_request": {
+    "status": 400,
     "body": {
       "error": {
-        "code": "session_not_found",
-        "message": "Unknown session id."
+        "code": "invalid_request",
+        "message": "Request body is not valid JSON."
       }
     }
   },
@@ -18,12 +18,21 @@
       }
     }
   },
-  "question_out_of_order": {
-    "status": 409,
+  "drill_not_found": {
+    "status": 404,
     "body": {
       "error": {
-        "code": "question_out_of_order",
-        "message": "q_2 is not the current question."
+        "code": "drill_not_found",
+        "message": "Unknown drill id 'omaha'."
+      }
+    }
+  },
+  "session_not_found": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "session_not_found",
+        "message": "Unknown session id."
       }
     }
   },
@@ -33,6 +42,33 @@
       "error": {
         "code": "range_not_found",
         "message": "Unknown range id rfi_6max_BB."
+      }
+    }
+  },
+  "question_out_of_order": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "question_out_of_order",
+        "message": "q_2 is not the current question."
+      }
+    }
+  },
+  "question_already_answered": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "question_already_answered",
+        "message": "q_3 has already been answered."
+      }
+    }
+  },
+  "internal_error": {
+    "status": 500,
+    "body": {
+      "error": {
+        "code": "internal_error",
+        "message": "Unexpected server error."
       }
     }
   }
