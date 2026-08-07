@@ -189,7 +189,7 @@ class RfiDrill:
         )
         mixed = any(0.0 < frequency < 1.0 for frequency in frequencies.values())
         chosen_frequency = frequencies.get(action_id, 0.0)
-        correct = chosen_frequency > 0.0 if mixed else chosen_frequency >= 0.5
+        correct = chosen_frequency > 0.0
 
         return Grade(
             correct=correct,
