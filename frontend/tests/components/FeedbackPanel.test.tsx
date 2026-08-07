@@ -208,6 +208,11 @@ describe('feedback chart', () => {
   });
 });
 
+/**
+ * The panel focuses its primary control; the *key bindings* live in
+ * DrillRunner, so that there is exactly one owner of the keyboard for a
+ * session. Those are covered in tests/drills/DrillRunner.test.tsx.
+ */
 describe('feedback dismissal', () => {
   it('focuses Next hand so the keyboard lands on it', async () => {
     renderPanel(CORRECT);
@@ -222,7 +227,7 @@ describe('feedback dismissal', () => {
     expect(onNext).toHaveBeenCalledOnce();
   });
 
-  it('advances on Enter', async () => {
+  it('advances on Enter, because the focused button activates natively', async () => {
     const onNext = renderPanel(CORRECT);
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Next hand' })).toHaveFocus()
@@ -231,12 +236,23 @@ describe('feedback dismissal', () => {
     expect(onNext).toHaveBeenCalled();
   });
 
-  it('advances on Escape', async () => {
-    const onNext = renderPanel(CORRECT);
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Next hand' })).toHaveFocus()
+  it('advertises its shortcut so the binding is discoverable', () => {
+    renderPanel(CORRECT);
+    expect(screen.getByRole('button', { name: 'Next hand' })).toHaveAttribute(
+      'aria-keyshortcuts',
+      'Enter Space'
     );
-    await userEvent.keyboard('{Escape}');
-    expect(onNext).toHaveBeenCalled();
+    expect(screen.getByText('Enter', { selector: 'kbd' })).toBeInTheDocument();
+  });
+
+  it('puts Next above the chart, so the control does not move with it', () => {
+    renderPanel(CORRECT);
+    const next = screen.getByRole('button', { name: 'Next hand' });
+    const chart = document.querySelector('[role="grid"]');
+    if (chart) {
+      expect(
+        next.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
   });
 });

@@ -73,18 +73,10 @@ export function FeedbackPanel({
     null;
 
   return (
-    <section
-      aria-live="polite"
-      // Enter or Escape anywhere in the panel moves on, so the feedback is
-      // dismissible without reaching for the mouse.
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' || (event.key === 'Enter' && !busy)) {
-          event.preventDefault();
-          onNext();
-        }
-      }}
-      className="space-y-5"
-    >
+    // Not a live region: the runner announces a one-sentence verdict instead,
+    // because reading a 169-cell chart aloud after every answer is unusable.
+    // Key handling also lives in the runner, so there is one owner of it.
+    <section aria-label="Feedback" className="space-y-5">
       <div
         data-verdict={verdict}
         className="border-line bg-surface space-y-2 rounded-lg border-l-4 border p-4"
@@ -118,6 +110,28 @@ export function FeedbackPanel({
         <p className="text-fg-muted text-sm">{answer.explanation.detail}</p>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          ref={nextRef}
+          type="button"
+          onClick={onNext}
+          disabled={busy}
+          aria-keyshortcuts="Enter Space"
+          className={cn(
+            'bg-accent text-accent-fg min-h-11 rounded-md px-4 py-2 text-sm font-medium',
+            busy && 'opacity-50'
+          )}
+        >
+          Next hand
+        </button>
+        <span className="text-fg-muted text-xs">
+          or press{' '}
+          <kbd className="border-line rounded border px-1.5 py-0.5 font-mono text-[0.625rem]">
+            Enter
+          </kbd>
+        </span>
+      </div>
+
       {range ? (
         <HandGrid
           grid={range.grid}
@@ -130,19 +144,6 @@ export function FeedbackPanel({
           className="max-w-xl"
         />
       ) : null}
-
-      <button
-        ref={nextRef}
-        type="button"
-        onClick={onNext}
-        disabled={busy}
-        className={cn(
-          'bg-accent text-accent-fg rounded-md px-4 py-2 text-sm font-medium',
-          busy && 'opacity-50'
-        )}
-      >
-        Next hand
-      </button>
     </section>
   );
 }

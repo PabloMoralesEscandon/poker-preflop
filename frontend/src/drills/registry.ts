@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 
 import type { ActionOption, QuestionPrompt } from '../api';
+import type { Shortcut } from '../lib/shortcuts';
 
 /**
  * The frontend half of the modularity contract (ARCHITECTURE §4.3).
@@ -17,6 +18,11 @@ export interface DrillPromptProps<TPrompt = QuestionPrompt> {
   onAction: (actionId: string) => void;
   /** True while an answer is in flight, or once the question is answered. */
   disabled?: boolean;
+  /**
+   * Keyboard bindings for `actions`, derived from them rather than hardcoded.
+   * A drill renders these as hints; the runner owns the key handling.
+   */
+  shortcuts?: readonly Shortcut[];
 }
 
 export interface DrillEntry<TPrompt extends QuestionPrompt = QuestionPrompt> {
