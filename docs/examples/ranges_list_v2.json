@@ -1,0 +1,55 @@
+{
+  "ranges": [
+    {
+      "range_id": "rfi_6max_CO",
+      "spot": "rfi",
+      "table_format": "6max",
+      "position": "CO",
+      "vs_position": null,
+      "stack_bb": 100,
+      "actions": [
+        "raise"
+      ],
+      "action_sizes_bb": {
+        "raise": 2.5
+      },
+      "facing_size_bb": null,
+      "source_id": "jl-6max-preflop-charts",
+      "stats": {
+        "combos": 368.0,
+        "vpip": 0.2775,
+        "hands_played": 68,
+        "by_action": {
+          "raise": 368.0
+        }
+      }
+    },
+    {
+      "range_id": "vs_rfi_6max_BB_vs_BTN",
+      "spot": "vs_rfi",
+      "table_format": "6max",
+      "position": "BB",
+      "vs_position": "BTN",
+      "stack_bb": 100,
+      "actions": [
+        "3bet",
+        "call"
+      ],
+      "action_sizes_bb": {
+        "3bet": 4.0,
+        "call": 2.5
+      },
+      "facing_size_bb": 2.5,
+      "source_id": "fixture-illustrative",
+      "stats": {
+        "combos": 586.0,
+        "vpip": 0.4419,
+        "hands_played": 92,
+        "by_action": {
+          "3bet": 50.0,
+          "call": 536.0
+        }
+      }
+    }
+  ]
+}

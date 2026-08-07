@@ -1,0 +1,45 @@
+{
+  "done": false,
+  "question": {
+    "question_id": "q_4",
+    "index": 4,
+    "total": 25,
+    "drill_id": "vs_rfi",
+    "prompt": {
+      "kind": "vs_rfi",
+      "table_format": "6max",
+      "hero_position": "BB",
+      "raiser_position": "BTN",
+      "stack_bb": 100,
+      "hand": {
+        "cards": [
+          "9h",
+          "8h"
+        ],
+        "notation": "98s"
+      },
+      "folded_before": [
+        "UTG",
+        "HJ",
+        "CO"
+      ],
+      "facing_size_bb": 2.5,
+      "pot_bb": 4.0,
+      "to_call_bb": 1.5
+    },
+    "actions": [
+      {
+        "id": "fold",
+        "label": "Fold"
+      },
+      {
+        "id": "call",
+        "label": "Call 2.5bb"
+      },
+      {
+        "id": "3bet",
+        "label": "3-Bet to 4bb"
+      }
+    ]
+  }
+}

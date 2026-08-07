@@ -1,0 +1,22 @@
+{
+  "correct": true,
+  "chosen": {
+    "action_id": "call",
+    "label": "Call 2.5bb"
+  },
+  "expected": {
+    "action_id": "call",
+    "label": "Call 2.5bb",
+    "frequency": 1.0
+  },
+  "explanation": {
+    "summary": "98s is a pure call from the Big blind against a Button open.",
+    "detail": "98s flops well enough to continue but is not strong enough to 3-bet for value. Getting 3.3-to-1 on the call, it defends comfortably.",
+    "range_id": "vs_rfi_6max_BB_vs_BTN"
+  },
+  "progress": {
+    "answered": 4,
+    "correct": 3,
+    "total": 25
+  }
+}

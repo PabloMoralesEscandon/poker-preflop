@@ -418,3 +418,125 @@ Development: allow `http://localhost:5173` and `http://127.0.0.1:5173`, methods
 Additive changes (a new optional field, a new drill, a new range) do not bump
 the version. Anything that would break an existing client requires `/api/v2` and
 a boss decision.
+
+---
+
+# v2 additions (2026-08-08)
+
+Additive only. Every v1 endpoint and payload above is unchanged, so a v1 client
+keeps working. Two features land here: the `vs_rfi` drill, and the chart browser.
+
+## 10. The `vs_rfi` prompt
+
+A second drill means a second `prompt.kind`. The frontend maps it to a component
+through the registry in ARCHITECTURE §4.3; nothing else in the session loop
+changes.
+
+Example: `docs/examples/next_question_vs_rfi.json`
+
+```json
+{
+  "done": false,
+  "question": {
+    "question_id": "q_4", "index": 4, "total": 25, "drill_id": "vs_rfi",
+    "prompt": {
+      "kind": "vs_rfi",
+      "table_format": "6max",
+      "hero_position": "BB",
+      "raiser_position": "BTN",
+      "stack_bb": 100,
+      "hand": {"cards": ["9h", "8h"], "notation": "98s"},
+      "folded_before": ["UTG", "HJ", "CO"],
+      "facing_size_bb": 2.5,
+      "pot_bb": 4.0,
+      "to_call_bb": 1.5
+    },
+    "actions": [
+      {"id": "fold", "label": "Fold"},
+      {"id": "call", "label": "Call 2.5bb"},
+      {"id": "3bet", "label": "3-Bet to 4bb"}
+    ]
+  }
+}
+```
+
+`pot_bb` is the pot before hero acts; `to_call_bb` is what hero must add. Both
+are computed server-side from `facing_size_bb` and the blinds — the frontend
+never does poker arithmetic. Action labels carry their sizes from
+`action_sizes_bb`, exactly as in v1.
+
+**Action sets vary by matchup.** Some spots offer `fold`/`3bet` only. Render
+`question.actions` as given; never assume three buttons.
+
+Grading, `mixed`, `expected` and the summary all work exactly as §4.3 and §4.4
+specify — the rules are action-agnostic and need no change. The `vs_rfi`
+breakdown groups by `"{hero} vs {raiser}"`, which the generic summary and the
+history aggregation already handle, since both key off `breakdown[].key`.
+
+## 11. `GET /sources`
+
+Serves the source register so the chart browser can show provenance. This is
+what makes the browser an audit tool rather than a gallery.
+
+Example: `docs/examples/sources.json`
+
+```json
+{
+  "sources": [
+    {
+      "source_id": "jl-6max-preflop-charts",
+      "name": "Online 6-max Cash Game Preflop Charts",
+      "url": "https://jlsecrets.s3.amazonaws.com/…",
+      "role": "primary",
+      "table_formats": ["6max"],
+      "verified_on": "2026-08-06",
+      "notes": "100bb, 2.5bb opens, 3bb from SB, 5% rake capped at $3. Implementable-GTO pure strategy."
+    }
+  ]
+}
+```
+
+`role` is one of `primary`, `cross-check`, `not-usable`, `fixture`. The register
+is the same one documented in `docs/RESOURCES.md` §2 — that file stays the
+source of truth and this endpoint serves it. A source that appears here but not
+there, or vice versa, is a bug.
+
+## 12. `GET /ranges` — enriched
+
+The v1 list returned only identity. It now also returns what the browser needs
+to render a card without fetching all 26 ranges:
+
+```json
+{
+  "ranges": [
+    {
+      "range_id": "vs_rfi_6max_BB_vs_BTN",
+      "spot": "vs_rfi", "table_format": "6max",
+      "position": "BB", "vs_position": "BTN",
+      "stack_bb": 100,
+      "actions": ["3bet", "call"],
+      "action_sizes_bb": {"3bet": 4.0, "call": 2.5},
+      "facing_size_bb": 2.5,
+      "source_id": "jl-6max-preflop-charts",
+      "stats": {"combos": 754.0, "vpip": 0.5686, "hands_played": 96,
+                "by_action": {"3bet": 178.0, "call": 576.0}}
+    }
+  ]
+}
+```
+
+`stats.by_action` is new and required: combo count per action. It is the number
+a human compares against the chart's own printed totals, so it is the single
+most useful field in the audit view. It appears on `GET /ranges/{id}` too.
+
+New query params: `spot` (already existed) and `position`, `vs_position`. All
+optional, all exact-match.
+
+## 13. Compatibility
+
+`vs_rfi` is a new drill id and a new `prompt.kind`; `GET /drills` lists it
+alongside `rfi` with its own `config_schema`. `open_size_bb` disappears from
+range payloads, replaced by `action_sizes_bb` — the only breaking change, and it
+is confined to the range endpoints. Bumping to `/api/v2` is not warranted for a
+field rename in a payload no external client consumes, but note it here so the
+decision is on the record.

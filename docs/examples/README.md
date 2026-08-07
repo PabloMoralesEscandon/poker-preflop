@@ -24,6 +24,11 @@ If both sides match these files, integration is a config flip.
 | `ranges_list.json` | `GET /api/v1/ranges` |
 | `range_rfi_6max_CO.json` | `GET /api/v1/ranges/{range_id}` |
 | `errors.json` | every error envelope, keyed by error code |
+| `sources.json` | `GET /api/v1/sources` — the provenance register (v2) |
+| `ranges_list_v2.json` | `GET /api/v1/ranges` enriched with `stats.by_action` (v2) |
+| `range_vs_rfi_6max_BB_vs_BTN.json` | `GET /api/v1/ranges/{id}` for a two-action matchup (v2) |
+| `next_question_vs_rfi.json` | a `vs_rfi` question (v2) |
+| `answer_vs_rfi.json` | a `vs_rfi` answer (v2) |
 
 ## About `range_rfi_6max_CO.json`
 
@@ -74,3 +79,16 @@ those as different is a false positive, not a finding.
 Don't. They are part of the frozen v1 contract. If one is wrong, report it to
 `bob-the-boss` and stop — a fixture edited on one side silently breaks the
 other.
+
+## About `range_vs_rfi_6max_BB_vs_BTN.json`
+
+Same status as the CO fixture: `source_id` is `fixture-illustrative`, the shape
+is contractual and **the cells are invented**. It exists so the chart browser and
+the `vs_rfi` drill UI have a realistic two-action matchup to render before the
+real page-5 transcription lands. It is not the published chart and its combo
+counts are not the chart's — the real `BB_vs_BTN` prints 178 combos of 3-bet out
+of 754 played, this fixture has 50 out of 586.
+
+It is deliberately a *two*-action range, because the one-action case (`rfi`) was
+already covered and the interesting rendering and grading paths are the ones with
+`call` and `3bet` together.

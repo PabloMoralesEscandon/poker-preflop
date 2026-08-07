@@ -167,3 +167,60 @@ section was always meant to describe.
 
 A new spot (`bb_defence`, `vs_rfi`, …) adds a directory and new action ids. It
 must not change this document's rules. If it would, that is a boss decision.
+
+## 8. Matchup ranges (added for v2, spot `vs_rfi`)
+
+v1 had one range per position. Facing an RFI needs one range per **pair** of
+positions — hero and the raiser. §7 said a new spot must not change these rules
+and that changing them is a boss decision; this is that decision, taken
+2026-08-08.
+
+### 8.1 Path and id
+
+```text
+backend/data/ranges/vs_rfi/6max/BB_vs_BTN.json  -> range_id "vs_rfi_6max_BB_vs_BTN"
+backend/data/ranges/vs_rfi/6max/CO_vs_HJ.json   -> range_id "vs_rfi_6max_CO_vs_HJ"
+```
+
+The filename is `{HERO}_vs_{RAISER}`. `range_id` remains
+`{spot}_{table_format}_{filename}` and must still equal the path-derived value.
+
+### 8.2 New fields
+
+| Field | Applies to | Rule |
+|---|---|---|
+| `position` | all | the **hero** — the player deciding |
+| `vs_position` | matchup spots only | the raiser. Absent for `rfi`, required for `vs_rfi`, and must differ from `position` |
+| `facing_size_bb` | matchup spots only | what the raiser made it, in bb. Drives the prompt and the pot odds |
+| `action_sizes_bb` | all | **replaces `open_size_bb`** — a map from action id to its size |
+
+`action_sizes_bb` must contain an entry for every id in `actions`. Examples:
+
+```json
+{"actions": ["raise"],         "action_sizes_bb": {"raise": 2.5}}
+{"actions": ["3bet"],          "action_sizes_bb": {"3bet": 3.5}}
+{"actions": ["call", "3bet"],  "action_sizes_bb": {"call": 2.5, "3bet": 4.0}}
+```
+
+**`open_size_bb` is retired.** The twelve v1 `rfi` files migrate to
+`action_sizes_bb: {"raise": <old value>}`. That is a metadata-only edit — no grid
+cell changes, and the combo totals in RFI-CALIBRATION must be identical before
+and after. Assert that in a test.
+
+### 8.3 Actions for `vs_rfi`
+
+`call` and `3bet`; fold stays implicit as always. **Not every matchup has both.**
+In the v2 source, `HJ_vs_UTG` is 3-bet-or-fold with no calling range at all
+(`"actions": ["3bet"]`), while `BB_vs_BTN` has a wide one
+(`"actions": ["3bet", "call"]`). A validator that assumes both are present is
+wrong.
+
+Action ids are a closed set per spot: `rfi` uses `raise`; `vs_rfi` uses `call`
+and `3bet`. A grid cell naming an id outside its spot's set is a load failure.
+
+### 8.4 Everything else is unchanged
+
+169 keys, canonical notation, frequencies in `(0, 1]`, empty object for a pure
+fold, per-hand sum ≤ 1, combinatorics, the notation↔cards mapping, and the §6
+sampling weights all apply to matchup ranges exactly as written. The
+difficulty-factor scan uses the same 13×13 adjacency.
