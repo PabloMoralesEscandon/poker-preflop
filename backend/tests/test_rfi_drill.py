@@ -219,13 +219,36 @@ def test_explanation_uses_singular_neighbour_verb(range_payload) -> None:
     assert "1 are played" not in grade.explanation.detail
 
 
-def test_explanation_uses_display_position_with_article(drill: RfiDrill) -> None:
-    config = config_for(drill, "BTN")
-    question = question_for(drill, config, "BTN", "72o")
+@pytest.mark.parametrize(
+    ("table_format", "position", "position_phrase"),
+    [
+        ("6max", "UTG", "UTG"),
+        ("8max", "UTG1", "UTG+1"),
+        ("6max", "BTN", "the Button"),
+    ],
+)
+def test_explanation_uses_position_specific_article(
+    drill: RfiDrill,
+    table_format: str,
+    position: str,
+    position_phrase: str,
+) -> None:
+    config = config_for(drill, position, table_format=table_format)
+    question = question_for(drill, config, position, "72o")
 
     grade = drill.grade(config, question, "fold")
 
-    assert grade.explanation.summary == "72o is a pure fold from the Button."
+    assert grade.explanation.summary == f"72o is a pure fold from {position_phrase}."
+
+
+def test_explanation_detail_uses_display_label_not_range_id(drill: RfiDrill) -> None:
+    config = config_for(drill, "UTG")
+    question = question_for(drill, config, "UTG", "42o")
+
+    grade = drill.grade(config, question, "fold")
+
+    assert "The UTG chart assigns fold 100%." in grade.explanation.detail
+    assert "rfi_6max_UTG" not in grade.explanation.detail
 
 
 def test_all_shipped_explanations_pass_grammar_sweep(drill: RfiDrill) -> None:
@@ -246,6 +269,9 @@ def test_all_shipped_explanations_pass_grammar_sweep(drill: RfiDrill) -> None:
                 assert lowercase_sentence_start.search(copy) is None
                 assert not any(f" a {vowel}" in lowered for vowel in "aeiou")
                 assert re.search(r"\b1 are\b", copy) is None
+                assert re.search(r"rfi_(?:6max|8max)_[A-Z0-9]+", copy) is None
+                assert "the UTG" not in copy
+                assert "the UTG+1" not in copy
 
 
 def test_sb_raise_is_wrong_when_the_chart_limps_aa(drill: RfiDrill) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from random import Random
 from typing import Any
 
@@ -46,14 +47,27 @@ POSITION_ORDER = {
     "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"),
 }
 
+
+@dataclass(frozen=True, slots=True)
+class PositionLabel:
+    """A display label with its sentence-level article behavior."""
+
+    display: str
+    article: str | None = "the"
+
+    @property
+    def phrase(self) -> str:
+        return f"{self.article} {self.display}" if self.article else self.display
+
+
 POSITION_LABELS = {
-    "UTG": "UTG",
-    "UTG1": "UTG+1",
-    "LJ": "Lojack",
-    "HJ": "Hijack",
-    "CO": "Cutoff",
-    "BTN": "Button",
-    "SB": "Small blind",
+    "UTG": PositionLabel("UTG", article=None),
+    "UTG1": PositionLabel("UTG+1", article=None),
+    "LJ": PositionLabel("Lojack"),
+    "HJ": PositionLabel("Hijack"),
+    "CO": PositionLabel("Cutoff"),
+    "BTN": PositionLabel("Button"),
+    "SB": PositionLabel("Small blind"),
 }
 
 ACTION_ORDER = {"limp": 0, "raise": 1}
@@ -228,7 +242,7 @@ class RfiDrill:
             breakdown.append(
                 BreakdownItem(
                     key=position,
-                    label=POSITION_LABELS[position],
+                    label=POSITION_LABELS[position].display,
                     answered=len(position_answers),
                     correct=correct,
                     accuracy=_accuracy(correct, len(position_answers)),
@@ -295,7 +309,7 @@ def _action_label(action: str, range_data: RangeData) -> str:
 
 def _position_options(positions: tuple[str, ...]) -> list[Option]:
     return [
-        Option(value=position, label=POSITION_LABELS[position])
+        Option(value=position, label=POSITION_LABELS[position].display)
         for position in positions
     ]
 
@@ -328,9 +342,9 @@ def _explanation(
 ) -> RfiExplanation:
     position = POSITION_LABELS[range_data.position]
     if mixed:
-        summary = f"{notation} is a mixed spot from the {position}."
+        summary = f"{notation} is a mixed spot from {position.phrase}."
     else:
-        summary = f"{notation} is a pure {expected_id} from the {position}."
+        summary = f"{notation} is a pure {expected_id} from {position.phrase}."
 
     hand_class = (
         "pair"
@@ -354,7 +368,7 @@ def _explanation(
     fold_verb = "folds" if folded_neighbours == 1 else "fold"
     detail = (
         f"{notation} is {article} {hand_class}. "
-        f"The {range_data.range_id} chart assigns "
+        f"The {position.display} chart assigns "
         f"{frequency_text}. Of its {len(neighbours)} adjacent grid cells, "
         f"{played_neighbours} {played_verb} played and "
         f"{folded_neighbours} {fold_verb}."
