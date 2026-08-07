@@ -10,15 +10,15 @@
 // §1 Vocabulary
 // ---------------------------------------------------------------------------
 
-export type TableFormat = '6max' | '9max';
+export type TableFormat = '6max' | '8max';
 
 export type Position =
-  'UTG' | 'UTG1' | 'UTG2' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
+  'UTG' | 'UTG1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
 
 /** Ordered seats per format. `BB` can never open, so it never appears as hero. */
 export const POSITIONS_BY_FORMAT: Record<TableFormat, readonly Position[]> = {
   '6max': ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-  '9max': ['UTG', 'UTG1', 'UTG2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+  '8max': ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
 };
 
 /** One of the 169 shorthand hands: `AA`…`22`, `AKs`…`32s`, `AKo`…`32o`. */

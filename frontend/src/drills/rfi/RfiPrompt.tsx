@@ -1,8 +1,4 @@
-import type {
-  Position,
-  RfiPrompt as RfiPromptData,
-  TableFormat,
-} from '../../api';
+import type { Position, RfiPrompt as RfiPromptData } from '../../api';
 import { POSITIONS_BY_FORMAT } from '../../api';
 import { HoleCards } from '../../components/Card';
 import { cn } from '../../lib/cn';
@@ -20,7 +16,6 @@ import type { DrillPromptProps } from '../registry';
 const POSITION_NAMES: Record<Position, string> = {
   UTG: 'Under the gun',
   UTG1: 'UTG+1',
-  UTG2: 'UTG+2',
   LJ: 'Lojack',
   HJ: 'Hijack',
   CO: 'Cutoff',
@@ -29,15 +24,35 @@ const POSITION_NAMES: Record<Position, string> = {
   BB: 'Big blind',
 };
 
+/**
+ * The seat order for a format.
+ *
+ * Falls back to reconstructing the table from the prompt itself if the server
+ * sends a format this build has never heard of. Table formats are a wire enum
+ * declared in two languages (see RANGE-DATA-FORMAT §intro), so the two services
+ * can legitimately disagree for the length of one deploy — and a stale build
+ * should degrade to a slightly vaguer table strip, not a blank screen.
+ */
+function seatOrder(prompt: RfiPromptData): readonly Position[] {
+  return (
+    POSITIONS_BY_FORMAT[prompt.table_format] ?? [
+      ...prompt.folded_before,
+      prompt.hero_position,
+    ]
+  );
+}
+
 /** Where the hero sits relative to the blinds, in plain language. */
-function seatDescription(format: TableFormat, hero: Position): string {
-  const order = POSITIONS_BY_FORMAT[format];
+function seatDescription(prompt: RfiPromptData): string {
+  const { hero_position: hero } = prompt;
+  const order = seatOrder(prompt);
   const heroIndex = order.indexOf(hero);
   const toAct = order.length - 1 - heroIndex;
 
   if (hero === 'SB') return 'first to act after the flop, one player behind';
   if (hero === 'BTN') return 'last to act after the flop';
   if (toAct === 1) return '1 player left to act';
+  if (toAct < 1) return 'the pot is unopened';
   return `${toAct} players left to act`;
 }
 
@@ -47,7 +62,7 @@ export function RfiPrompt({
   onAction,
   disabled = false,
 }: DrillPromptProps<RfiPromptData>) {
-  const order = POSITIONS_BY_FORMAT[prompt.table_format];
+  const order = seatOrder(prompt);
   const folded = new Set(prompt.folded_before);
 
   return (
@@ -67,8 +82,7 @@ export function RfiPrompt({
         </div>
 
         <p className="text-fg-muted text-sm">
-          {seatDescription(prompt.table_format, prompt.hero_position)}. The pot
-          is unopened.
+          {seatDescription(prompt)}. The pot is unopened.
         </p>
 
         {/* The seat strip: who folded, where you are, who is still to act. */}

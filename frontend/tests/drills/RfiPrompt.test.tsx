@@ -75,6 +75,65 @@ describe('RfiPrompt reads the spot', () => {
   });
 });
 
+/**
+ * Table formats are a wire enum declared in both services, so a deploy can leave
+ * them disagreeing for a while. A stale build must degrade, not white-screen.
+ */
+describe('RfiPrompt with a table format this build does not know', () => {
+  // Deliberately off-contract: values this build's unions do not contain, which
+  // is exactly what a server one deploy ahead would send. Cast at the boundary
+  // because that is where untrusted wire data actually enters.
+  const unknown = {
+    ...PROMPT,
+    table_format: '9max',
+    hero_position: 'CO',
+    folded_before: ['UTG', 'UTG1', 'UTG2', 'LJ', 'HJ'],
+  } as unknown as RfiPromptData;
+
+  it('renders rather than throwing', () => {
+    expect(() =>
+      render(
+        <RfiPrompt
+          prompt={unknown}
+          actions={FIXTURE.actions}
+          onAction={vi.fn()}
+        />
+      )
+    ).not.toThrow();
+  });
+
+  it('reconstructs the seat strip from the prompt itself', () => {
+    render(
+      <RfiPrompt
+        prompt={unknown}
+        actions={FIXTURE.actions}
+        onAction={vi.fn()}
+      />
+    );
+    const seatOf = (position: string) =>
+      document
+        .querySelector(`[data-position="${position}"]`)
+        ?.getAttribute('data-seat');
+
+    expect(seatOf('UTG')).toBe('folded');
+    expect(seatOf('UTG2')).toBe('folded');
+    expect(seatOf('LJ')).toBe('folded');
+    expect(seatOf('CO')).toBe('hero');
+  });
+
+  it('still shows the hand and the actions', () => {
+    render(
+      <RfiPrompt
+        prompt={unknown}
+        actions={FIXTURE.actions}
+        onAction={vi.fn()}
+      />
+    );
+    expect(screen.getByText('AKo')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Raise 2.5bb' })).toBeTruthy();
+  });
+});
+
 describe('RfiPrompt hole cards', () => {
   it('renders both cards with rank and suit legible, not just colour', () => {
     renderPrompt();

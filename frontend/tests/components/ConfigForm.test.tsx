@@ -40,7 +40,7 @@ describe('ConfigForm rendered from the drills fixture', () => {
     renderForm();
     expect(screen.getByRole('radio', { name: '6-max' })).toBeChecked();
     expect(
-      screen.getByRole('radio', { name: '9-max (full ring)' })
+      screen.getByRole('radio', { name: '8-max (full ring)' })
     ).not.toBeChecked();
   });
 
@@ -108,17 +108,17 @@ describe('ConfigForm rendered from the drills fixture', () => {
 
 /** API-CONTRACT §3: the documented reset rule when `depends_on` changes. */
 describe('multi_enum reset when its dependency changes', () => {
-  it('swaps to the 9-max option set and keeps the overlapping selection', async () => {
+  it('swaps to the 8-max option set and keeps the overlapping selection', async () => {
     const onSubmit = renderForm();
     await userEvent.click(
-      screen.getByRole('radio', { name: '9-max (full ring)' })
+      screen.getByRole('radio', { name: '8-max (full ring)' })
     );
 
-    // Lojack only exists at 9-max.
+    // Lojack only exists at full ring.
     expect(
       screen.getByRole('checkbox', { name: 'Lojack' })
     ).toBeInTheDocument();
-    // The default 6-max selection is entirely valid at 9-max, so it survives.
+    // The default 6-max selection is entirely valid at 8-max, so it survives.
     for (const label of ['UTG', 'Hijack', 'Cutoff', 'Button', 'Small blind']) {
       expect(screen.getByRole('checkbox', { name: label })).toBeChecked();
     }
@@ -128,7 +128,7 @@ describe('multi_enum reset when its dependency changes', () => {
       screen.getByRole('button', { name: 'Start session' })
     );
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
-      table_format: '9max',
+      table_format: '8max',
       positions: ['UTG', 'HJ', 'CO', 'BTN', 'SB'],
     });
   });
@@ -137,16 +137,16 @@ describe('multi_enum reset when its dependency changes', () => {
     const onSubmit = renderForm();
 
     await userEvent.click(
-      screen.getByRole('radio', { name: '9-max (full ring)' })
+      screen.getByRole('radio', { name: '8-max (full ring)' })
     );
-    // Select only 9-max-exclusive seats.
+    // Select only full-ring-exclusive seats.
     for (const label of ['UTG', 'Hijack', 'Cutoff', 'Button', 'Small blind']) {
       await userEvent.click(screen.getByRole('checkbox', { name: label }));
     }
     await userEvent.click(screen.getByRole('checkbox', { name: 'Lojack' }));
-    await userEvent.click(screen.getByRole('checkbox', { name: 'UTG+2' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'UTG+1' }));
 
-    // Back to 6-max: neither LJ nor UTG2 exists there, so the intersection is
+    // Back to 6-max: neither LJ nor UTG1 exists there, so the intersection is
     // empty and the field falls back to the schema default.
     await userEvent.click(screen.getByRole('radio', { name: '6-max' }));
     await userEvent.click(
@@ -162,7 +162,7 @@ describe('multi_enum reset when its dependency changes', () => {
 
 describe('the reset rule as a pure function', () => {
   const sixMax = optionsFor(positionsField, { table_format: '6max' });
-  const nineMax = optionsFor(positionsField, { table_format: '9max' });
+  const fullRing = optionsFor(positionsField, { table_format: '8max' });
 
   it('resolves options_by through depends_on', () => {
     expect(sixMax.map((option) => option.value)).toEqual([
@@ -172,7 +172,7 @@ describe('the reset rule as a pure function', () => {
       'BTN',
       'SB',
     ]);
-    expect(nineMax.map((option) => option.value)).toContain('LJ');
+    expect(fullRing.map((option) => option.value)).toContain('LJ');
   });
 
   it('keeps the intersection when one exists', () => {
@@ -182,7 +182,7 @@ describe('the reset rule as a pure function', () => {
   });
 
   it('falls back to the default when the intersection is empty', () => {
-    expect(resetMultiEnum(positionsField, ['LJ', 'UTG2'], sixMax)).toEqual([
+    expect(resetMultiEnum(positionsField, ['LJ', 'UTG1'], sixMax)).toEqual([
       'UTG',
       'HJ',
       'CO',
@@ -192,7 +192,7 @@ describe('the reset rule as a pure function', () => {
   });
 
   it('keeps a selection that is wholly valid in the new set', () => {
-    expect(resetMultiEnum(positionsField, ['UTG', 'BTN'], nineMax)).toEqual([
+    expect(resetMultiEnum(positionsField, ['UTG', 'BTN'], fullRing)).toEqual([
       'UTG',
       'BTN',
     ]);

@@ -502,7 +502,7 @@ function questionCount(config: DrillConfig): number {
 }
 
 function tableFormat(config: DrillConfig): TableFormat {
-  return config['table_format'] === '9max' ? '9max' : '6max';
+  return config['table_format'] === '8max' ? '8max' : '6max';
 }
 
 function configuredPositions(config: DrillConfig): Position[] {
