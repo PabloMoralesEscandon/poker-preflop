@@ -18,8 +18,8 @@
                 "label": "6-max"
               },
               {
-                "value": "9max",
-                "label": "9-max (full ring)"
+                "value": "8max",
+                "label": "8-max (full ring)"
               }
             ]
           },
@@ -58,7 +58,7 @@
                   "label": "Small blind"
                 }
               ],
-              "9max": [
+              "8max": [
                 {
                   "value": "UTG",
                   "label": "UTG"
@@ -66,10 +66,6 @@
                 {
                   "value": "UTG1",
                   "label": "UTG+1"
-                },
-                {
-                  "value": "UTG2",
-                  "label": "UTG+2"
                 },
                 {
                   "value": "LJ",

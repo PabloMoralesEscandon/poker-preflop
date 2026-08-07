@@ -10,14 +10,14 @@ endpoint below; they are the source of truth for shape.
 
 ## 1. Vocabulary
 
-**Table format** — `"6max"` or `"9max"`.
+**Table format** — `"6max"` or `"8max"` (full ring).
 
 **Position ids** — fixed strings, never localised on the wire:
 
 | Format | Ordered positions | Can RFI |
 |---|---|---|
 | `6max` | `UTG`, `HJ`, `CO`, `BTN`, `SB`, `BB` | all except `BB` |
-| `9max` | `UTG`, `UTG1`, `UTG2`, `LJ`, `HJ`, `CO`, `BTN`, `SB`, `BB` | all except `BB` |
+| `8max` | `UTG`, `UTG1`, `LJ`, `HJ`, `CO`, `BTN`, `SB`, `BB` | all except `BB` |
 
 **Hand notation** — the standard 169-hand shorthand: `AA`…`22`, `AKs`…`32s`,
 `AKo`…`32o`. Ranks are ordered `A K Q J T 9 8 7 6 5 4 3 2`; the higher rank is
@@ -56,7 +56,7 @@ Example: `docs/examples/drills.json`
             "default": "6max",
             "options": [
               {"value": "6max", "label": "6-max"},
-              {"value": "9max", "label": "9-max (full ring)"}
+              {"value": "8max", "label": "8-max (full ring)"}
             ]
           },
           {
@@ -73,10 +73,9 @@ Example: `docs/examples/drills.json`
                 {"value": "BTN", "label": "Button"},
                 {"value": "SB", "label": "Small blind"}
               ],
-              "9max": [
+              "8max": [
                 {"value": "UTG", "label": "UTG"},
                 {"value": "UTG1", "label": "UTG+1"},
-                {"value": "UTG2", "label": "UTG+2"},
                 {"value": "LJ", "label": "Lojack"},
                 {"value": "HJ", "label": "Hijack"},
                 {"value": "CO", "label": "Cutoff"},

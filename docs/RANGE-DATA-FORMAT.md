@@ -1,7 +1,12 @@
 # Range Data Format
 
-Owner: `bob-the-boss`. Range files are **content**, not code. Adding 9-max or
-correcting a chart must never require a code change.
+Owner: `bob-the-boss`. Range files are **content**, not code. Adding a table
+format or correcting a chart must never require a code change.
+
+That claim was tested on 2026-08-07: the full-ring source changed from GTO
+Wizard to a different publisher, and the format changed from 9-max to 8-max,
+without a single line of backend or frontend logic changing. Only data, docs and
+one enum value moved.
 
 ## 1. Location and naming
 
@@ -13,7 +18,7 @@ Examples:
 
 ```text
 backend/data/ranges/rfi/6max/CO.json      -> range_id "rfi_6max_CO"
-backend/data/ranges/rfi/9max/UTG2.json    -> range_id "rfi_9max_UTG2"
+backend/data/ranges/rfi/8max/UTG1.json    -> range_id "rfi_8max_UTG1"
 ```
 
 `range_id` is always `{spot}_{table_format}_{POSITION}` and must equal the value
@@ -45,7 +50,7 @@ derived from the path. The loader asserts this.
 |---|---|---|
 | `range_id` | string | must match the path-derived id |
 | `spot` | string | `"rfi"` for v1 |
-| `table_format` | string | `"6max"` \| `"9max"` |
+| `table_format` | string | `"6max"` \| `"8max"` |
 | `position` | string | a valid position for the format, never `BB` for `rfi` |
 | `stack_bb` | number | `100` for every v1 range |
 | `open_size_bb` | number | the raise size this chart assumes; drives the action label |

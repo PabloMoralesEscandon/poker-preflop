@@ -46,7 +46,7 @@ At a 6-max table the earliest position to act is called UTG by some sources and
 Lojack by others. It is the same seat. The chart's **"Lojack" grid is our
 `UTG`** and belongs in `rfi/6max/UTG.json`.
 
-Note that this equivalence is 6-max only. At 9-max, `UTG` and `LJ` are two
+Note that this equivalence is 6-max only. At full ring, `UTG` and `LJ` are two
 different seats and both exist in our position list. Do not carry the mapping
 across.
 
@@ -82,10 +82,16 @@ three similar hands at 33% each, it plays one of them at 100% instead. Every
 cell in the 6-max RFI grids is therefore a pure `1.0` or a fold — **there are no
 mixed frequencies in this dataset.**
 
-Keep the mixed-frequency machinery anyway. It is specified, it is cheap, and the
-9-max GTO Wizard data in DA-02 will exercise it. But do not go looking for mixed
-cells in these five files, and do not invent them to make the feature testable —
-test it with fixtures instead.
+**Neither shipped dataset has a single mixed cell.** The full-ring source in §3
+is published as text hand ranges, which are pure by construction, so the change
+of source did not reintroduce mixed data. Every one of the twelve v1 range files
+is pure.
+
+Keep the mixed-frequency machinery anyway — it is specified, it is cheap, and
+the first genuinely mixed chart we add will need it. But do not go looking for
+mixed cells in the shipped data, and never invent one to make the feature
+testable. **Mixed behaviour is tested with fixtures only**, and any test that
+needs a mixed cell must construct it.
 
 ### 2.4 Verified compositions
 
@@ -114,26 +120,53 @@ why invariant §4.2 is written against played frequency rather than raise
 frequency.
 
 
-## 3. 9-max full ring, 100bb, 2.5bb opens (3bb from SB)
+## 3. Full ring (8-max), 100bb, 2.5bb opens (3bb from SB)
 
-Primary source: `gtowizard-free-study`. Configure it to 100bb, cash, 2.5bb
-opens, and record the exact configuration used in each file's `notes`.
+Primary source: `jl-fullring-preflop-charts`. Verified 2026-08-07 by
+bob-the-boss.
 
-| Position | Target VPIP | Accept |
-|---|---|---|
-| `UTG` | ~12% | 9–15% |
-| `UTG1` | ~13% | 10–16% |
-| `UTG2` | ~15% | 12–18% |
-| `LJ` | ~18% | 15–21% |
-| `HJ` | ~21% | 18–25% |
-| `CO` | ~27% | 24–31% |
-| `BTN` | ~45% | 40–50% |
-| `SB` | ~40% | 34–46% |
+**This section used to specify 9-max against `gtowizard-free-study`.** That
+source is login-gated and unusable (RESOURCES.md §2), so the format changed to
+8-max full ring. The practical loss is one seat — `UTG2`, which exists only at a
+9-handed table and whose range sits between `UTG1` and `LJ`. Every position that
+can open is still covered at both formats.
 
-The 9-max `HJ`, `CO`, `BTN` and `SB` ranges are close to their 6-max
-counterparts because the number of players still to act is the same. If your
-9-max `CO` differs from your 6-max `CO` by more than a few percent, check the
-transcription before believing it.
+Unlike the 6-max charts, this source publishes **text hand ranges**, so there is
+nothing to read off an image. Transcribe the notation below exactly.
+
+| Position | Combos | VPIP | Source's stated % | Range |
+|---|---|---|---|---|
+| `UTG` | **160** | 12.1% | 11.4% | `77+,A3s+,K9s+,QTs+,JTs,T9s,AQo+,KQo` |
+| `UTG1` | **176** | 13.3% | 13.2% | `77+,A3s+,K8s+,QTs+,JTs,T9s,AJo+,KQo` |
+| `LJ` | **214** | 16.1% | 15.7% | `66+,A2s+,K7s+,QTs+,JTs,T9s,ATo+,KJo+` |
+| `HJ` | **260** | 19.6% | 19.6% | `55+,A2s+,K5s+,Q9s+,J9s+,T9s,ATo+,KTo+,QJo` |
+| `CO` | **350** | 26.4% | 26.1% | `44+,A2s+,K5s+,Q8s+,J8s+,T8s+,97s+,87s,76s,65s,54s,A8o+,KTo+,QTo+,JTo` |
+| `BTN` | **542** | 40.9% | 40.3% | `22+,A2s+,K2s+,Q3s+,J5s+,T6s+,96s+,86s+,76s,65s,54s,A3o+,K8o+,Q9o+,J9o+,T9o` |
+| `SB` | **982** | 74.1% | 73.9% | `22+,A2s+,K2s+,Q2s+,J2s+,T2s+,92s+,84s+,73s+,63s+,52s+,42s+,A2o+,K2o+,Q3o+,J5o+,T6o+,96o+,86o+,75o+,65o,54o` |
+
+**The combo count is the acceptance criterion, not the percentage.** The counts
+above were derived by expanding the published notation, and your file must match
+them exactly. The source's own stated percentages are shown for transparency and
+disagree by up to 0.7 points — almost certainly their rounding. Where they
+differ, **the notation wins**; record the discrepancy in the file's `notes`.
+
+### 3.1 The full-ring small blind does not limp
+
+At 6-max this source's SB limps 38% of hands (§2.2). The full-ring SB is a
+**pure raise-or-fold** range at 74.1%, with no limping at all. That is not an
+inconsistency to fix — they are different published strategies for different
+table sizes. So `rfi/8max/SB.json` carries `"actions": ["raise"]`, while
+`rfi/6max/SB.json` carries `["raise", "limp"]`.
+
+This is the payoff for making `actions` per-range data rather than a drill-wide
+constant.
+
+### 3.2 Comparing the two formats
+
+Full-ring `HJ`, `CO` and `BTN` should land close to their 6-max counterparts,
+since the number of players still to act is the same. They do: `CO` 26.4% versus
+27.8%, `BTN` 40.9% versus 43.3%. Slightly tighter is expected, not an error. Do
+not "correct" one to match the other — they are separate published charts.
 
 ## 4. Structural invariants — these are hard failures
 
@@ -146,8 +179,8 @@ total or they will fail on correct data. Only invariant 1 uses raise VPIP
 specifically.
 
 1. **Monotonic widening.** Raise VPIP strictly increases along the position
-   order up to `BTN`: `UTG < UTG1 < UTG2 < LJ < HJ < CO < BTN` (using only the
-   positions the format has). `SB` is exempt — it is out of position postflop
+   order up to `BTN`: `UTG < UTG1 < LJ < HJ < CO < BTN` (using only the
+   positions the format has; 6-max has just `UTG < HJ < CO < BTN`). `SB` is exempt — it is out of position postflop
    against a single opponent, and in this dataset it raises only 24.3%.
 2. **Premiums are never folded.** `AA`, `KK`, `QQ`, `JJ`, `AKs`, `AKo`, `AQs`
    have played frequency `1.0` from every position. Note this says *played*, not
@@ -176,7 +209,7 @@ specifically.
    position, which means it is bounded by the tightest one. When writing a new
    invariant, check it against UTG first.
 7. **Coverage.** Every position in §2 and §3 has a file. `rfi/6max/` has 5
-   files, `rfi/9max/` has 8. No `BB.json`.
+   files, `rfi/8max/` has 7, twelve in total. No `BB.json` in either.
 
 ## 5. Verification procedure
 
