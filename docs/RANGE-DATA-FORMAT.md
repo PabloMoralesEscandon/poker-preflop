@@ -3,10 +3,21 @@
 Owner: `bob-the-boss`. Range files are **content**, not code. Adding a table
 format or correcting a chart must never require a code change.
 
-That claim was tested on 2026-08-07: the full-ring source changed from GTO
-Wizard to a different publisher, and the format changed from 9-max to 8-max,
-without a single line of backend or frontend logic changing. Only data, docs and
-one enum value moved.
+That claim was tested on 2026-08-07, and it **half held**. The full-ring source
+changed publisher and the format changed from 9-max to 8-max. Swapping the
+*chart contents* cost nothing — no grading, sampling, loading or rendering logic
+moved. But the **format identifier and its position list turned out to be code**,
+hardcoded in six places on the backend (two `Literal` types, two position
+tuples, the label map, the config schema) and in the frontend's types and
+`POSITIONS_BY_FORMAT`.
+
+I recorded "not a single line of logic changed" here before checking, which was
+wrong. Adding a *chart* is free. Adding a *table format* is a small, mechanical,
+but real code change in both services.
+
+If a third format ever lands (9-max, heads-up, MTT), that is the thing worth
+fixing first: derive the format list and its positions from the data directory
+rather than declaring them in two languages.
 
 ## 1. Location and naming
 
