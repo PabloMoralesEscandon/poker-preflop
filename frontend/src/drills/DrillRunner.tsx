@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   apiClient,
@@ -13,6 +13,8 @@ import { ConfigForm } from '../components/ConfigForm';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { SummaryView } from '../components/SummaryView';
 import { ErrorState, LoadingState, ProgressBar } from '../components/states';
+import { toStoredSession } from '../lib/history';
+import { saveSession } from '../lib/historyStorage';
 import { getDrillEntry } from './registry';
 
 /**
@@ -49,6 +51,11 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
+  /** The config the current session was created with, for the history record. */
+  const configRef = useRef<DrillConfig>({});
+  /** Session ids already written to history, so a re-render cannot double-add. */
+  const recorded = useRef(new Set<string>());
+
   const loadDrill = useCallback(() => {
     setDrillError(null);
     setDrill(null);
@@ -79,8 +86,22 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
         const next = await client.getNextQuestion(id);
         if (next.done) {
           setQuestion(null);
-          setSummary(await client.getSummary(id));
+          const finished = await client.getSummary(id);
+          setSummary(finished);
           setPhase({ name: 'summary' });
+          // Recorded once, here, because this is the only place a session is
+          // known to be over. Storage failures are swallowed by saveSession —
+          // losing a history row must never interrupt the drill.
+          if (!recorded.current.has(id)) {
+            recorded.current.add(id);
+            saveSession(
+              toStoredSession(
+                finished,
+                configRef.current,
+                new Date().toISOString()
+              )
+            );
+          }
         } else {
           setQuestion(next.question);
           setPhase({ name: 'question' });
@@ -104,6 +125,7 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
           config,
         });
         setSessionId(session.session_id);
+        configRef.current = session.config;
         setProgress({ answered: 0, correct: 0 });
         setSummary(null);
         await advance(session.session_id);
