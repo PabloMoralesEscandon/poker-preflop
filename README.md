@@ -12,17 +12,35 @@ accounts, no paid APIs, no subscriptions.
 ## Quick start
 
 ```bash
+make install    # uv sync + npm install
+make dev        # both services; Ctrl-C stops both
+```
+
+Then open <http://localhost:5173>. The frontend talks to the backend through the
+Vite dev-server proxy, so both sides are same-origin in development and CORS
+never comes up. `make help` lists every target.
+
+Or run them by hand:
+
+```bash
 # backend  (http://localhost:8000)
-cd backend && uv sync && uv run uvicorn learner.main:app --reload
+cd backend && uv sync && uv run uvicorn learner.main:app --reload --port 8000
 
 # frontend (http://localhost:5173)
 cd frontend && npm install && npm run dev
 ```
 
-The frontend also runs standalone against fixture data, with no backend:
+The frontend also runs standalone against fixture data, with no backend at all:
 
 ```bash
-cd frontend && VITE_API_MODE=mock npm run dev
+make frontend-mock          # or: cd frontend && VITE_API_MODE=mock npm run dev
+```
+
+Live is the default. Mock is opt-in, so a misconfigured backend surfaces as an
+error rather than as fixtures that look like real answers.
+
+```bash
+make check      # ruff, pytest, tsc, eslint, vitest, vite build
 ```
 
 ## Documentation

@@ -1,4 +1,5 @@
 import type { SessionSummary } from '../api';
+import { cn } from '../lib/cn';
 
 /**
  * Renders a session summary generically. `breakdown` is drill-defined, so this
@@ -47,19 +48,36 @@ export function SummaryView({
               </tr>
             </thead>
             <tbody>
-              {summary.breakdown.map((row) => (
-                <tr key={row.key} className="border-line border-t">
-                  <th scope="row" className="py-1.5 text-left font-normal">
-                    {row.label}
-                  </th>
-                  <td className="py-1.5 text-right font-mono tabular-nums">
-                    {row.correct}/{row.answered}
-                  </td>
-                  <td className="py-1.5 text-right font-mono tabular-nums">
-                    {percent(row.accuracy)}
-                  </td>
-                </tr>
-              ))}
+              {summary.breakdown.map((row) => {
+                // The server returns a row for every configured key, including
+                // ones this session never reached. Rendering those as 0% reads
+                // as "you got them all wrong", which is the opposite of true.
+                const untouched = row.answered === 0;
+                return (
+                  <tr
+                    key={row.key}
+                    data-answered={row.answered}
+                    className={cn(
+                      'border-line border-t',
+                      untouched && 'text-fg-muted'
+                    )}
+                  >
+                    <th scope="row" className="py-1.5 text-left font-normal">
+                      {row.label}
+                    </th>
+                    <td className="py-1.5 text-right font-mono tabular-nums">
+                      {untouched ? '—' : `${row.correct}/${row.answered}`}
+                    </td>
+                    <td className="py-1.5 text-right font-mono tabular-nums">
+                      {untouched ? (
+                        <span title="Not reached in this session">—</span>
+                      ) : (
+                        percent(row.accuracy)
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

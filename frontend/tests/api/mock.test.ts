@@ -445,8 +445,9 @@ describe('mock static endpoints', () => {
     const all = await client.listRanges();
     expect(all.ranges.length).toBeGreaterThan(0);
 
-    const nine = await client.listRanges({ table_format: '9max' });
-    expect(nine.ranges).toHaveLength(0);
+    // The fixture range list is 6-max only, so filtering to full ring is empty.
+    const fullRing = await client.listRanges({ table_format: '8max' });
+    expect(fullRing.ranges).toHaveLength(0);
 
     const rfi = await client.listRanges({ spot: 'rfi' });
     expect(rfi.ranges).toEqual(all.ranges);
