@@ -127,7 +127,8 @@ an `action_id`. Everything else is shared.
 ### 4.4 Range data is content, not code
 
 Ranges are JSON files validated against a schema (RANGE-DATA-FORMAT.md). Fixing
-a range, or adding 9-max, is a data change with no code change.
+a range, or adding a position to an existing format, is a data change with no
+code change. Adding a whole new *format* is not — see DRILL-2-SCOPING.md §2.
 
 ## 5. Parallel work model
 
@@ -157,7 +158,7 @@ Codes are a closed set, listed in API-CONTRACT §7. The frontend switches on
 
 ## 7. Definition of done for v1
 
-- A user opens the app, picks 6-max or 9-max and a set of positions, and drills
+- A user opens the app, picks 6-max or 8-max full ring and a set of positions, and drills
   RFI decisions from **any** position that can open (UTG through SB).
 - Each answer gives immediate correct/incorrect feedback, the expected action,
   a one-line reason, and the full 13×13 chart for that spot.
