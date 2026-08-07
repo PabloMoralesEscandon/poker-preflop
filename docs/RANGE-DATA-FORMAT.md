@@ -215,8 +215,36 @@ In the v2 source, `HJ_vs_UTG` is 3-bet-or-fold with no calling range at all
 (`"actions": ["3bet", "call"]`). A validator that assumes both are present is
 wrong.
 
-Action ids are a closed set per spot: `rfi` uses `raise`; `vs_rfi` uses `call`
-and `3bet`. A grid cell naming an id outside its spot's set is a load failure.
+Action ids are a closed set per spot:
+
+| Spot | Allowed non-fold action ids |
+|---|---|
+| `rfi` | `raise`, `limp` |
+| `vs_rfi` | `call`, `3bet` |
+
+A grid cell naming an id outside its spot's set is a load failure.
+
+**`limp` was missing from this table when it was first written**, which would
+have rejected `rfi/6max/SB.json` — a verified file with 504 combos of limp, and
+the very range that motivated making `actions` per-range data in the first
+place. Caught by `william-backend` before any code was written.
+
+The lesson is the same one the pairs invariant taught: **a closed set written
+from memory is a guess.** When you add a spot, derive its initial set from the
+files that exist —
+
+```bash
+python3 -c "import json,glob,collections; s=collections.defaultdict(set)
+[s[d['spot']].update(a for c in d['grid'].values() for a in c)
+ for d in (json.load(open(f)) for f in glob.glob('backend/data/ranges/*/*/*.json'))]
+print({k:sorted(v) for k,v in s.items()})"
+```
+
+— then keep the declaration, because its job is catching typos like `rasie` or
+`3Bet`, which no derivation can do. Declare it, but derive it once first.
+
+Cross-spot ids stay rejected: `limp` is invalid in `vs_rfi` (you cannot limp
+facing a raise) and `call`/`3bet` are invalid in `rfi`.
 
 ### 8.4 Everything else is unchanged
 
