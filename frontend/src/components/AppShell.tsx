@@ -15,6 +15,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-fg-muted hidden text-sm sm:inline">
             preflop and postflop drills
           </span>
+          <Link
+            to="/history"
+            className="text-fg-muted hover:text-fg ml-auto text-sm"
+          >
+            History
+          </Link>
         </div>
       </header>
 

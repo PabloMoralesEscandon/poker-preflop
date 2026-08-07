@@ -1,10 +1,12 @@
+import { Link } from 'react-router-dom';
+
 import type { SessionSummary } from '../api';
-import { cn } from '../lib/cn';
+import { AccuracyBars } from './charts';
 
 /**
  * Renders a session summary generically. `breakdown` is drill-defined, so this
- * only ever reads `key`, `label` and `accuracy` — it must not assume the rows
- * are positions.
+ * only ever reads `key`, `label`, `answered`, `correct` and `accuracy` — it must
+ * not assume the rows are positions.
  */
 export function SummaryView({
   summary,
@@ -26,61 +28,19 @@ export function SummaryView({
         </p>
       </div>
 
-      <p className="font-mono text-4xl font-semibold tabular-nums">
+      <p
+        aria-label={
+          summary.answered === 0
+            ? 'No hands answered yet'
+            : `Session accuracy ${percent(summary.accuracy)}`
+        }
+        className="font-mono text-4xl font-semibold tabular-nums"
+      >
         {summary.answered === 0 ? '—' : percent(summary.accuracy)}
       </p>
 
       {summary.breakdown.length > 0 ? (
-        <div className="space-y-2">
-          <h3 className="text-fg text-sm font-medium">Breakdown</h3>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-fg-muted text-left text-xs">
-                <th scope="col" className="py-1 font-medium">
-                  Group
-                </th>
-                <th scope="col" className="py-1 text-right font-medium">
-                  Correct
-                </th>
-                <th scope="col" className="py-1 text-right font-medium">
-                  Accuracy
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.breakdown.map((row) => {
-                // The server returns a row for every configured key, including
-                // ones this session never reached. Rendering those as 0% reads
-                // as "you got them all wrong", which is the opposite of true.
-                const untouched = row.answered === 0;
-                return (
-                  <tr
-                    key={row.key}
-                    data-answered={row.answered}
-                    className={cn(
-                      'border-line border-t',
-                      untouched && 'text-fg-muted'
-                    )}
-                  >
-                    <th scope="row" className="py-1.5 text-left font-normal">
-                      {row.label}
-                    </th>
-                    <td className="py-1.5 text-right font-mono tabular-nums">
-                      {untouched ? '—' : `${row.correct}/${row.answered}`}
-                    </td>
-                    <td className="py-1.5 text-right font-mono tabular-nums">
-                      {untouched ? (
-                        <span title="Not reached in this session">—</span>
-                      ) : (
-                        percent(row.accuracy)
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <AccuracyBars rows={summary.breakdown} caption="Breakdown" />
       ) : null}
 
       {summary.mistakes.length > 0 ? (
@@ -92,16 +52,22 @@ export function SummaryView({
             {summary.mistakes.map((mistake) => (
               <li
                 key={mistake.question_id}
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5"
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
               >
-                <span className="font-mono font-medium">{mistake.hand}</span>
+                <Link
+                  to={`/range/${encodeURIComponent(mistake.range_id)}?hand=${encodeURIComponent(mistake.hand)}`}
+                  className="text-accent font-mono font-medium underline underline-offset-4"
+                  title={`Show ${mistake.hand} in the ${mistake.range_id} chart`}
+                >
+                  {mistake.hand}
+                </Link>
                 <span className="text-fg-muted font-mono text-xs">
                   {mistake.position}
                 </span>
                 <span className="text-fg-muted text-xs">
                   played <span className="font-mono">{mistake.chosen}</span>,
                   chart says{' '}
-                  <span className="font-mono">{mistake.expected}</span>
+                  <span className="text-fg font-mono">{mistake.expected}</span>
                 </span>
               </li>
             ))}
@@ -109,15 +75,23 @@ export function SummaryView({
         </div>
       ) : null}
 
-      {onRestart ? (
-        <button
-          type="button"
-          onClick={onRestart}
-          className="bg-accent text-accent-fg rounded-md px-4 py-2 text-sm font-medium"
+      <div className="flex flex-wrap gap-3">
+        {onRestart ? (
+          <button
+            type="button"
+            onClick={onRestart}
+            className="bg-accent text-accent-fg rounded-md px-4 py-2 text-sm font-medium"
+          >
+            New session
+          </button>
+        ) : null}
+        <Link
+          to="/history"
+          className="border-line text-fg rounded-md border px-4 py-2 text-sm font-medium"
         >
-          New session
-        </button>
-      ) : null}
+          History
+        </Link>
+      </div>
     </section>
   );
 }

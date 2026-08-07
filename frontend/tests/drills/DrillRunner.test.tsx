@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ApiError, type ApiClient } from '@/api';
+import { HISTORY_STORAGE_KEY, parseHistory } from '@/lib/history';
 import { MockApiClient } from '@/api/mock';
 import { DrillRunner } from '@/drills/DrillRunner';
 import { drillRegistry, registerDrill } from '@/drills/registry';
@@ -41,6 +43,7 @@ function StubPrompt({
 }
 
 beforeEach(() => {
+  localStorage.clear();
   registerDrill('rfi', {
     Prompt: StubPrompt as never,
     gridHighlight: (prompt) => ('hand' in prompt ? prompt.hand.notation : null),
@@ -70,8 +73,19 @@ function clientWith(base: ApiClient, overrides: Partial<ApiClient>): ApiClient {
 }
 
 // 5 is the schema minimum for question_count.
+/** The runner lives inside the router in the real app; the summary links out. */
+function renderRunner(drillId: string, client: ApiClient) {
+  return render(
+    <MemoryRouter
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <DrillRunner drillId={drillId} client={client} />
+    </MemoryRouter>
+  );
+}
+
 async function startSession(client: ApiClient, hands = 5) {
-  render(<DrillRunner drillId="rfi" client={client} />);
+  renderRunner('rfi', client);
 
   await screen.findByRole('button', { name: 'Start session' });
 
@@ -85,7 +99,7 @@ async function startSession(client: ApiClient, hands = 5) {
 
 describe('DrillRunner session loop', () => {
   it('loads the drill and shows its config form first', async () => {
-    render(<DrillRunner drillId="rfi" client={new MockApiClient()} />);
+    renderRunner('rfi', new MockApiClient());
 
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Raise First In'
@@ -176,7 +190,7 @@ describe('DrillRunner registry boundary', () => {
     for (const key of Object.keys(drillRegistry)) delete drillRegistry[key];
 
     const client = new MockApiClient();
-    render(<DrillRunner drillId="rfi" client={client} />);
+    renderRunner('rfi', client);
     await screen.findByRole('button', { name: 'Start session' });
     await userEvent.click(
       screen.getByRole('button', { name: 'Start session' })
@@ -202,7 +216,7 @@ describe('DrillRunner error states', () => {
       },
     });
 
-    render(<DrillRunner drillId="rfi" client={client} />);
+    renderRunner('rfi', client);
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('The server had a problem');
@@ -214,7 +228,7 @@ describe('DrillRunner error states', () => {
   });
 
   it('explains an unknown drill id', async () => {
-    render(<DrillRunner drillId="omaha" client={new MockApiClient()} />);
+    renderRunner('omaha', new MockApiClient());
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /Unknown drill id omaha/
     );
@@ -228,7 +242,7 @@ describe('DrillRunner error states', () => {
       },
     });
 
-    render(<DrillRunner drillId="rfi" client={client} />);
+    renderRunner('rfi', client);
     await screen.findByRole('button', { name: 'Start session' });
     await userEvent.click(
       screen.getByRole('button', { name: 'Start session' })
@@ -239,5 +253,65 @@ describe('DrillRunner error states', () => {
         'This session has expired'
       )
     );
+  });
+});
+
+/**
+ * A finished session is recorded locally, once. FE-06 stores per-key counts and
+ * deliberately not the question log.
+ */
+describe('DrillRunner records a finished session', () => {
+  it('writes one history entry when the session completes', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    expect(parseHistory(localStorage.getItem(HISTORY_STORAGE_KEY))).toEqual([]);
+
+    for (let i = 0; i < 5; i += 1) {
+      await userEvent.click(
+        screen.getAllByRole('button', { name: /^Fold$/ })[0]!
+      );
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Next hand' })
+      );
+    }
+    await screen.findByRole('heading', { name: 'Session complete' });
+
+    const history = parseHistory(localStorage.getItem(HISTORY_STORAGE_KEY));
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({ drill_id: 'rfi', answered: 5 });
+    expect(history[0]?.config).toMatchObject({ question_count: 5 });
+    expect(history[0]?.breakdown.length).toBeGreaterThan(0);
+  });
+
+  it('records nothing until the session is actually over', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: /^Fold$/ })[0]!
+    );
+    await screen.findByRole('button', { name: 'Next hand' });
+
+    expect(parseHistory(localStorage.getItem(HISTORY_STORAGE_KEY))).toEqual([]);
+  });
+
+  it('stores counts, never the hands that were played', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+    for (let i = 0; i < 5; i += 1) {
+      await userEvent.click(
+        screen.getAllByRole('button', { name: /^Fold$/ })[0]!
+      );
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Next hand' })
+      );
+    }
+    await screen.findByRole('heading', { name: 'Session complete' });
+
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY) ?? '';
+    expect(raw).not.toContain('question_id');
+    expect(raw).not.toContain('notation');
+    expect(raw).not.toContain('cards');
   });
 });
