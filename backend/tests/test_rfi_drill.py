@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from random import Random
 
@@ -10,7 +11,7 @@ from learner.drills.rfi import RfiDrill, actions_for_range
 from learner.drills.rfi.models import RfiConfig, RfiHand, RfiPrompt
 from learner.errors import LearnerError
 from learner.ranges.loader import RangeIndex, load_ranges
-from learner.ranges.models import RangeData, cards_for_notation
+from learner.ranges.models import RangeData, canonical_hands, cards_for_notation
 
 
 @pytest.fixture
@@ -195,6 +196,56 @@ def test_mixed_hand_accepts_each_charted_action(range_payload) -> None:
     assert fold_grade.expected.action_id == "fold"
     assert fold_grade.expected.frequency == 0.75
     assert "mixed spot" in fold_grade.explanation.summary
+
+
+def test_explanation_uses_an_before_offsuit_hand(drill: RfiDrill) -> None:
+    config = config_for(drill, "CO")
+    question = question_for(drill, config, "CO", "42o")
+
+    grade = drill.grade(config, question, "fold")
+
+    assert grade.explanation.detail.startswith("42o is an offsuit hand.")
+
+
+def test_explanation_uses_singular_neighbour_verb(range_payload) -> None:
+    range_data = RangeData.model_validate(range_payload())
+    fixture_drill = RfiDrill(RangeIndex([range_data]))
+    config = config_for(fixture_drill, "CO")
+    question = question_for(fixture_drill, config, "CO", "AKs")
+
+    grade = fixture_drill.grade(config, question, "fold")
+
+    assert "1 is played" in grade.explanation.detail
+    assert "1 are played" not in grade.explanation.detail
+
+
+def test_explanation_uses_display_position_with_article(drill: RfiDrill) -> None:
+    config = config_for(drill, "BTN")
+    question = question_for(drill, config, "BTN", "72o")
+
+    grade = drill.grade(config, question, "fold")
+
+    assert grade.explanation.summary == "72o is a pure fold from the Button."
+
+
+def test_all_shipped_explanations_pass_grammar_sweep(drill: RfiDrill) -> None:
+    lowercase_sentence_start = re.compile(r"(?:^|[.!?]\s+)[a-z]")
+
+    for range_data in drill.ranges.list(spot="rfi"):
+        config = config_for(
+            drill,
+            range_data.position,
+            table_format=range_data.table_format,
+        )
+        for notation in canonical_hands():
+            question = question_for(drill, config, range_data.position, notation)
+            grade = drill.grade(config, question, "fold")
+            for copy in (grade.explanation.summary, grade.explanation.detail):
+                lowered = copy.lower()
+                assert "  " not in copy
+                assert lowercase_sentence_start.search(copy) is None
+                assert not any(f" a {vowel}" in lowered for vowel in "aeiou")
+                assert re.search(r"\b1 are\b", copy) is None
 
 
 def test_sb_raise_is_wrong_when_the_chart_limps_aa(drill: RfiDrill) -> None:

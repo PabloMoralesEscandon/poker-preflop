@@ -326,11 +326,11 @@ def _explanation(
     frequencies: dict[str, float],
     mixed: bool,
 ) -> RfiExplanation:
-    position = POSITION_LABELS[range_data.position].lower()
+    position = POSITION_LABELS[range_data.position]
     if mixed:
-        summary = f"{notation} is a mixed spot from {position}."
+        summary = f"{notation} is a mixed spot from the {position}."
     else:
-        summary = f"{notation} is a pure {expected_id} from {position}."
+        summary = f"{notation} is a pure {expected_id} from the {position}."
 
     hand_class = (
         "pair"
@@ -339,6 +339,7 @@ def _explanation(
         if notation.endswith("s")
         else "offsuit hand"
     )
+    article = "an" if hand_class[0] in "aeiou" else "a"
     frequency_text = ", ".join(
         f"{action} {frequency:.0%}"
         for action, frequency in frequencies.items()
@@ -349,10 +350,14 @@ def _explanation(
         played_frequency(range_data.grid[hand]) > 0.0 for hand in neighbours
     )
     folded_neighbours = len(neighbours) - played_neighbours
+    played_verb = "is" if played_neighbours == 1 else "are"
+    fold_verb = "folds" if folded_neighbours == 1 else "fold"
     detail = (
-        f"{notation} is a {hand_class}. The {range_data.range_id} chart assigns "
+        f"{notation} is {article} {hand_class}. "
+        f"The {range_data.range_id} chart assigns "
         f"{frequency_text}. Of its {len(neighbours)} adjacent grid cells, "
-        f"{played_neighbours} are played and {folded_neighbours} fold."
+        f"{played_neighbours} {played_verb} played and "
+        f"{folded_neighbours} {fold_verb}."
     )
     return RfiExplanation(
         summary=summary,
