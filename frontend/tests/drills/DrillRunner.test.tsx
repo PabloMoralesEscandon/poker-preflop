@@ -19,11 +19,13 @@ function StubPrompt({
   actions,
   onAction,
   disabled,
+  shortcuts = [],
 }: {
   prompt: { kind: string };
   actions: { id: string; label: string }[];
   onAction: (actionId: string) => void;
   disabled?: boolean;
+  shortcuts?: readonly { actionId: string; key: string }[];
 }) {
   return (
     <div>
@@ -33,6 +35,9 @@ function StubPrompt({
           key={action.id}
           type="button"
           disabled={disabled}
+          data-shortcut={
+            shortcuts.find((s) => s.actionId === action.id)?.key ?? ''
+          }
           onClick={() => onAction(action.id)}
         >
           {action.label}
@@ -313,5 +318,143 @@ describe('DrillRunner records a finished session', () => {
     expect(raw).not.toContain('question_id');
     expect(raw).not.toContain('notation');
     expect(raw).not.toContain('cards');
+  });
+});
+
+/**
+ * FE-07's definition of done: a full session completable with the keyboard
+ * alone. These drive it with `userEvent.keyboard` and never call `click`.
+ */
+describe('DrillRunner keyboard control', () => {
+  it('answers with the key derived from the action id', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    // f for fold, derived from the action id rather than hardcoded.
+    await userEvent.keyboard('f');
+    expect(
+      await screen.findByRole('button', { name: 'Next hand' })
+    ).toBeInTheDocument();
+  });
+
+  it('completes an entire session without a single click', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    for (let hand = 0; hand < 5; hand += 1) {
+      await userEvent.keyboard('f');
+      await screen.findByRole('button', { name: 'Next hand' });
+      await userEvent.keyboard('{Enter}');
+    }
+
+    expect(
+      await screen.findByRole('heading', { name: 'Session complete' })
+    ).toBeInTheDocument();
+  });
+
+  it('accepts Space as well as Enter to move on', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    await userEvent.keyboard('r');
+    await screen.findByRole('button', { name: 'Next hand' });
+    await userEvent.keyboard('[Space]');
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Next hand' })
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('ignores an action key while feedback is up', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    await userEvent.keyboard('f');
+    await screen.findByRole('button', { name: 'Next hand' });
+
+    // "f" is not bound during feedback; the panel must stay put.
+    await userEvent.keyboard('f');
+    expect(
+      screen.getByRole('button', { name: 'Next hand' })
+    ).toBeInTheDocument();
+  });
+
+  it('ignores shortcuts combined with a modifier', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    await userEvent.keyboard('{Control>}f{/Control}');
+    expect(
+      screen.queryByRole('button', { name: 'Next hand' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not hijack typing in the config form', async () => {
+    const client = new MockApiClient();
+    render(
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <DrillRunner drillId="rfi" client={client} />
+      </MemoryRouter>
+    );
+    const count = await screen.findByRole('spinbutton', { name: /Hands/ });
+    await userEvent.clear(count);
+    await userEvent.type(count, '15');
+    expect(count).toHaveValue(15);
+  });
+
+  it('hands the derived bindings to whatever drill is registered', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    expect(screen.getByRole('button', { name: 'Fold' })).toHaveAttribute(
+      'data-shortcut',
+      'f'
+    );
+    expect(screen.getByRole('button', { name: /^Raise/ })).toHaveAttribute(
+      'data-shortcut',
+      'r'
+    );
+  });
+
+  it('moves focus to the question when it changes', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+
+    await waitFor(() =>
+      expect(document.activeElement).toHaveAttribute(
+        'aria-label',
+        'Hand 1 of 5'
+      )
+    );
+
+    await userEvent.keyboard('f');
+    await screen.findByRole('button', { name: 'Next hand' });
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() =>
+      expect(document.activeElement).toHaveAttribute(
+        'aria-label',
+        'Hand 2 of 5'
+      )
+    );
+  });
+
+  it('announces the verdict in a single live region', async () => {
+    const client = new MockApiClient();
+    await startSession(client, 5);
+    await userEvent.keyboard('f');
+    await screen.findByRole('button', { name: 'Next hand' });
+
+    const live = screen.getByRole('status');
+    expect(live).toHaveAttribute('aria-live', 'polite');
+    expect(live.textContent).toMatch(
+      /^(Correct|Not the chart action|Acceptable, a mixed spot)\./
+    );
+    // The chart is not inside a live region; only this sentence is.
+    expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 });

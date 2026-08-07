@@ -20,6 +20,20 @@
   --viz-series-2: #eb6834;
   --viz-series-3: #1baf7a;
   --viz-series-4: #eda100;
+
+  /* Text drawn ON a series fill.
+     Every series step sits in the mid-lightness band the palette validator
+     enforces (L 0.43–0.77 light, 0.48–0.67 dark), so dark ink beats white on
+     all of them in both modes. Measured on slot 1: 4.19:1 light, 5.08:1 dark,
+     against 3.31:1 / 3.75:1 for the near-white ink it replaced.
+     Light mode is still short of the 4.5:1 that 10px text wants — slot 1 is not
+     dark enough for either ink to clear it, and re-stepping a documented
+     palette is a boss decision, so the grid leans on its redundancy instead:
+     every cell carries an aria-label and title with the full breakdown, and the
+     hovered or highlighted hand is spelled out under the chart.
+     If a much darker step is ever added to the palette, dark ink stops winning
+     and this needs to become a per-slot value. */
+  --viz-ink: #101418;
 }
 
 @media (prefers-color-scheme: dark) {

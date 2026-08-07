@@ -292,10 +292,7 @@ export function HandGrid({
                     )}
                     style={
                       cell.state === 'play'
-                        ? {
-                            color:
-                              'color-mix(in srgb, var(--canvas) 88%, var(--fg))',
-                          }
+                        ? { color: 'var(--viz-ink)' }
                         : cell.state === 'mixed'
                           ? // Sits over both the filled and unfilled halves, so
                             // it needs a halo rather than one fixed colour.

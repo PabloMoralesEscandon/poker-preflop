@@ -196,6 +196,34 @@ describe('RfiPrompt actions', () => {
     expect(onAction).toHaveBeenCalledExactlyOnceWith('limp');
   });
 
+  it('shows the keyboard binding on each button, and names it accessibly', () => {
+    render(
+      <RfiPrompt
+        prompt={PROMPT}
+        actions={FIXTURE.actions}
+        onAction={vi.fn()}
+        shortcuts={[
+          { actionId: 'fold', key: 'f', label: 'Fold' },
+          { actionId: 'raise', key: 'r', label: 'Raise 2.5bb' },
+        ]}
+      />
+    );
+
+    const fold = screen.getByRole('button', { name: 'Fold (key f)' });
+    expect(fold).toHaveAttribute('data-shortcut', 'f');
+    expect(fold).toHaveAttribute('aria-keyshortcuts', 'f');
+    // The hint is visible, not only announced.
+    expect(fold.querySelector('kbd')).toHaveTextContent('f');
+  });
+
+  it('renders without hints when no bindings are supplied', () => {
+    render(
+      <RfiPrompt prompt={PROMPT} actions={FIXTURE.actions} onAction={vi.fn()} />
+    );
+    expect(screen.getByRole('button', { name: 'Fold' })).toBeInTheDocument();
+    expect(document.querySelector('kbd')).toBeNull();
+  });
+
   it('disables the actions while an answer is in flight', () => {
     render(
       <RfiPrompt

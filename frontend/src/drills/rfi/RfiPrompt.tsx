@@ -61,7 +61,10 @@ export function RfiPrompt({
   actions,
   onAction,
   disabled = false,
+  shortcuts = [],
 }: DrillPromptProps<RfiPromptData>) {
+  const keyFor = (actionId: string) =>
+    shortcuts.find((shortcut) => shortcut.actionId === actionId)?.key;
   const order = seatOrder(prompt);
   const folded = new Set(prompt.folded_before);
 
@@ -128,24 +131,43 @@ export function RfiPrompt({
         aria-label="Your action"
         className="flex flex-wrap gap-2"
       >
-        {actions.map((action) => (
-          <button
-            key={action.id}
-            type="button"
-            data-action-id={action.id}
-            disabled={disabled}
-            onClick={() => onAction(action.id)}
-            className={cn(
-              'border-line min-w-28 rounded-md border px-4 py-2.5 text-sm font-medium',
-              action.id === 'fold'
-                ? 'bg-surface text-fg'
-                : 'bg-accent text-accent-fg border-transparent',
-              disabled && 'opacity-50'
-            )}
-          >
-            {action.label}
-          </button>
-        ))}
+        {actions.map((action) => {
+          const key = keyFor(action.id);
+          return (
+            <button
+              key={action.id}
+              type="button"
+              data-action-id={action.id}
+              data-shortcut={key}
+              disabled={disabled}
+              onClick={() => onAction(action.id)}
+              aria-keyshortcuts={key}
+              aria-label={key ? `${action.label} (key ${key})` : action.label}
+              className={cn(
+                'border-line flex min-h-11 min-w-28 flex-1 items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium sm:flex-none',
+                action.id === 'fold'
+                  ? 'bg-surface text-fg'
+                  : 'bg-accent text-accent-fg border-transparent',
+                disabled && 'opacity-50'
+              )}
+            >
+              <span>{action.label}</span>
+              {key ? (
+                <kbd
+                  aria-hidden="true"
+                  className={cn(
+                    'rounded border px-1.5 py-0.5 font-mono text-[0.625rem] uppercase',
+                    action.id === 'fold'
+                      ? 'border-line text-fg-muted'
+                      : 'border-accent-fg/40 text-accent-fg/80'
+                  )}
+                >
+                  {key}
+                </kbd>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

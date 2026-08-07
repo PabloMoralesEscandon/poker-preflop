@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   apiClient,
@@ -15,6 +15,9 @@ import { SummaryView } from '../components/SummaryView';
 import { ErrorState, LoadingState, ProgressBar } from '../components/states';
 import { toStoredSession } from '../lib/history';
 import { saveSession } from '../lib/historyStorage';
+import { assignShortcuts, shortcutMap, type Shortcut } from '../lib/shortcuts';
+import { useKeyboardShortcuts } from '../lib/useKeyboardShortcuts';
+import { verdictOf } from '../lib/verdict';
 import { getDrillEntry } from './registry';
 
 /**
@@ -162,6 +165,49 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
     [busy, client, question, sessionId]
   );
 
+  const shortcuts = useMemo(
+    () => (question ? assignShortcuts(question.actions) : []),
+    [question]
+  );
+
+  // One place owns the keyboard for the whole session: actions while a question
+  // is up, "move on" while feedback is up.
+  useKeyboardShortcuts(
+    useMemo(() => {
+      if (phase.name === 'question') {
+        const byKey = shortcutMap(shortcuts);
+        return Object.fromEntries(
+          Object.entries(byKey).map(([key, actionId]) => [
+            key,
+            () => void answer(actionId),
+          ])
+        );
+      }
+      if (phase.name === 'feedback') {
+        const next = () => sessionId && void advance(sessionId);
+        return { enter: next, ' ': next, escape: next, n: next };
+      }
+      return {};
+    }, [advance, answer, phase.name, sessionId, shortcuts]),
+    phase.name === 'question' || phase.name === 'feedback'
+  );
+
+  /**
+   * A short, self-contained sentence for the live region. The feedback panel
+   * itself is not a live region: announcing a 169-cell chart on every answer
+   * would be unusable.
+   */
+  const announcement =
+    phase.name === 'feedback'
+      ? `${verdictLabel(verdictOf(phase.answer))}. ${phase.answer.explanation.summary}`
+      : '';
+
+  /** Focus moves to the question when it changes, so the keyboard follows it. */
+  const questionRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (phase.name === 'question') questionRef.current?.focus();
+  }, [phase.name, question?.question_id]);
+
   const restart = useCallback(() => {
     setSessionId(null);
     setQuestion(null);
@@ -219,25 +265,55 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
 
       {phase.name === 'question' ? (
         question ? (
-          <PromptSlot question={question} disabled={busy} onAction={answer} />
+          <div
+            ref={questionRef}
+            tabIndex={-1}
+            aria-label={`Hand ${question.index} of ${question.total}`}
+            className="focus:outline-none"
+          >
+            <PromptSlot
+              question={question}
+              disabled={busy}
+              onAction={answer}
+              shortcuts={shortcuts}
+            />
+          </div>
         ) : (
           <LoadingState label="Loading hand…" />
         )
       ) : null}
 
       {phase.name === 'feedback' ? (
-        <FeedbackPanel
-          client={client}
-          answer={phase.answer}
-          question={phase.question}
-          busy={busy}
-          onNext={() => sessionId && void advance(sessionId)}
-        />
+        <>
+          {/*
+            The prompt stays on screen, disabled, while the feedback appears
+            below it. Nothing that was already visible moves, and the hand you
+            were asked about is still there to compare against the chart.
+          */}
+          <PromptSlot
+            question={phase.question}
+            disabled
+            onAction={() => {}}
+            shortcuts={assignShortcuts(phase.question.actions)}
+          />
+          <FeedbackPanel
+            client={client}
+            answer={phase.answer}
+            question={phase.question}
+            busy={busy}
+            onNext={() => sessionId && void advance(sessionId)}
+          />
+        </>
       ) : null}
 
       {phase.name === 'summary' && summary ? (
         <SummaryView summary={summary} onRestart={restart} />
       ) : null}
+
+      {/* The only live region in the session: one sentence per answer. */}
+      <p aria-live="polite" role="status" className="sr-only">
+        {announcement}
+      </p>
     </div>
   );
 }
@@ -247,10 +323,12 @@ function PromptSlot({
   question,
   disabled,
   onAction,
+  shortcuts,
 }: {
   question: Question;
   disabled: boolean;
   onAction: (actionId: string) => void;
+  shortcuts: Shortcut[];
 }) {
   const entry = getDrillEntry(question.prompt.kind);
 
@@ -273,6 +351,13 @@ function PromptSlot({
       actions={question.actions}
       onAction={onAction}
       disabled={disabled}
+      shortcuts={shortcuts}
     />
   );
+}
+
+function verdictLabel(verdict: 'correct' | 'mixed' | 'incorrect'): string {
+  if (verdict === 'correct') return 'Correct';
+  if (verdict === 'mixed') return 'Acceptable, a mixed spot';
+  return 'Not the chart action';
 }
