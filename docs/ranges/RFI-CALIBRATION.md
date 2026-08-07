@@ -196,18 +196,37 @@ specifically.
    position** for the wheel-ace hands (`A5s`, `A4s`, `A3s`, `A2s`), which many
    charts open ahead of `A7s`/`A6s`. Any other inversion is a transcription
    error.
-6. **Pairs never fold above 66.** All of `AA` through `66` have played frequency
-   `1.0` from every position.
+6. **Pairs are contiguous from `AA`.** If a range plays a pair, it plays every
+   higher pair. No range may open `66` while folding `77`.
 
-   **This corrected an earlier version that said `55`, which was wrong.** The
-   UTG/Lojack grid folds `55`, `44`, `33` and `22` — see the verified
-   composition in §2.4. `55` and below vary by position (the button opens all
-   thirteen pairs, the small blind plays all thirteen), so no invariant binds
-   them.
+   This is the assertion to write. It is structural, holds at every position and
+   every format, and cannot go stale when a new chart lands. It still catches
+   the error it needs to catch — a mistyped or shifted pair diagonal.
 
-   The general trap: every invariant in this section must hold at **every**
-   position, which means it is bounded by the tightest one. When writing a new
-   invariant, check it against UTG first.
+   **A fixed floor does not work, and this document got it wrong three times
+   before admitting that.** It said `55` (wrong: 6-max UTG folds `55`), then
+   `66` (wrong: full-ring UTG and UTG+1 fold `66`), and each correction was made
+   by reading whichever ranges happened to exist at the time. Measured across
+   all twelve shipped ranges, the floors are:
+
+   | Floor | Ranges |
+   |---|---|
+   | `77` | 8max `UTG`, 8max `UTG1` |
+   | `66` | 6max `UTG`, 8max `LJ` |
+   | `55` | 6max `HJ`, 8max `HJ` |
+   | `44` | 8max `CO` |
+   | `33` | 6max `CO` |
+   | `22` | `BTN` and `SB` in both formats |
+
+   So `AA`–`77` happens to be played everywhere *today*. You may assert that as
+   a secondary check, but label it as a measured property of the current data,
+   not a law — the next chart set will move it. The contiguity rule above is the
+   one that never moves.
+
+   The general trap, stated once so it is not relearned: an invariant written
+   from the ranges you happen to have is a description, not an invariant. Before
+   asserting one, check it against the **tightest** range in every format, or
+   prefer a structural property that does not reference specific hands at all.
 7. **Coverage.** Every position in §2 and §3 has a file. `rfi/6max/` has 5
    files, `rfi/8max/` has 7, twelve in total. No `BB.json` in either.
 
