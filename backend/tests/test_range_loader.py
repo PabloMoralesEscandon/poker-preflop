@@ -24,7 +24,37 @@ def test_loader_indexes_and_filters_valid_ranges(range_payload, range_writer) ->
     assert len(index) == 1
     assert index.get("rfi_6max_CO").position == "CO"
     assert index.list(spot="rfi", table_format="6max") == [index.get("rfi_6max_CO")]
-    assert index.list(table_format="9max") == []
+    assert index.list(table_format="8max") == []
+
+
+def test_loader_accepts_fullring_source_and_8max_positions(
+    range_payload, range_writer
+) -> None:
+    payload = range_payload(
+        range_id="rfi_8max_UTG1",
+        table_format="8max",
+        position="UTG1",
+        source_id="jl-fullring-preflop-charts",
+    )
+    root, _ = range_writer(payload, relative="rfi/8max/UTG1.json")
+
+    loaded = load_ranges(root).get("rfi_8max_UTG1")
+
+    assert loaded.table_format == "8max"
+    assert loaded.position == "UTG1"
+
+
+def test_8max_rejects_removed_utg2_position(range_payload, range_writer) -> None:
+    payload = range_payload(
+        range_id="rfi_8max_UTG2",
+        table_format="8max",
+        position="UTG2",
+        source_id="jl-fullring-preflop-charts",
+    )
+    root, _ = range_writer(payload, relative="rfi/8max/UTG2.json")
+
+    with pytest.raises(RangeLoadError, match="UTG2.*invalid for 8max"):
+        load_ranges(root)
 
 
 def test_missing_range_maps_to_domain_error(tmp_path: Path) -> None:

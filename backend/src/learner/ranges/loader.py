@@ -20,6 +20,7 @@ DEFAULT_RANGE_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "ranges"
 KNOWN_SOURCE_IDS = frozenset(
     {
         "jl-6max-preflop-charts",
+        "jl-fullring-preflop-charts",
         "gtowizard-free-study",
         "freebetrange-open-raises",
         "pokerstars-rules",
@@ -33,7 +34,7 @@ KNOWN_SOURCE_IDS = frozenset(
 
 POSITION_ORDER = {
     "6max": ("UTG", "HJ", "CO", "BTN", "SB"),
-    "9max": ("UTG", "UTG1", "UTG2", "LJ", "HJ", "CO", "BTN", "SB"),
+    "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB"),
 }
 
 

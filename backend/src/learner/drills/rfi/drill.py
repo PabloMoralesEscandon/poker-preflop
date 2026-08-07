@@ -43,13 +43,12 @@ from learner.ranges.models import (
 
 POSITION_ORDER = {
     "6max": ("UTG", "HJ", "CO", "BTN", "SB", "BB"),
-    "9max": ("UTG", "UTG1", "UTG2", "LJ", "HJ", "CO", "BTN", "SB", "BB"),
+    "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"),
 }
 
 POSITION_LABELS = {
     "UTG": "UTG",
     "UTG1": "UTG+1",
-    "UTG2": "UTG+2",
     "LJ": "Lojack",
     "HJ": "Hijack",
     "CO": "Cutoff",
@@ -82,7 +81,7 @@ class RfiDrill:
                     default="6max",
                     options=[
                         Option(value="6max", label="6-max"),
-                        Option(value="9max", label="9-max (full ring)"),
+                        Option(value="8max", label="8-max (full ring)"),
                     ],
                 ),
                 MultiEnumField(
@@ -93,11 +92,10 @@ class RfiDrill:
                     depends_on="table_format",
                     options_by={
                         "6max": _position_options(("UTG", "HJ", "CO", "BTN", "SB")),
-                        "9max": _position_options(
+                        "8max": _position_options(
                             (
                                 "UTG",
                                 "UTG1",
-                                "UTG2",
                                 "LJ",
                                 "HJ",
                                 "CO",

@@ -23,7 +23,7 @@ FREQUENCY_TOLERANCE = 1e-6
 
 VALID_POSITIONS: dict[str, frozenset[str]] = {
     "6max": frozenset({"UTG", "HJ", "CO", "BTN", "SB"}),
-    "9max": frozenset({"UTG", "UTG1", "UTG2", "LJ", "HJ", "CO", "BTN", "SB"}),
+    "8max": frozenset({"UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB"}),
 }
 
 
@@ -179,7 +179,7 @@ class RangeData(BaseModel):
 
     range_id: str
     spot: Literal["rfi"]
-    table_format: Literal["6max", "9max"]
+    table_format: Literal["6max", "8max"]
     position: str
     stack_bb: float
     open_size_bb: float

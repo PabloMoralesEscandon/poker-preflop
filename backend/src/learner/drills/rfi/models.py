@@ -10,7 +10,7 @@ from learner.drills.base import DrillConfig, Explanation, Mistake, Prompt
 class RfiConfig(DrillConfig):
     """Validated configuration for one RFI session."""
 
-    table_format: Literal["6max", "9max"]
+    table_format: Literal["6max", "8max"]
     positions: list[str]
     question_count: int
     weighting: Literal["uniform", "borderline"]
@@ -31,7 +31,7 @@ class RfiPrompt(Prompt):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["rfi"] = "rfi"
-    table_format: Literal["6max", "9max"]
+    table_format: Literal["6max", "8max"]
     hero_position: str
     stack_bb: float
     hand: RfiHand
