@@ -33,11 +33,28 @@ It is not a shipped range and must never be copied into `backend/data/`. The
 loader rejects that `source_id` by design.
 
 **Only its shape is contractual. Its contents are not, and they are already
-known to differ from the real chart.** Verified live on 2026-08-07: the real
-`rfi_6max_CO` plays `A8o`, `A9o`, `K3s`, `K4s` and `Q6s`, which this fixture
-folds, and folds `22`, `54s`, `64s`, `65s`, `75s`, `86s`, `96s` and `J7s`, which
-it plays. That divergence is correct and expected — one is a transcription of a
-cited chart, the other is my invention.
+known to differ from the real chart.** Measured on 2026-08-07 against
+`backend/data/ranges/rfi/6max/CO.json` — **20 of the 169 cells differ**:
+
+- **13 side flips.** The real chart plays `A8o`, `A9o`, `K3s`, `K4s`, `Q6s`,
+  which this fixture folds; and folds `22`, `54s`, `64s`, `65s`, `75s`, `86s`,
+  `96s`, `J7s`, which it plays.
+- **7 frequency-only differences**, where this fixture is `0.5` and the real
+  chart is a pure `1.0`: `33`, `JTo`, `K5s`, `KTo`, `Q7s`, `QTo`, `T7s`.
+
+An earlier version of this note said twelve and listed only the flips. The
+frequency differences are the ones easy to miss, because both cells are
+"played" and a shape comparison sails straight past them.
+
+That divergence is correct and expected — one is a transcription of a cited
+chart, the other is my invention.
+
+**Consequence worth knowing:** this fixture has **12 mixed cells; the real 6-max
+data has none**, and neither does the full-ring data (RFI-CALIBRATION §2.3). So
+the mixed-answer feedback path is reachable in mock mode and unreachable against
+a live backend. That is not a bug in either service. It does mean mixed
+behaviour must be covered by tests and fixtures rather than by clicking through
+the running app.
 
 So: a conformance test may assert that the live response has the same keys and
 types as this file. It must **never** assert that a cell matches. And nobody may
