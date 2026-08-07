@@ -9,14 +9,23 @@ import { MockApiClient } from './mock';
 
 export type ApiMode = 'mock' | 'live';
 
-/** Mock is the default so the app runs with no backend at all. */
-export function resolveApiMode(
-  raw: string | undefined = import.meta.env.VITE_API_MODE
-): ApiMode {
-  return raw === 'live' ? 'live' : 'mock';
+/**
+ * Live is the default: the real server is the product, and a frontend that
+ * silently falls back to fixtures would hide an outage behind plausible data.
+ * Only an explicit `mock` opts out.
+ *
+ * Pure, so the "unset" case is testable — reading the environment happens in
+ * {@link currentApiMode}.
+ */
+export function resolveApiMode(raw: string | undefined): ApiMode {
+  return raw === 'mock' ? 'mock' : 'live';
 }
 
-export function createApiClient(mode: ApiMode = resolveApiMode()): ApiClient {
+export function currentApiMode(): ApiMode {
+  return resolveApiMode(import.meta.env.VITE_API_MODE);
+}
+
+export function createApiClient(mode: ApiMode = currentApiMode()): ApiClient {
   if (mode === 'live') {
     return new LiveApiClient(
       import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL

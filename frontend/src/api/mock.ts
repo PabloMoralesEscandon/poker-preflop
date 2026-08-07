@@ -665,9 +665,25 @@ function explanationDetail(
 // Summary (API-CONTRACT §4.4)
 // ---------------------------------------------------------------------------
 
+/**
+ * One row per *configured* key, not per answered key — matching the live
+ * backend. A position you selected but have not reached yet still gets a row,
+ * with `answered: 0`; the UI is responsible for not rendering that as 0%.
+ */
 function buildBreakdown(session: MockSession): BreakdownRow[] {
   const labels = positionLabels(session);
+  const order = POSITIONS_BY_FORMAT[tableFormat(session.config)];
+
   const rows = new Map<string, BreakdownRow>();
+  for (const key of configuredPositions(session.config)) {
+    rows.set(key, {
+      key,
+      label: labels.get(key) ?? key,
+      answered: 0,
+      correct: 0,
+      accuracy: 0,
+    });
+  }
 
   for (const entry of session.answered) {
     const key = entry.question.prompt.hero_position;
@@ -684,7 +700,6 @@ function buildBreakdown(session: MockSession): BreakdownRow[] {
     rows.set(key, row);
   }
 
-  const order = POSITIONS_BY_FORMAT[tableFormat(session.config)];
   return [...rows.values()].sort(
     (a, b) =>
       order.indexOf(a.key as Position) - order.indexOf(b.key as Position)

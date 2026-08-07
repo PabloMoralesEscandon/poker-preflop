@@ -17,25 +17,34 @@ npm install
 
 ## Run
 
-The app is designed to be fully usable with the backend switched off. Mock mode
-is the default, so this is all you need to see it working:
+From the repository root, `make dev` starts this and the backend together. On
+its own:
 
 ```bash
-npm run dev            # http://localhost:5173, mock mode
+npm run dev            # http://localhost:5173, against the backend on :8000
 ```
 
-To run against a real server:
+`.env.development` points the app at the relative `/api/v1`, which the Vite
+proxy in `vite.config.ts` forwards to the backend. Same-origin in development,
+so CORS never comes up and no backend port is compiled into the app. Point the
+proxy elsewhere with `LEARNER_API_TARGET`.
+
+The app is also fully usable with the backend switched off:
 
 ```bash
-VITE_API_MODE=live VITE_API_BASE_URL=http://localhost:8000/api/v1 npm run dev
+VITE_API_MODE=mock npm run dev
 ```
 
-Or copy `.env.example` to `.env.local` and edit it.
+Live is the default and mock is opt-in: a frontend that quietly fell back to
+fixtures would hide a backend outage behind data that looks entirely plausible.
 
-| Variable            | Default                        | Meaning                                                                            |
-| ------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
-| `VITE_API_MODE`     | `mock`                         | `mock` serves `../docs/examples/` fixtures in-process; `live` talks to the server. |
-| `VITE_API_BASE_URL` | `http://localhost:8000/api/v1` | Only used when `VITE_API_MODE=live`.                                               |
+Copy `.env.example` to `.env.local` to override either variable.
+
+| Variable             | Default                                               | Meaning                                                                            |
+| -------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `VITE_API_MODE`      | `live`                                                | `live` talks to the server; `mock` serves `../docs/examples/` fixtures in-process. |
+| `VITE_API_BASE_URL`  | `/api/v1` in dev, else `http://localhost:8000/api/v1` | Only used when `VITE_API_MODE=live`.                                               |
+| `LEARNER_API_TARGET` | `http://127.0.0.1:8000`                               | Where the dev-server proxy forwards `/api`. Build-time only.                       |
 
 ## Checks
 
@@ -47,6 +56,10 @@ npm run build          # tsc --noEmit && vite build
 ```
 
 `npm run format` rewrites files with Prettier.
+
+Tests always run against the mock — `vite.config.ts` sets `VITE_API_MODE=mock`
+for vitest, so no test can quietly depend on a server being up. Live behaviour
+is covered by `tests/api/live.test.ts`, which injects its own `fetch`.
 
 ## Layout
 
