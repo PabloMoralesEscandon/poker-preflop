@@ -68,7 +68,12 @@ class RangeIndex:
             ) from exc
 
     def list(
-        self, *, spot: str | None = None, table_format: str | None = None
+        self,
+        *,
+        spot: str | None = None,
+        table_format: str | None = None,
+        position: str | None = None,
+        vs_position: str | None = None,
     ) -> list[RangeData]:
         """List ranges in table position order with optional contract filters."""
         filtered = [
@@ -76,6 +81,8 @@ class RangeIndex:
             for item in self._by_id.values()
             if (spot is None or item.spot == spot)
             and (table_format is None or item.table_format == table_format)
+            and (position is None or item.position == position)
+            and (vs_position is None or item.vs_position == vs_position)
         ]
         return sorted(
             filtered,

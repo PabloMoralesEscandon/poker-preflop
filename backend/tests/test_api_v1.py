@@ -219,7 +219,13 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     missing = await client.get("/api/v1/ranges", params={"spot": "missing"})
 
     assert all_ranges.status_code == 200
-    assert six_max.json() == example("ranges_list.json")
+    legacy_fields = set(example("ranges_list.json")["ranges"][0])
+    assert {
+        "ranges": [
+            {key: item[key] for key in legacy_fields}
+            for item in six_max.json()["ranges"]
+        ]
+    } == example("ranges_list.json")
     assert all_ranges.json()["ranges"] == (
         six_max.json()["ranges"] + eight_max.json()["ranges"] + vs_rfi.json()["ranges"]
     )
@@ -233,6 +239,37 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
         "rfi_8max_SB",
     ]
     assert missing.json() == {"ranges": []}
+    assert all_ranges.headers["cache-control"] == "public, max-age=3600"
+
+
+async def test_ranges_list_is_enriched_and_filters_matchups(
+    client: AsyncClient,
+) -> None:
+    response = await client.get(
+        "/api/v1/ranges",
+        params={"position": "BB", "vs_position": "BTN"},
+    )
+
+    assert response.status_code == 200
+    assert [item["range_id"] for item in response.json()["ranges"]] == [
+        "vs_rfi_6max_BB_vs_BTN"
+    ]
+    item = response.json()["ranges"][0]
+    assert set(item) == set(example("ranges_list_v2.json")["ranges"][1])
+    assert item["actions"] == ["3bet", "call"]
+    assert item["action_sizes_bb"] == {"3bet": 4.0, "call": 2.5}
+    assert item["facing_size_bb"] == 2.5
+    assert item["stats"]["by_action"] == {"3bet": 178.0, "call": 576.0}
+
+
+async def test_sources_matches_fixture_and_has_cache_header(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/api/v1/sources")
+
+    assert response.status_code == 200
+    assert response.json() == example("sources.json")
+    assert response.headers["cache-control"] == "public, max-age=3600"
 
 
 async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> None:

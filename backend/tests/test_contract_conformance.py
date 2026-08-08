@@ -24,15 +24,15 @@ CONFORMED_FIXTURES = {
     "next_question",
     "range_rfi_6max_CO",
     "ranges_list",
+    "ranges_list_v2",
     "session_create",
+    "sources",
     "summary",
 }
 PENDING_V2_FIXTURES = {
     "answer_vs_rfi",
     "next_question_vs_rfi",
     "range_vs_rfi_6max_BB_vs_BTN",
-    "ranges_list_v2",
-    "sources",
 }
 
 
@@ -196,9 +196,18 @@ async def test_success_responses_match_canonical_fixture_shapes(
     ranges = await client.get(
         "/api/v1/ranges", params={"spot": "rfi", "table_format": "6max"}
     )
+    ranges_v2 = await client.get("/api/v1/ranges")
     range_detail = await client.get("/api/v1/ranges/rfi_6max_CO")
+    sources = await client.get("/api/v1/sources")
 
-    assert drills.status_code == ranges.status_code == range_detail.status_code == 200
+    assert (
+        drills.status_code
+        == ranges.status_code
+        == ranges_v2.status_code
+        == range_detail.status_code
+        == sources.status_code
+        == 200
+    )
     assert_fixture_shape(
         {"drills": drills.json()["drills"][:1]},
         fixture("drills"),
@@ -209,8 +218,36 @@ async def test_success_responses_match_canonical_fixture_shapes(
     )
     assert_fixture_shape(correct_answer, fixture("answer_correct"))
     assert_fixture_shape(incorrect_answer, fixture("answer_incorrect"))
-    assert_fixture_shape(ranges.json(), fixture("ranges_list"))
+    assert_fixture_shape(
+        {
+            "ranges": [
+                {
+                    key: value
+                    for key, value in item.items()
+                    if key
+                    in {"range_id", "spot", "table_format", "position", "stack_bb"}
+                }
+                for item in ranges.json()["ranges"]
+            ]
+        },
+        fixture("ranges_list"),
+    )
+    fixture_range_ids = {
+        "rfi_6max_CO",
+        "vs_rfi_6max_BB_vs_BTN",
+    }
+    assert_fixture_shape(
+        {
+            "ranges": [
+                item
+                for item in ranges_v2.json()["ranges"]
+                if item["range_id"] in fixture_range_ids
+            ]
+        },
+        fixture("ranges_list_v2"),
+    )
     assert_fixture_shape(range_detail.json(), migrated_rfi_range_fixture())
+    assert_fixture_shape(sources.json(), fixture("sources"))
 
 
 async def test_mixed_answer_shape_uses_a_constructed_range(

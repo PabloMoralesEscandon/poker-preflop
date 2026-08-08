@@ -13,10 +13,14 @@ Ranges = Annotated[RangeIndex, Depends(range_index)]
 
 @router.get("/ranges")
 def list_ranges(
+    response: Response,
     ranges: Ranges,
     spot: str | None = None,
     table_format: str | None = None,
+    position: str | None = None,
+    vs_position: str | None = None,
 ) -> dict:
+    response.headers["Cache-Control"] = "public, max-age=3600"
     return {
         "ranges": [
             {
@@ -24,9 +28,20 @@ def list_ranges(
                 "spot": item.spot,
                 "table_format": item.table_format,
                 "position": item.position,
+                "vs_position": item.vs_position,
                 "stack_bb": item.stack_bb,
+                "actions": item.actions,
+                "action_sizes_bb": item.action_sizes_bb,
+                "facing_size_bb": item.facing_size_bb,
+                "source_id": item.source_id,
+                "stats": item.stats.model_dump(mode="json"),
             }
-            for item in ranges.list(spot=spot, table_format=table_format)
+            for item in ranges.list(
+                spot=spot,
+                table_format=table_format,
+                position=position,
+                vs_position=vs_position,
+            )
         ]
     }
 
