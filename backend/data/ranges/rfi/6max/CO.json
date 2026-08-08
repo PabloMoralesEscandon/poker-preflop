@@ -4,7 +4,7 @@
   "table_format": "6max",
   "position": "CO",
   "stack_bb": 100,
-  "open_size_bb": 2.5,
+  "action_sizes_bb": {"raise": 2.5},
   "source_id": "jl-6max-preflop-charts",
   "notes": "100bb RFI; 2.5bb open; typical $2/$5 online cash game with 5% rake capped at $3; chart p.3.",
   "actions": [
@@ -306,4 +306,3 @@
     "32o": {}
   }
 }
-

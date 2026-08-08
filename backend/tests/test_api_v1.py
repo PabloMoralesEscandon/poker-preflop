@@ -229,7 +229,15 @@ async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> N
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "public, max-age=3600"
-    assert set(body) == set(fixture)
+    expected_fields = (set(fixture) - {"open_size_bb"}) | {
+        "vs_position",
+        "facing_size_bb",
+        "action_sizes_bb",
+    }
+    assert set(body) == expected_fields
+    assert body["vs_position"] is None
+    assert body["facing_size_bb"] is None
+    assert body["action_sizes_bb"] == {"raise": 2.5}
     assert set(body["grid"]) == set(fixture["grid"])
     assert all(
         isinstance(cell, dict)
@@ -243,6 +251,7 @@ async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> N
         "combos": 368.0,
         "vpip": 0.2775,
         "hands_played": 62,
+        "by_action": {"raise": 368.0},
     }
 
 

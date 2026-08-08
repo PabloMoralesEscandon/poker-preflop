@@ -4,7 +4,7 @@
   "table_format": "8max",
   "position": "SB",
   "stack_bb": 100,
-  "open_size_bb": 3.0,
+  "action_sizes_bb": {"raise": 3.0},
   "source_id": "jl-fullring-preflop-charts",
   "notes": "100bb full-ring (8-max) RFI; 3bb open; published text notation produces 982 combos (74.1%); source states 73.9%, so the notation-derived combo count wins.",
   "actions": [

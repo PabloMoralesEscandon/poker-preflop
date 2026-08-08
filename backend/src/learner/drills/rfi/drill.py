@@ -301,9 +301,9 @@ def actions_for_range(range_data: RangeData) -> list[Action]:
 
 def _action_label(action: str, range_data: RangeData) -> str:
     if action == "raise":
-        return f"Raise {range_data.open_size_bb:g}bb"
+        return f"Raise {range_data.action_sizes_bb[action]:g}bb"
     if action == "limp":
-        return "Limp 1bb"
+        return f"Limp {range_data.action_sizes_bb[action]:g}bb"
     return action.replace("_", " ").title()
 
 

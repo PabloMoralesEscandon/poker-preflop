@@ -101,6 +101,7 @@ def test_computed_stats_for_a_fully_open_range(range_payload) -> None:
         "combos": 1326.0,
         "vpip": 1.0,
         "hands_played": 169,
+        "by_action": {"raise": 1326.0},
     }
 
 

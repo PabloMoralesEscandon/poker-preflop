@@ -4,7 +4,7 @@
   "table_format": "6max",
   "position": "SB",
   "stack_bb": 100,
-  "open_size_bb": 3,
+  "action_sizes_bb": {"raise": 3.0, "limp": 1.0},
   "source_id": "jl-6max-preflop-charts",
   "notes": "100bb RFI; 3bb raise size; typical $2/$5 online cash game with 5% rake capped at $3; chart p.3. Three-action strategy: red cells raise, blue cells limp, and uncoloured cells fold.",
   "actions": [
@@ -423,4 +423,3 @@
     "32o": {}
   }
 }
-

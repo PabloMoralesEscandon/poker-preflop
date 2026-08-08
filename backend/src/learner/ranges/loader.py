@@ -33,8 +33,8 @@ KNOWN_SOURCE_IDS = frozenset(
 )
 
 POSITION_ORDER = {
-    "6max": ("UTG", "HJ", "CO", "BTN", "SB"),
-    "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB"),
+    "6max": ("UTG", "HJ", "CO", "BTN", "SB", "BB"),
+    "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"),
 }
 
 
@@ -83,6 +83,11 @@ class RangeIndex:
                 item.spot,
                 item.table_format,
                 POSITION_ORDER[item.table_format].index(item.position),
+                (
+                    -1
+                    if item.vs_position is None
+                    else POSITION_ORDER[item.table_format].index(item.vs_position)
+                ),
             ),
         )
 
@@ -158,19 +163,25 @@ def load_range_file(
         )
 
     path_spot, path_format, filename = relative.parts
-    path_position = Path(filename).stem
-    expected_id = f"{path_spot}_{path_format}_{path_position}"
+    path_matchup = Path(filename).stem
+    expected_id = f"{path_spot}_{path_format}_{path_matchup}"
     if item.range_id != expected_id:
         raise RangeLoadError(
             f"{file_path}: range_id {item.range_id!r} does not match "
             f"path-derived id {expected_id!r}."
         )
+    if path_spot == "vs_rfi" and "_vs_" in path_matchup:
+        path_position, path_vs_position = path_matchup.split("_vs_", maxsplit=1)
+    else:
+        path_position, path_vs_position = path_matchup, None
     if (
         item.spot != path_spot
         or item.table_format != path_format
         or item.position != path_position
+        or item.vs_position != path_vs_position
     ):
         raise RangeLoadError(
-            f"{file_path}: spot, table_format, and position must match the file path."
+            f"{file_path}: spot, table_format, position, and vs_position "
+            "must match the file path."
         )
     return item

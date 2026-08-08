@@ -21,9 +21,17 @@ SUITS = "shdc"
 TOTAL_COMBOS = 1326
 FREQUENCY_TOLERANCE = 1e-6
 
-VALID_POSITIONS: dict[str, frozenset[str]] = {
+TABLE_POSITIONS: dict[str, frozenset[str]] = {
+    "6max": frozenset({"UTG", "HJ", "CO", "BTN", "SB", "BB"}),
+    "8max": frozenset({"UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"}),
+}
+RFI_POSITIONS: dict[str, frozenset[str]] = {
     "6max": frozenset({"UTG", "HJ", "CO", "BTN", "SB"}),
     "8max": frozenset({"UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB"}),
+}
+ALLOWED_ACTIONS_BY_SPOT: dict[str, frozenset[str]] = {
+    "rfi": frozenset({"raise", "limp"}),
+    "vs_rfi": frozenset({"call", "3bet"}),
 }
 
 
@@ -170,6 +178,7 @@ class RangeStats(BaseModel):
     combos: float = Field(ge=0.0, le=TOTAL_COMBOS)
     vpip: float = Field(ge=0.0, le=1.0)
     hands_played: int = Field(ge=0, le=169)
+    by_action: dict[str, float]
 
 
 class RangeData(BaseModel):
@@ -178,20 +187,37 @@ class RangeData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     range_id: str
-    spot: Literal["rfi"]
+    spot: Literal["rfi", "vs_rfi"]
     table_format: Literal["6max", "8max"]
     position: str
+    vs_position: str | None = None
     stack_bb: float
-    open_size_bb: float
+    facing_size_bb: float | None = None
     source_id: str
     notes: str
     actions: list[str]
+    action_sizes_bb: dict[str, float]
     grid: dict[str, dict[str, float]]
 
-    @field_validator("stack_bb", "open_size_bb", mode="before")
+    @field_validator("stack_bb", mode="before")
     @classmethod
     def validate_numbers(cls, value: Any, info: Any) -> float:
         return _number(value, info.field_name)
+
+    @field_validator("facing_size_bb", mode="before")
+    @classmethod
+    def validate_optional_number(cls, value: Any, info: Any) -> float | None:
+        return None if value is None else _number(value, info.field_name)
+
+    @field_validator("action_sizes_bb", mode="before")
+    @classmethod
+    def validate_action_sizes(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            raise ValueError("action_sizes_bb must be an object.")
+        return {
+            action: _number(size, f"action_sizes_bb[{action!r}]")
+            for action, size in value.items()
+        }
 
     @field_validator("grid", mode="before")
     @classmethod
@@ -207,20 +233,60 @@ class RangeData(BaseModel):
 
     @model_validator(mode="after")
     def validate_contract(self) -> RangeData:
-        if self.position not in VALID_POSITIONS[self.table_format]:
+        valid_positions = (
+            RFI_POSITIONS[self.table_format]
+            if self.spot == "rfi"
+            else TABLE_POSITIONS[self.table_format]
+        )
+        if self.position not in valid_positions:
             raise ValueError(
-                f"position {self.position!r} is invalid for {self.table_format} RFI."
+                f"position {self.position!r} is invalid for "
+                f"{self.table_format} {self.spot}."
             )
         if self.stack_bb != 100.0:
-            raise ValueError("stack_bb must be 100 for v1 ranges.")
-        if self.open_size_bb <= 0.0:
-            raise ValueError("open_size_bb must be positive.")
+            raise ValueError("stack_bb must be 100 for supported ranges.")
+        if self.spot == "rfi":
+            if self.vs_position is not None:
+                raise ValueError("vs_position must be absent for rfi ranges.")
+            if self.facing_size_bb is not None:
+                raise ValueError("facing_size_bb must be absent for rfi ranges.")
+        else:
+            if self.table_format != "6max":
+                raise ValueError("vs_rfi currently supports only 6max.")
+            if self.vs_position is None:
+                raise ValueError("vs_position is required for vs_rfi ranges.")
+            if self.vs_position not in TABLE_POSITIONS[self.table_format]:
+                raise ValueError(
+                    f"vs_position {self.vs_position!r} is invalid for "
+                    f"{self.table_format} vs_rfi."
+                )
+            if self.vs_position == self.position:
+                raise ValueError("vs_position must differ from position.")
+            if self.facing_size_bb is None:
+                raise ValueError("facing_size_bb is required for vs_rfi ranges.")
+        if self.facing_size_bb is not None and self.facing_size_bb <= 0.0:
+            raise ValueError("facing_size_bb must be positive.")
         if not self.actions:
             raise ValueError("actions must be non-empty.")
         if any(not action or action == "fold" for action in self.actions):
             raise ValueError("actions must contain non-fold action ids.")
         if len(self.actions) != len(set(self.actions)):
             raise ValueError("actions must not contain duplicates.")
+        unsupported = set(self.actions) - ALLOWED_ACTIONS_BY_SPOT[self.spot]
+        if unsupported:
+            raise ValueError(
+                f"actions {sorted(unsupported)} are invalid for spot {self.spot!r}."
+            )
+        missing_sizes = set(self.actions) - set(self.action_sizes_bb)
+        unexpected_sizes = set(self.action_sizes_bb) - set(self.actions)
+        if missing_sizes or unexpected_sizes:
+            raise ValueError(
+                "action_sizes_bb keys must exactly match actions; "
+                f"missing={sorted(missing_sizes)}, "
+                f"unexpected={sorted(unexpected_sizes)}."
+            )
+        if any(size <= 0.0 for size in self.action_sizes_bb.values()):
+            raise ValueError("action_sizes_bb values must be positive.")
 
         if len(self.grid) != 169:
             raise ValueError(
@@ -259,11 +325,19 @@ class RangeData(BaseModel):
     @computed_field
     @property
     def stats(self) -> RangeStats:
-        total = sum(
-            played_frequency(cell) * combos(hand) for hand, cell in self.grid.items()
-        )
+        raw_by_action = {
+            action: sum(
+                cell.get(action, 0.0) * combos(hand) for hand, cell in self.grid.items()
+            )
+            for action in self.actions
+        }
+        total = sum(raw_by_action.values())
         return RangeStats(
             combos=round(total, 4),
             vpip=round(total / TOTAL_COMBOS, 4),
             hands_played=sum(bool(cell) for cell in self.grid.values()),
+            by_action={
+                action: round(action_combos, 4)
+                for action, action_combos in raw_by_action.items()
+            },
         )

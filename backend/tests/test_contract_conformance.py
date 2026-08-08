@@ -27,6 +27,13 @@ CONFORMED_FIXTURES = {
     "session_create",
     "summary",
 }
+PENDING_V2_FIXTURES = {
+    "answer_vs_rfi",
+    "next_question_vs_rfi",
+    "range_vs_rfi_6max_BB_vs_BTN",
+    "ranges_list_v2",
+    "sources",
+}
 
 
 @pytest.fixture
@@ -48,6 +55,17 @@ async def client(api_app: FastAPI):
 
 def fixture(name: str) -> dict[str, Any]:
     return json.loads((EXAMPLES / f"{name}.json").read_text(encoding="utf-8"))
+
+
+def migrated_rfi_range_fixture() -> dict[str, Any]:
+    """Express the frozen v1 example through the v2 metadata migration."""
+    expected = fixture("range_rfi_6max_CO")
+    open_size = expected.pop("open_size_bb")
+    expected["vs_position"] = None
+    expected["facing_size_bb"] = None
+    expected["action_sizes_bb"] = {"raise": open_size}
+    expected["stats"]["by_action"] = {"raise": expected["stats"]["combos"]}
+    return expected
 
 
 def json_shape(value: Any, path: tuple[str, ...] = ()) -> Any:
@@ -151,7 +169,7 @@ async def answer_current(
 
 def test_conformance_manifest_names_every_canonical_fixture() -> None:
     actual = {path.stem for path in EXAMPLES.glob("*.json")}
-    assert actual == CONFORMED_FIXTURES
+    assert actual == CONFORMED_FIXTURES | PENDING_V2_FIXTURES
 
 
 async def test_success_responses_match_canonical_fixture_shapes(
@@ -189,7 +207,7 @@ async def test_success_responses_match_canonical_fixture_shapes(
     assert_fixture_shape(correct_answer, fixture("answer_correct"))
     assert_fixture_shape(incorrect_answer, fixture("answer_incorrect"))
     assert_fixture_shape(ranges.json(), fixture("ranges_list"))
-    assert_fixture_shape(range_detail.json(), fixture("range_rfi_6max_CO"))
+    assert_fixture_shape(range_detail.json(), migrated_rfi_range_fixture())
 
 
 async def test_mixed_answer_shape_uses_a_constructed_range(
