@@ -97,9 +97,35 @@ class Drill(Protocol):
     def summarize(self, config: DrillConfig, answers: list[AnsweredQuestion]) -> Summary: ...
 ```
 
-Adding a drill = adding a package under `drills/` and registering it. **No
-changes to `api/`, `sessions/`, or `main.py`.** If adding a drill would require
-touching those, the abstraction is wrong — report it.
+Adding a drill = adding a package under `drills/` and registering it.
+
+**No changes to anything containing logic.** Specifically: `api/` and
+`sessions/` must contain **zero** references to any drill by name. If adding a
+drill would require touching those, the abstraction is wrong — report it.
+
+`main.py` is the exception, and deliberately so. It is the composition root: it
+gains one import and one entry in the registry list, and nothing else. That was
+tested for real on 2026-08-08, when `william-backend` correctly stopped at the
+original wording of this rule — which said "no changes to `main.py`" and so
+demanded auto-discovery. **The rule was wrong, not the code.**
+
+Auto-registration by module scanning or import side effects would be worse
+here: implicit, sensitive to import order, awkward to test, and it removes the
+one place where you can see every drill the app serves, disable one, or
+substitute a fake. Naming your components at the composition root is a feature.
+Wiring is not logic.
+
+The measurable version of this rule, which belongs in the test suite:
+
+```python
+# no module outside drills/ may name a drill
+for layer in ("api", "sessions"):
+    assert grep_count(f"src/learner/{layer}", drill_ids) == 0
+```
+
+`ranges/` is allowed to know the closed set of `spot` values, the same way it
+knows the closed set of table formats — those are data vocabulary, not drill
+logic.
 
 `generate` is given an explicit seeded `Random` so sessions are reproducible.
 
