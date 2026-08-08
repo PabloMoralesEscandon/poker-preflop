@@ -116,6 +116,134 @@
           }
         ]
       }
+    },
+    {
+      "id": "vs_rfi",
+      "name": "Facing an RFI",
+      "description": "Decide whether to fold, call, or 3-bet after an open-raise.",
+      "version": 1,
+      "config_schema": {
+        "fields": [
+          {
+            "key": "table_format",
+            "label": "Table format",
+            "type": "enum",
+            "default": "6max",
+            "options": [
+              {
+                "value": "6max",
+                "label": "6-max"
+              }
+            ]
+          },
+          {
+            "key": "matchups",
+            "label": "Matchups",
+            "type": "multi_enum",
+            "default": [
+              "HJ_vs_UTG",
+              "CO_vs_UTG",
+              "CO_vs_HJ",
+              "BTN_vs_UTG",
+              "BTN_vs_HJ",
+              "BTN_vs_CO",
+              "SB_vs_UTG",
+              "SB_vs_HJ",
+              "SB_vs_CO",
+              "SB_vs_BTN",
+              "BB_vs_UTG",
+              "BB_vs_HJ",
+              "BB_vs_CO",
+              "BB_vs_BTN"
+            ],
+            "options_by": {
+              "6max": [
+                {
+                  "value": "HJ_vs_UTG",
+                  "label": "HJ vs UTG"
+                },
+                {
+                  "value": "CO_vs_UTG",
+                  "label": "CO vs UTG"
+                },
+                {
+                  "value": "CO_vs_HJ",
+                  "label": "CO vs HJ"
+                },
+                {
+                  "value": "BTN_vs_UTG",
+                  "label": "BTN vs UTG"
+                },
+                {
+                  "value": "BTN_vs_HJ",
+                  "label": "BTN vs HJ"
+                },
+                {
+                  "value": "BTN_vs_CO",
+                  "label": "BTN vs CO"
+                },
+                {
+                  "value": "SB_vs_UTG",
+                  "label": "SB vs UTG"
+                },
+                {
+                  "value": "SB_vs_HJ",
+                  "label": "SB vs HJ"
+                },
+                {
+                  "value": "SB_vs_CO",
+                  "label": "SB vs CO"
+                },
+                {
+                  "value": "SB_vs_BTN",
+                  "label": "SB vs BTN"
+                },
+                {
+                  "value": "BB_vs_UTG",
+                  "label": "BB vs UTG"
+                },
+                {
+                  "value": "BB_vs_HJ",
+                  "label": "BB vs HJ"
+                },
+                {
+                  "value": "BB_vs_CO",
+                  "label": "BB vs CO"
+                },
+                {
+                  "value": "BB_vs_BTN",
+                  "label": "BB vs BTN"
+                }
+              ]
+            },
+            "depends_on": "table_format"
+          },
+          {
+            "key": "question_count",
+            "label": "Hands",
+            "type": "int",
+            "default": 25,
+            "min": 5,
+            "max": 200
+          },
+          {
+            "key": "weighting",
+            "label": "Hand selection",
+            "type": "enum",
+            "default": "borderline",
+            "options": [
+              {
+                "value": "uniform",
+                "label": "Uniform — any of the 169 hands"
+              },
+              {
+                "value": "borderline",
+                "label": "Borderline — favour close decisions"
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

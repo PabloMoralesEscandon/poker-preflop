@@ -92,3 +92,35 @@ of 754 played, this fixture has 50 out of 586.
 It is deliberately a *two*-action range, because the one-action case (`rfi`) was
 already covered and the interesting rendering and grading paths are the ones with
 `call` and `3bet` together.
+
+## The two `vs_rfi` fixtures and their invented numbers
+
+`claudio-frontend` flagged this at FE-11 and it is worth writing down, because it
+is exactly the kind of gap someone reads as a transcription error.
+
+`range_vs_rfi_6max_BB_vs_BTN.json` is illustrative: **50 combos of 3-bet out of
+586 played**. The real transcribed chart is **178 out of 754**. A second fixture
+matchup, `HJ_vs_UTG`, was derived from it by dropping every calling cell — which
+makes the *shape* real (VS-RFI-CALIBRATION §4 records that matchup as genuinely
+3-bet-or-fold, so a two-button action set is authentic) while the cells remain
+invented.
+
+Neither number is a bug and neither is a transcription. Both files carry
+`source_id: fixture-illustrative`, the chart browser flags them amber, and the
+loader rejects that id anywhere under `backend/data/`. If you want the real
+numbers, read `backend/data/ranges/vs_rfi/6max/` or
+`docs/ranges/VS-RFI-CALIBRATION.md` §3.
+
+**Now that the fourteen real matchups exist, prefer them for anything that cares
+about values.** These fixtures survive only so the frontend keeps running with
+the backend switched off.
+
+## `drills.json` covers both drills
+
+It was regenerated from the running server on 2026-08-08 and is byte-identical
+to a live `GET /drills`, so the `vs_rfi` config schema in it — field key
+`matchups`, option values like `BB_vs_BTN`, labels like `BB vs BTN` — is the
+contract, not a guess. It was missing when FE-11 started; `claudio-frontend`
+authored a schema in the mock to have something to render and independently
+chose the same key and value format that `william-backend` implemented. That
+they converged is luck, not design, and this fixture is what makes it neither.
