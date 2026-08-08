@@ -203,12 +203,17 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     eight_max = await client.get(
         "/api/v1/ranges", params={"spot": "rfi", "table_format": "8max"}
     )
+    vs_rfi = await client.get(
+        "/api/v1/ranges", params={"spot": "vs_rfi", "table_format": "6max"}
+    )
     missing = await client.get("/api/v1/ranges", params={"spot": "missing"})
 
     assert all_ranges.status_code == 200
     assert six_max.json() == example("ranges_list.json")
     assert all_ranges.json()["ranges"] == (
-        six_max.json()["ranges"] + eight_max.json()["ranges"]
+        six_max.json()["ranges"]
+        + eight_max.json()["ranges"]
+        + vs_rfi.json()["ranges"]
     )
     assert [item["range_id"] for item in eight_max.json()["ranges"]] == [
         "rfi_8max_UTG",
