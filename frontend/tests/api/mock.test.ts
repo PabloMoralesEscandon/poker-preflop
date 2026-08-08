@@ -450,7 +450,84 @@ describe('mock static endpoints', () => {
     expect(fullRing.ranges).toHaveLength(0);
 
     const rfi = await client.listRanges({ spot: 'rfi' });
-    expect(rfi.ranges).toEqual(all.ranges);
+    expect(rfi.ranges.length).toBeGreaterThan(0);
+    expect(rfi.ranges.every((entry) => entry.spot === 'rfi')).toBe(true);
+    // The catalogue also carries a vs_rfi matchup, so this is a real filter.
+    expect(rfi.ranges.length).toBeLessThan(all.ranges.length);
+  });
+
+  it('filters by spot, position and vs_position', async () => {
+    const client = new MockApiClient();
+
+    const vsRfi = await client.listRanges({ spot: 'vs_rfi' });
+    expect(vsRfi.ranges.map((entry) => entry.range_id)).toEqual([
+      'vs_rfi_6max_BB_vs_BTN',
+    ]);
+
+    const co = await client.listRanges({ spot: 'rfi', position: 'CO' });
+    expect(co.ranges.map((entry) => entry.range_id)).toEqual(['rfi_6max_CO']);
+
+    const vsBtn = await client.listRanges({ vs_position: 'BTN' });
+    expect(vsBtn.ranges.map((entry) => entry.range_id)).toEqual([
+      'vs_rfi_6max_BB_vs_BTN',
+    ]);
+
+    expect((await client.listRanges({ position: 'BB' })).ranges).toHaveLength(
+      1
+    );
+  });
+
+  it('carries the audit fields every list entry needs', async () => {
+    const client = new MockApiClient();
+    const { ranges } = await client.listRanges();
+
+    for (const entry of ranges) {
+      expect(entry.source_id).toBeTruthy();
+      expect(entry.actions.length).toBeGreaterThan(0);
+      expect(Object.keys(entry.action_sizes_bb)).toEqual(
+        expect.arrayContaining(entry.actions)
+      );
+      expect(entry.stats.by_action).toBeDefined();
+    }
+  });
+
+  /**
+   * The invariant an audit tool depends on: what the index says about a range
+   * has to be what the chart itself says. A browser that shows one source's
+   * totals next to another source's grid is worse than no browser.
+   */
+  it('agrees with the detail payload for every range it lists', async () => {
+    const client = new MockApiClient();
+    const { ranges } = await client.listRanges();
+
+    for (const entry of ranges) {
+      const detail = await client.getRange(entry.range_id);
+      expect(detail.source_id).toBe(entry.source_id);
+      expect(detail.spot).toBe(entry.spot);
+      expect(detail.position).toBe(entry.position);
+      expect(detail.vs_position).toBe(entry.vs_position);
+      expect(detail.actions.sort()).toEqual([...entry.actions].sort());
+      expect(detail.action_sizes_bb).toEqual(entry.action_sizes_bb);
+      expect(detail.stats.combos).toBe(entry.stats.combos);
+      expect(detail.stats.by_action).toEqual(entry.stats.by_action);
+    }
+  });
+
+  it('serves the source register', async () => {
+    const client = new MockApiClient();
+    const { sources } = await client.getSources();
+
+    expect(sources.length).toBeGreaterThan(0);
+    for (const source of sources) {
+      expect(source.source_id).toBeTruthy();
+      expect(['primary', 'cross-check', 'not-usable', 'fixture']).toContain(
+        source.role
+      );
+    }
+    // Every range points at a source the register knows about.
+    const known = new Set(sources.map((source) => source.source_id));
+    const { ranges } = await client.listRanges();
+    for (const entry of ranges) expect(known.has(entry.source_id)).toBe(true);
   });
 
   it('serves a complete 169-key grid', async () => {
@@ -474,7 +551,7 @@ describe('mock static endpoints', () => {
     const range = await client.getRange('rfi_6max_SB');
 
     expect(range.actions).toEqual(['raise', 'limp']);
-    expect(range.open_size_bb).toBe(3);
+    expect(range.action_sizes_bb).toEqual({ raise: 3, limp: 1 });
     expect(Object.keys(range.grid)).toHaveLength(169);
 
     const actionIds = new Set(

@@ -66,6 +66,7 @@ afterEach(() => {
 function clientWith(base: ApiClient, overrides: Partial<ApiClient>): ApiClient {
   return {
     getHealth: base.getHealth.bind(base),
+    getSources: base.getSources.bind(base),
     listDrills: base.listDrills.bind(base),
     createSession: base.createSession.bind(base),
     getNextQuestion: base.getNextQuestion.bind(base),

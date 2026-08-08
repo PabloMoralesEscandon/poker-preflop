@@ -12,6 +12,7 @@ import {
   type RangesResponse,
   type SessionResponse,
   type SessionSummary,
+  type SourcesResponse,
 } from './types';
 
 export const DEFAULT_API_BASE_URL = 'http://localhost:8000/api/v1';
@@ -66,6 +67,10 @@ export class LiveApiClient implements ApiClient {
     return this.request<SessionSummary>('GET', path, undefined, signal);
   }
 
+  getSources(signal?: AbortSignal): Promise<SourcesResponse> {
+    return this.request<SourcesResponse>('GET', '/sources', undefined, signal);
+  }
+
   listRanges(
     filter?: RangeFilter,
     signal?: AbortSignal
@@ -73,6 +78,8 @@ export class LiveApiClient implements ApiClient {
     const query = new URLSearchParams();
     if (filter?.spot) query.set('spot', filter.spot);
     if (filter?.table_format) query.set('table_format', filter.table_format);
+    if (filter?.position) query.set('position', filter.position);
+    if (filter?.vs_position) query.set('vs_position', filter.vs_position);
     const queryString = query.toString();
     const suffix = queryString === '' ? '' : `?${queryString}`;
     return this.request<RangesResponse>(

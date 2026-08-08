@@ -125,7 +125,7 @@ export interface DealtHand {
   notation: HandNotation;
 }
 
-/** Prompt for drill #1. New drills add a member to {@link QuestionPrompt}. */
+/** Prompt for drill #1. Each drill adds a member to {@link QuestionPrompt}. */
 export interface RfiPrompt {
   kind: 'rfi';
   table_format: TableFormat;
@@ -136,8 +136,25 @@ export interface RfiPrompt {
   pot_bb: number;
 }
 
+/** Prompt for drill #2: facing a single raise (v2 §10). */
+export interface VsRfiPrompt {
+  kind: 'vs_rfi';
+  table_format: TableFormat;
+  hero_position: Position;
+  raiser_position: Position;
+  stack_bb: number;
+  hand: DealtHand;
+  folded_before: Position[];
+  /** The raise hero faces. */
+  facing_size_bb: number;
+  /** The pot before hero acts. Computed server-side; never derived here. */
+  pot_bb: number;
+  /** What hero must add to call. Also server-side. */
+  to_call_bb: number;
+}
+
 /** Discriminated on `prompt.kind` — the key of the frontend drill registry. */
-export type QuestionPrompt = RfiPrompt;
+export type QuestionPrompt = RfiPrompt | VsRfiPrompt;
 
 export interface ActionOption {
   id: string;
@@ -227,12 +244,25 @@ export interface SessionSummary {
 // §5 Ranges
 // ---------------------------------------------------------------------------
 
+/**
+ * Identity plus everything the chart browser needs to render a card without
+ * fetching all 26 grids (v2 §12).
+ */
 export interface RangeListItem {
   range_id: string;
   spot: string;
   table_format: TableFormat;
   position: Position;
+  /** The opponent's seat for a `vs_*` spot; `null` for spots without one. */
+  vs_position: Position | null;
   stack_bb: number;
+  actions: string[];
+  /** Action id → the size that action commits, in big blinds. */
+  action_sizes_bb: Record<string, number>;
+  /** The raise hero is facing, for a `vs_*` spot; `null` otherwise. */
+  facing_size_bb: number | null;
+  source_id: string;
+  stats: RangeStats;
 }
 
 export interface RangesResponse {
@@ -242,6 +272,8 @@ export interface RangesResponse {
 export interface RangeFilter {
   spot?: string;
   table_format?: TableFormat;
+  position?: Position;
+  vs_position?: Position;
 }
 
 /**
@@ -260,6 +292,11 @@ export interface RangeStats {
   combos: number;
   vpip: number;
   hands_played: number;
+  /**
+   * Combos per action. The number a human reads against the chart's own printed
+   * totals, which is what makes the browser an audit tool rather than a gallery.
+   */
+  by_action: Record<string, number>;
 }
 
 export interface RangeDetail {
@@ -267,13 +304,38 @@ export interface RangeDetail {
   spot: string;
   table_format: TableFormat;
   position: Position;
+  vs_position: Position | null;
   stack_bb: number;
-  open_size_bb: number;
+  /** Replaces v1's `open_size_bb`; carries a size per action (v2 §13). */
+  action_sizes_bb: Record<string, number>;
+  facing_size_bb: number | null;
   source_id: string;
+  /** The range file's own notes. Shown verbatim; never paraphrased. */
   notes: string;
   actions: string[];
   grid: RangeGrid;
   stats: RangeStats;
+}
+
+// ---------------------------------------------------------------------------
+// v2 §11 Sources
+// ---------------------------------------------------------------------------
+
+export type SourceRole = 'primary' | 'cross-check' | 'not-usable' | 'fixture';
+
+export interface SourceInfo {
+  source_id: string;
+  name: string;
+  url: string | null;
+  role: SourceRole;
+  table_formats: TableFormat[];
+  /** When a human last opened the source and confirmed it. */
+  verified_on: string | null;
+  notes: string;
+}
+
+export interface SourcesResponse {
+  sources: SourceInfo[];
 }
 
 // ---------------------------------------------------------------------------

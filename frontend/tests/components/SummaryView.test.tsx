@@ -48,11 +48,11 @@ describe('SummaryView renders the fixture generically', () => {
     renderSummary(SUMMARY);
     expect(screen.getByRole('link', { name: 'K9s' })).toHaveAttribute(
       'href',
-      '/range/rfi_6max_UTG?hand=K9s'
+      '/charts/rfi_6max_UTG?hand=K9s'
     );
     expect(screen.getByRole('link', { name: '65s' })).toHaveAttribute(
       'href',
-      '/range/rfi_6max_HJ?hand=65s'
+      '/charts/rfi_6max_HJ?hand=65s'
     );
   });
 
