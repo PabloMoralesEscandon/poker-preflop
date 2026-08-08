@@ -1,11 +1,22 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
-import { apiClient, type RangeDetail, type SourceInfo } from '../api';
+import {
+  apiClient,
+  type RangeDetail,
+  type RangeListItem,
+  type SourceInfo,
+} from '../api';
 import { HandGrid } from '../components/HandGrid';
 import { Provenance } from '../components/Provenance';
 import { ErrorState, LoadingState } from '../components/states';
 import { isHandNotation } from '../lib/hands';
+import { useKeyboardShortcuts } from '../lib/useKeyboardShortcuts';
 
 /**
  * One chart, at its own URL, with everything needed to audit it:
@@ -23,8 +34,10 @@ export function RangePage() {
   const { rangeId } = useParams<{ rangeId: string }>();
   const [params] = useSearchParams();
 
+  const navigate = useNavigate();
   const [range, setRange] = useState<RangeDetail | null>(null);
   const [source, setSource] = useState<SourceInfo | null>(null);
+  const [siblings, setSiblings] = useState<RangeListItem[]>([]);
   const [error, setError] = useState<unknown>(null);
 
   const requested = params.get('hand');
@@ -56,10 +69,46 @@ export function RangePage() {
         if (!cancelled) setError(caught);
       });
 
+    // The neighbours, so the chart can be paged through without going back to
+    // the index. Failure here costs the prev/next links, nothing else.
+    apiClient
+      .listRanges()
+      .then((response) => {
+        if (!cancelled) setSiblings(response.ranges);
+      })
+      .catch(() => {
+        if (!cancelled) setSiblings([]);
+      });
+
     return () => {
       cancelled = true;
     };
   }, [rangeId]);
+
+  const { previous, next } = useMemo(() => {
+    const index = siblings.findIndex((entry) => entry.range_id === rangeId);
+    if (index < 0) return { previous: null, next: null };
+    return {
+      previous: siblings[index - 1] ?? null,
+      next: siblings[index + 1] ?? null,
+    };
+  }, [rangeId, siblings]);
+
+  const go = (entry: RangeListItem | null) => {
+    if (entry) navigate(`/charts/${encodeURIComponent(entry.range_id)}`);
+  };
+
+  useKeyboardShortcuts(
+    useMemo(
+      () => ({
+        arrowleft: () => go(previous),
+        arrowright: () => go(next),
+      }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [previous, next]
+    ),
+    true
+  );
 
   const title = range
     ? range.vs_position
@@ -103,12 +152,49 @@ export function RangePage() {
         </div>
       ) : null}
 
-      <Link
-        to="/charts"
-        className="text-accent inline-block text-sm underline underline-offset-4"
+      <nav
+        aria-label="Chart paging"
+        className="flex flex-wrap items-center gap-3 text-sm"
       >
-        All charts
-      </Link>
+        <PageLink entry={previous} direction="previous" />
+        <Link to="/charts" className="text-accent underline underline-offset-4">
+          All charts
+        </Link>
+        <PageLink entry={next} direction="next" />
+      </nav>
     </section>
+  );
+}
+
+function PageLink({
+  entry,
+  direction,
+}: {
+  entry: RangeListItem | null;
+  direction: 'previous' | 'next';
+}) {
+  const arrow = direction === 'previous' ? '←' : '→';
+  const key = direction === 'previous' ? 'ArrowLeft' : 'ArrowRight';
+
+  if (!entry) {
+    return (
+      <span aria-hidden="true" className="text-fg-muted opacity-40">
+        {arrow}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      to={`/charts/${encodeURIComponent(entry.range_id)}`}
+      rel={direction}
+      aria-keyshortcuts={key}
+      aria-label={`${direction === 'previous' ? 'Previous' : 'Next'} chart: ${entry.range_id}`}
+      className="border-line text-fg hover:border-accent inline-flex min-h-9 items-center gap-2 rounded-md border px-3"
+    >
+      {direction === 'previous' ? arrow : null}
+      <span className="font-mono text-xs">{entry.range_id}</span>
+      {direction === 'next' ? arrow : null}
+    </Link>
   );
 }

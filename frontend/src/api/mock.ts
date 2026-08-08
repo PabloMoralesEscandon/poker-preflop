@@ -38,12 +38,12 @@ import { FOLD_ACTION_ID, gradeCell } from './grading';
 import {
   POSITIONS_BY_FORMAT,
   type ActionFrequencies,
-  type ActionOption,
   type AnswerRequest,
   type AnswerResponse,
   type BreakdownRow,
   type ConfigField,
   type CreateSessionRequest,
+  type DealtHand,
   type DrillConfig,
   type DrillInfo,
   type DrillsResponse,
@@ -52,6 +52,7 @@ import {
   type NextResponse,
   type Position,
   type Question,
+  type QuestionPrompt,
   type RangeDetail,
   type RangeFilter,
   type RangeGrid,
@@ -72,15 +73,41 @@ import {
 } from '../lib/hands';
 
 const DRILLS = drillsFixture as DrillsResponse;
+
+/**
+ * The matchups the `vs_rfi` drill offers, taken from the drills fixture rather
+ * than declared here — the fixture is regenerated from the live server, so this
+ * cannot drift from what the real config form will show.
+ */
+const VS_RFI_MATCHUPS: string[] = (() => {
+  const drill = DRILLS.drills.find((entry) => entry.id === 'vs_rfi');
+  const field = drill?.config_schema.fields.find(
+    (entry) => entry.key === 'matchups'
+  );
+  if (field?.type !== 'multi_enum') return [];
+  const options = field.options ?? field.options_by?.['6max'] ?? [];
+  return options.map((option) => option.value);
+})();
+
+/**
+ * Which matchups have no calling range.
+ *
+ * Read off the fourteen real files in `backend/data/ranges/vs_rfi/6max/` — the
+ * mock cannot import them, but their *shape* is a fact worth copying so that a
+ * two-button spot appears where a two-button spot really exists. Only the shape
+ * is taken; every cell here still comes from the one illustrative fixture, and
+ * every derived range is labelled `fixture-illustrative` so the chart browser
+ * flags it. For anything that cares about values, use the live server.
+ */
 const RAISE_ACTION_ID = 'raise';
 const LIMP_ACTION_ID = 'limp';
 
 /**
  * `range_rfi_6max_CO.json` was not migrated when v2 replaced `open_size_bb`
  * with `action_sizes_bb` and made `stats.by_action` required — it is still v1
- * shaped, while the other two range fixtures are v2. `docs/` is read-only to
- * me, so the mock reads whichever form it finds and this is reported rather
- * than papered over. Delete the fallback once the fixture is migrated.
+ * shaped, while the other range fixture is v2. `docs/` is read-only to me, so
+ * the mock reads whichever form it finds. Delete the fallback once the fixture
+ * is migrated.
  */
 function normaliseRange(raw: unknown): RangeDetail {
   const range = raw as RangeDetail & { open_size_bb?: number };
@@ -103,6 +130,16 @@ function normaliseRange(raw: unknown): RangeDetail {
 const CO_RANGE = normaliseRange(rangeCoFixture);
 const VS_RFI_RANGE = normaliseRange(rangeVsRfiFixture);
 const SOURCES = sourcesFixture as unknown as SourcesResponse;
+
+const THREE_BET_ONLY_MATCHUPS = new Set([
+  'HJ_vs_UTG',
+  'CO_vs_UTG',
+  'CO_vs_HJ',
+  'SB_vs_UTG',
+  'SB_vs_HJ',
+  'SB_vs_CO',
+  'SB_vs_BTN',
+]);
 
 /** Ranges served verbatim from a fixture, keyed by id. */
 const FIXTURE_RANGES: Record<string, RangeDetail> = {
@@ -157,6 +194,77 @@ function toSmallBlindGrid(grid: RangeGrid): RangeGrid {
 
 const SB_GRID = toSmallBlindGrid(CO_RANGE.grid);
 
+const CALL_ACTION_ID = 'call';
+const THREE_BET_ACTION_ID = '3bet';
+
+function threeBetOnlyGrid(grid: RangeGrid): RangeGrid {
+  const derived: RangeGrid = {};
+  for (const hand of ALL_HANDS) {
+    const frequencies = grid[hand] ?? {};
+    const threeBet = frequencies[THREE_BET_ACTION_ID];
+    derived[hand] =
+      threeBet === undefined ? {} : { [THREE_BET_ACTION_ID]: threeBet };
+  }
+  return derived;
+}
+
+const HJ_VS_UTG_GRID = threeBetOnlyGrid(VS_RFI_RANGE.grid);
+
+/** Hero seat and raiser seat, parsed from the matchup key. */
+function seatsOf(matchup: string): { hero: Position; raiser: Position } {
+  const [hero, raiser] = matchup.split('_vs_');
+  return {
+    hero: (hero ?? 'BB') as Position,
+    raiser: (raiser ?? 'BTN') as Position,
+  };
+}
+
+function vsRfiChartFor(matchup: string): MockChart {
+  const outOfPosition = matchup.startsWith('SB') || matchup.startsWith('BB');
+  // VS-RFI-CALIBRATION §1: 3.5x in position, 4x out of position.
+  const threeBetSize = outOfPosition ? 4 : 3.5;
+  const facing = VS_RFI_RANGE.facing_size_bb ?? 2.5;
+
+  if (THREE_BET_ONLY_MATCHUPS.has(matchup)) {
+    return {
+      actions: [THREE_BET_ACTION_ID],
+      grid: HJ_VS_UTG_GRID,
+      actionSizesBb: { [THREE_BET_ACTION_ID]: threeBetSize },
+      actionLabels: {
+        [THREE_BET_ACTION_ID]: `3-Bet to ${formatBb(threeBetSize)}bb`,
+      },
+    };
+  }
+  return {
+    actions: [THREE_BET_ACTION_ID, CALL_ACTION_ID],
+    grid: VS_RFI_RANGE.grid,
+    actionSizesBb: {
+      [THREE_BET_ACTION_ID]: threeBetSize,
+      [CALL_ACTION_ID]: facing,
+    },
+    actionLabels: {
+      [THREE_BET_ACTION_ID]: `3-Bet to ${formatBb(threeBetSize)}bb`,
+      [CALL_ACTION_ID]: `Call ${formatBb(facing)}bb`,
+    },
+  };
+}
+
+/** The chart a question was generated from, and is graded against. */
+function chartForPrompt(prompt: QuestionPrompt): MockChart {
+  if (prompt.kind === 'vs_rfi') {
+    return vsRfiChartFor(
+      `${prompt.hero_position}_vs_${prompt.raiser_position}`
+    );
+  }
+  return chartFor(prompt.hero_position);
+}
+
+function rangeIdForPrompt(prompt: QuestionPrompt): string {
+  return prompt.kind === 'vs_rfi'
+    ? `vs_rfi_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.raiser_position}`
+    : `rfi_${prompt.table_format}_${prompt.hero_position}`;
+}
+
 function chartFor(position: Position): MockChart {
   if (position === 'SB') {
     return {
@@ -178,18 +286,6 @@ function chartFor(position: Position): MockChart {
       [RAISE_ACTION_ID]: `Raise ${formatBb(openSize)}bb`,
     },
   };
-}
-
-/** Fold is always first and is never stored in a grid. */
-function actionOptionsFor(position: Position): ActionOption[] {
-  const chart = chartFor(position);
-  return [
-    { id: FOLD_ACTION_ID, label: 'Fold' },
-    ...chart.actions.map((id) => ({
-      id,
-      label: chart.actionLabels[id] ?? id,
-    })),
-  ];
 }
 
 /** RANGE-DATA-FORMAT §4: combo-weighted stats over the 1326 starting combos. */
@@ -248,8 +344,30 @@ function catalogue(): RangeListItem[] {
     }
   );
 
+  const matchups = VS_RFI_MATCHUPS.map((matchup) => {
+    const chart = vsRfiChartFor(matchup);
+    const { hero, raiser } = seatsOf(matchup);
+    return {
+      range_id: `vs_rfi_6max_${matchup}`,
+      spot: 'vs_rfi',
+      table_format: '6max' as const,
+      position: hero,
+      vs_position: raiser,
+      stack_bb: VS_RFI_RANGE.stack_bb,
+      actions: [...chart.actions],
+      action_sizes_bb: { ...chart.actionSizesBb },
+      facing_size_bb: VS_RFI_RANGE.facing_size_bb,
+      source_id:
+        matchup === 'BB_vs_BTN'
+          ? VS_RFI_RANGE.source_id
+          : 'fixture-illustrative',
+      stats: statsFor(chart.grid),
+    } satisfies RangeListItem;
+  });
+
   return [
     ...derived,
+    ...matchups.filter((entry) => entry.range_id !== VS_RFI_RANGE.range_id),
     {
       range_id: VS_RFI_RANGE.range_id,
       spot: VS_RFI_RANGE.spot,
@@ -508,14 +626,18 @@ export class MockApiClient implements ApiClient {
     // as a fixture. Serving exactly what `grade` used keeps the mock
     // self-consistent: the chart in the feedback panel is the chart the answer
     // was graded against. It is illustrative data, not a real chart.
-    const chart = chartFor(listed.position);
+    const chart =
+      listed.spot === 'vs_rfi'
+        ? vsRfiChartFor(`${listed.position}_vs_${listed.vs_position ?? 'BTN'}`)
+        : chartFor(listed.position);
     return {
-      ...clone(CO_RANGE),
+      ...clone(listed.spot === 'vs_rfi' ? VS_RFI_RANGE : CO_RANGE),
       range_id: listed.range_id,
       spot: listed.spot,
       position: listed.position,
       vs_position: listed.vs_position,
       table_format: listed.table_format,
+      source_id: listed.source_id,
       action_sizes_bb: { ...chart.actionSizesBb },
       facing_size_bb: listed.facing_size_bb,
       actions: [...chart.actions],
@@ -636,35 +758,94 @@ function playedFrequency(frequencies: ActionFrequencies): number {
 
 function generateQuestion(session: MockSession, total: number): Question {
   const format = tableFormat(session.config);
-  const positions = configuredPositions(session.config);
-  const heroPosition =
-    positions[session.rng.pick(positions.length)] ?? ('CO' as Position);
-
   const weights =
     session.config['weighting'] === 'uniform'
       ? UNIFORM_WEIGHTS
       : BORDERLINE_WEIGHTS;
   const notation = ALL_HANDS[session.rng.weighted(weights)] ?? 'AA';
   const cards = cardsForNotation(notation, (bound) => session.rng.pick(bound));
-
+  const hand = { cards, notation };
   const index = session.answered.length + 1;
 
+  const prompt =
+    session.drillId === 'vs_rfi'
+      ? vsRfiPrompt(session, format, hand)
+      : rfiPrompt(session, format, hand);
+
+  const chart = chartForPrompt(prompt);
   return {
     question_id: `q_${index}`,
     index,
     total,
     drill_id: session.drillId,
-    prompt: {
-      kind: 'rfi',
-      table_format: format,
-      hero_position: heroPosition,
-      stack_bb: CO_RANGE.stack_bb,
-      hand: { cards, notation },
-      folded_before: seatsBefore(format, heroPosition),
-      pot_bb: 1.5,
-    },
-    actions: actionOptionsFor(heroPosition),
+    prompt,
+    actions: [
+      { id: FOLD_ACTION_ID, label: 'Fold' },
+      ...chart.actions.map((id) => ({
+        id,
+        label: chart.actionLabels[id] ?? id,
+      })),
+    ],
   };
+}
+
+function rfiPrompt(
+  session: MockSession,
+  format: TableFormat,
+  hand: DealtHand
+): QuestionPrompt {
+  const positions = configuredPositions(session.config);
+  const heroPosition =
+    positions[session.rng.pick(positions.length)] ?? ('CO' as Position);
+  return {
+    kind: 'rfi',
+    table_format: format,
+    hero_position: heroPosition,
+    stack_bb: CO_RANGE.stack_bb,
+    hand,
+    folded_before: seatsBefore(format, heroPosition),
+    pot_bb: 1.5,
+  };
+}
+
+/**
+ * Pot and to-call are computed here because the server computes them: the
+ * frontend is contractually forbidden from doing poker arithmetic (v2 §10).
+ * Hero posts a blind, so what they still owe is less than the raise.
+ */
+function vsRfiPrompt(
+  session: MockSession,
+  format: TableFormat,
+  hand: DealtHand
+): QuestionPrompt {
+  const matchups = configuredMatchups(session.config);
+  const matchup = matchups[session.rng.pick(matchups.length)] ?? 'BB_vs_BTN';
+  const { hero, raiser } = seatsOf(matchup);
+  const facing = VS_RFI_RANGE.facing_size_bb ?? 2.5;
+  const posted = hero === 'BB' ? 1 : hero === 'SB' ? 0.5 : 0;
+  const blinds = 1.5;
+
+  return {
+    kind: 'vs_rfi',
+    table_format: format,
+    hero_position: hero,
+    raiser_position: raiser,
+    stack_bb: CO_RANGE.stack_bb,
+    hand,
+    // Everyone before the raiser folded — the raiser was first into the pot.
+    // Matches next_question_vs_rfi.json, where BB vs BTN lists UTG, HJ and CO
+    // and does not list the SB, who has not acted yet.
+    folded_before: seatsBefore(format, raiser),
+    facing_size_bb: facing,
+    pot_bb: round(blinds + facing, 2),
+    to_call_bb: round(facing - posted, 2),
+  };
+}
+
+function configuredMatchups(config: DrillConfig): string[] {
+  const value = config['matchups'];
+  const matchups = Array.isArray(value) ? (value as string[]) : [];
+  return matchups.length > 0 ? matchups : ['BB_vs_BTN'];
 }
 
 function seatsBefore(format: TableFormat, hero: Position): Position[] {
@@ -687,7 +868,7 @@ type GradedAnswer = Omit<AnswerResponse, 'progress'>;
 function grade(question: Question, chosenActionId: string): GradedAnswer {
   const position = question.prompt.hero_position;
   const notation = question.prompt.hand.notation;
-  const chart = chartFor(position);
+  const chart = chartForPrompt(question.prompt);
 
   const result = gradeCell(
     chart.grid[notation] ?? {},
@@ -722,7 +903,7 @@ function grade(question: Question, chosenActionId: string): GradedAnswer {
         chart.actions,
         result.mixed
       ),
-      range_id: `rfi_${question.prompt.table_format}_${position}`,
+      range_id: rangeIdForPrompt(question.prompt),
     },
   };
 
@@ -777,12 +958,29 @@ function explanationDetail(
  * backend. A position you selected but have not reached yet still gets a row,
  * with `answered: 0`; the UI is responsible for not rendering that as 0%.
  */
+/** How a drill groups its results. v2 §10: `vs_rfi` groups by matchup. */
+function breakdownKeyOf(prompt: QuestionPrompt): string {
+  return prompt.kind === 'vs_rfi'
+    ? `${prompt.hero_position} vs ${prompt.raiser_position}`
+    : prompt.hero_position;
+}
+
+/**
+ * One row per configured group, not per answered group — matching the live
+ * backend. A group selected but not yet reached still gets a row with
+ * `answered: 0`; the UI is responsible for not rendering that as 0%.
+ */
 function buildBreakdown(session: MockSession): BreakdownRow[] {
-  const labels = positionLabels(session);
-  const order = POSITIONS_BY_FORMAT[tableFormat(session.config)];
+  const labels = groupLabels(session);
+  const configured =
+    session.drillId === 'vs_rfi'
+      ? configuredMatchups(session.config).map((matchup) =>
+          matchup.replace('_vs_', ' vs ')
+        )
+      : configuredPositions(session.config);
 
   const rows = new Map<string, BreakdownRow>();
-  for (const key of configuredPositions(session.config)) {
+  for (const key of configured) {
     rows.set(key, {
       key,
       label: labels.get(key) ?? key,
@@ -793,7 +991,7 @@ function buildBreakdown(session: MockSession): BreakdownRow[] {
   }
 
   for (const entry of session.answered) {
-    const key = entry.question.prompt.hero_position;
+    const key = breakdownKeyOf(entry.question.prompt);
     const row = rows.get(key) ?? {
       key,
       label: labels.get(key) ?? key,
@@ -807,23 +1005,35 @@ function buildBreakdown(session: MockSession): BreakdownRow[] {
     rows.set(key, row);
   }
 
-  return [...rows.values()].sort(
-    (a, b) =>
-      order.indexOf(a.key as Position) - order.indexOf(b.key as Position)
-  );
+  const order = POSITIONS_BY_FORMAT[tableFormat(session.config)];
+  return [...rows.values()].sort((a, b) => {
+    const ai = order.indexOf(a.key as Position);
+    const bi = order.indexOf(b.key as Position);
+    // Matchup keys are not positions, so fall back to a stable alphabetical
+    // order for any key the seat list does not contain.
+    if (ai < 0 || bi < 0) return a.key.localeCompare(b.key);
+    return ai - bi;
+  });
 }
 
-/** Reuses the drill's own option labels rather than hardcoding position names. */
-function positionLabels(session: MockSession): Map<string, string> {
+/** Reuses the drill's own option labels rather than hardcoding group names. */
+function groupLabels(session: MockSession): Map<string, string> {
   const drill = DRILLS.drills.find((entry) => entry.id === session.drillId);
   const field = drill?.config_schema.fields.find(
-    (entry) => entry.key === 'positions'
+    (entry) => entry.key === 'positions' || entry.key === 'matchups'
   );
   const options =
     field?.type === 'multi_enum'
       ? (field.options ?? field.options_by?.[tableFormat(session.config)] ?? [])
       : [];
-  return new Map(options.map((option) => [option.value, option.label]));
+  // Matchup option values use the file-name form, breakdown keys the readable
+  // one, so key both.
+  return new Map(
+    options.flatMap((option) => [
+      [option.value, option.label] as const,
+      [option.value.replace('_vs_', ' vs '), option.label] as const,
+    ])
+  );
 }
 
 function buildMistakes(session: MockSession): Mistake[] {
@@ -835,7 +1045,7 @@ function buildMistakes(session: MockSession): Mistake[] {
       hand: entry.question.prompt.hand.notation,
       chosen: entry.chosenActionId,
       expected: entry.expectedActionId,
-      range_id: `rfi_${entry.question.prompt.table_format}_${entry.question.prompt.hero_position}`,
+      range_id: rangeIdForPrompt(entry.question.prompt),
     }));
 }
 
