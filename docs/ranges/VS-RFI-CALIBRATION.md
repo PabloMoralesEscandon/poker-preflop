@@ -1,6 +1,6 @@
 # Facing-an-RFI Calibration Targets
 
-Owner: `bob-the-boss`. Acceptance criteria for the `vs_rfi` range data.
+Acceptance criteria for the `vs_rfi` range data.
 
 Read `RFI-CALIBRATION.md` §1 first — the raise-VPIP versus played-frequency
 distinction and the "check invariants against the tightest range" lesson both
@@ -46,14 +46,14 @@ limp branch, and it gets its own directory when we do it.
 
 Every grid prints its action breakdown underneath, in combos out of 1326. Your
 computed `stats.by_action` must **equal those numbers exactly**. That is a
-sharper check than any band, and it is self-verifying — I have not pre-computed
-all fourteen for you, because the chart already did.
+sharper check than any band, and it is self-verifying: the chart already did the
+arithmetic, so there is nothing to pre-compute here.
 
 Record the printed totals verbatim in each file's `notes`, alongside the page
 and grid position, so a later reader can re-check without re-rendering.
 
-**Two anchors I verified myself on 2026-08-08**, to catch a systematic error on
-your first file rather than your fourteenth:
+**Two anchors verified directly on 2026-08-08**, to catch a systematic error on
+the first file rather than the fourteenth:
 
 | Matchup | Printed | Meaning |
 |---|---|---|
@@ -76,8 +76,8 @@ will say so.
 
 Assert these across all fourteen. They are deliberately fewer and weaker than
 the RFI set, because a defending range is not monotonic in the same way — and
-because I over-asserted three times on the RFI charts and had to walk it back
-each time. Write only what you can check against the tightest matchup.
+because the RFI invariants were over-asserted three times and had to be walked
+back each time. Write only what holds against the tightest matchup.
 
 1. **Contiguity of pairs from `AA`** — same rule as RFI-CALIBRATION §4.6, applied
    to played frequency. If a matchup plays `66`, it plays `77`.
@@ -89,9 +89,9 @@ each time. Write only what you can check against the tightest matchup.
 5. **Defending widens as the raiser's position gets later.** For a fixed hero,
    total played frequency is non-decreasing across raiser position in seat order
    — e.g. `BB_vs_UTG <= BB_vs_HJ <= BB_vs_CO <= BB_vs_BTN`. Check this and report
-   it, but treat a violation as a question for me rather than an automatic
-   failure: a rake-aware chart can legitimately break it, and I would rather hear
-   about it than have you adjust data to satisfy my guess.
+   it, but treat a violation as a question rather than an automatic failure: a
+   rake-aware chart can legitimately break it, and the right response is to raise
+   it, never to adjust data so it fits.
 6. **Coverage.** Exactly fourteen files, the names in §2, no others.
 7. **Every action id is in the spot's closed set** (`call`, `3bet`), and
    `action_sizes_bb` covers every declared action.

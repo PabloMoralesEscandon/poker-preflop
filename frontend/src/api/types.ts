@@ -1,7 +1,7 @@
 /**
  * Hand-written mirror of docs/API-CONTRACT.md v1.
  *
- * The contract is frozen and owned by bob-the-boss. If something here disagrees
+ * The contract is frozen. If something here disagrees
  * with the document, the document wins and the disagreement is a bug to report,
  * not to work around.
  */

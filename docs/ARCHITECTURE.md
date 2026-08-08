@@ -1,8 +1,8 @@
 # Architecture
 
-Owner: `bob-the-boss`. This document is the contract. Agents implement against it
-and do not change it unilaterally — if something here is wrong or impossible,
-report it and stop; the boss amends the doc.
+This document is the contract. Implement against it rather than around it — if
+something here is wrong or impossible, say so and stop instead of working
+around it.
 
 ## 1. What this product is
 
@@ -38,14 +38,14 @@ production, server-side analytics, websockets.
 
 ```text
 learner/
-  docs/                     # Contracts and reference. Owner: bob-the-boss.
+  docs/                     # Contracts and reference.
     ARCHITECTURE.md
     API-CONTRACT.md
     RANGE-DATA-FORMAT.md
     RESOURCES.md
     ranges/RFI-CALIBRATION.md
     examples/               # Canonical response fixtures. FE mocks read these.
-  backend/                  # Owner: william-backend.
+  backend/
     pyproject.toml
     src/learner/
       main.py               # FastAPI app factory, CORS, error handlers
@@ -60,9 +60,9 @@ learner/
       sessions/
         store.py            # SessionStore protocol
         memory.py           # In-memory implementation
-    data/ranges/            # Range JSON. Owner: william-backend (DA tasks).
+    data/ranges/            # Range JSON.
     tests/
-  frontend/                 # Owner: claudio-frontend.
+  frontend/
     src/
       api/                  # Generated-by-hand types + fetch client + mock adapter
       drills/
@@ -105,8 +105,8 @@ drill would require touching those, the abstraction is wrong — report it.
 
 `main.py` is the exception, and deliberately so. It is the composition root: it
 gains one import and one entry in the registry list, and nothing else. That was
-tested for real on 2026-08-08, when `william-backend` correctly stopped at the
-original wording of this rule — which said "no changes to `main.py`" and so
+tested for real when the second drill landed and stopped against the original
+wording of this rule — which said "no changes to `main.py`" and so
 demanded auto-discovery. **The rule was wrong, not the code.**
 
 Auto-registration by module scanning or import side effects would be worse

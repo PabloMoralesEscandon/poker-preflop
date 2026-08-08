@@ -226,7 +226,7 @@ async def test_success_responses_match_canonical_fixture_shapes(
         == 200
     )
     assert_fixture_shape(
-        {"drills": drills.json()["drills"][:1]},
+        {"drills": drills.json()["drills"]},
         fixture("drills"),
     )
     assert_fixture_shape(created, fixture("session_create"))

@@ -1,6 +1,6 @@
 # Resources
 
-Owner: `bob-the-boss`. This is the decision record for **where our poker
+This is the decision record for **where our poker
 knowledge comes from**. Nothing in `backend/data/` may cite a source that is not
 listed in §2.
 
@@ -31,9 +31,9 @@ listed in §2.
 
 | `source_id` | What | URL | Role | Verified |
 |---|---|---|---|---|
-| `jl-6max-preflop-charts` | Visual 6-max cash preflop chart set, 6 pages. Page 3 is RFI (five 13×13 grids: Lojack, Hijack, Cutoff, Button, Small Blind); pages 4–6 cover facing an RFI in and out of position, and blind vs blind. "Implementable GTO" — a pure strategy with mixed frequencies rounded away. 100bb, 2.5bb opens, 3bb from SB. Free, no account. **Grids are images**; see RFI-CALIBRATION §5.0 for how to read them. | `https://jlsecrets.s3.amazonaws.com/advancedclasses/6maxcashgames/pdf/Online%206-max%20Cash%20Game%20Preflop%20Charts.pdf` | **PRIMARY for `rfi_6max_*`** | **2026-08-06** — HTTP 200, 1.9 MB, page 3 rendered and read by bob-the-boss; independently reopened and transcribed by william-backend |
-| `jl-fullring-preflop-charts` | Full-ring (8-max) cash RFI ranges for all seven opening positions, published as **text hand ranges** rather than images — no transcription from pixels required. 100bb, 2.5bb opens, 3bb from SB. Same author as `jl-6max-preflop-charts`, so the methodology matches our 6-max data. Free, no account needed to read the ranges on the page. | `https://pokercoaching.com/preflop-charts/` | **PRIMARY for `rfi_8max_*`** | **2026-08-07** — read by bob-the-boss; all seven ranges captured in RFI-CALIBRATION §3 |
-| `gtowizard-free-study` | Configurable Study matrix. **Rejected as a source on 2026-08-07.** The free tier is still advertised (100 preflop solutions daily, 2.5x opens) but every route to a matrix now redirects to Google/Facebook/Apple OAuth, so nothing is reachable without an account. Kept in the register only to record the finding. | `https://app.gtowizard.com/` | **NOT USABLE** — login-gated | 2026-08-07 — gated, verified by william-backend |
+| `jl-6max-preflop-charts` | Visual 6-max cash preflop chart set, 6 pages. Page 3 is RFI (five 13×13 grids: Lojack, Hijack, Cutoff, Button, Small Blind); pages 4–6 cover facing an RFI in and out of position, and blind vs blind. "Implementable GTO" — a pure strategy with mixed frequencies rounded away. 100bb, 2.5bb opens, 3bb from SB. Free, no account. **Grids are images**; see RFI-CALIBRATION §5.0 for how to read them. | `https://jlsecrets.s3.amazonaws.com/advancedclasses/6maxcashgames/pdf/Online%206-max%20Cash%20Game%20Preflop%20Charts.pdf` | **PRIMARY for `rfi_6max_*`** | **2026-08-06** — HTTP 200, 1.9 MB; page 3 rendered and read, then independently reopened and transcribed |
+| `jl-fullring-preflop-charts` | Full-ring (8-max) cash RFI ranges for all seven opening positions, published as **text hand ranges** rather than images — no transcription from pixels required. 100bb, 2.5bb opens, 3bb from SB. Same author as `jl-6max-preflop-charts`, so the methodology matches our 6-max data. Free, no account needed to read the ranges on the page. | `https://pokercoaching.com/preflop-charts/` | **PRIMARY for `rfi_8max_*`** | **2026-08-07** — read directly; all seven ranges captured in RFI-CALIBRATION §3 |
+| `gtowizard-free-study` | Configurable Study matrix. **Rejected as a source on 2026-08-07.** The free tier is still advertised (100 preflop solutions daily, 2.5x opens) but every route to a matrix now redirects to Google/Facebook/Apple OAuth, so nothing is reachable without an account. Kept in the register only to record the finding. | `https://app.gtowizard.com/` | **NOT USABLE** — login-gated | 2026-08-07 — gated, verified directly |
 | `freebetrange-open-raises` | Opening-range PDF for 6-max cash, with written reasoning. Its blue hands are exploitative deviations, **not** part of a baseline range — exclude them. | `https://help.freebetrange.com/guides/Preflop_Charts_-_Open_Raises_in_6max_Cash_Games.pdf` | cross-check only | not yet |
 
 ### Non-source — fixtures only

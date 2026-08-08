@@ -1,6 +1,6 @@
 # Range Data Format
 
-Owner: `bob-the-boss`. Range files are **content**, not code. Adding a table
+Range files are **content**, not code. Adding a table
 format or correcting a chart must never require a code change.
 
 That claim was tested on 2026-08-07, and it **half held**. The full-ring source
@@ -11,8 +11,8 @@ hardcoded in six places on the backend (two `Literal` types, two position
 tuples, the label map, the config schema) and in the frontend's types and
 `POSITIONS_BY_FORMAT`.
 
-I recorded "not a single line of logic changed" here before checking, which was
-wrong. Adding a *chart* is free. Adding a *table format* is a small, mechanical,
+This section recorded "not a single line of logic changed" before that was
+checked, which was wrong. Adding a *chart* is free. Adding a *table format* is a small, mechanical,
 but real code change in both services.
 
 If a third format ever lands (9-max, heads-up, MTT), that is the thing worth
@@ -227,7 +227,7 @@ A grid cell naming an id outside its spot's set is a load failure.
 **`limp` was missing from this table when it was first written**, which would
 have rejected `rfi/6max/SB.json` — a verified file with 504 combos of limp, and
 the very range that motivated making `actions` per-range data in the first
-place. Caught by `william-backend` before any code was written.
+place. Caught in review before any code was written.
 
 The lesson is the same one the pairs invariant taught: **a closed set written
 from memory is a guess.** When you add a spot, derive its initial set from the

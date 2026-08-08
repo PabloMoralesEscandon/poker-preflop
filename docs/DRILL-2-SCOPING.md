@@ -1,7 +1,6 @@
 # Drill #2 — scoping note
 
-Owner: `bob-the-boss`. Written at CP-03, immediately after v1 acceptance, while
-the evidence is fresh. The whole premise of v1 was that drill #2 would be a
+Written immediately after the first release, while the evidence was fresh. The whole premise of v1 was that drill #2 would be a
 module rather than a rewrite. This records where that held and where it did not,
 measured against what actually happened rather than what was intended.
 
@@ -36,8 +35,8 @@ UI to pass, it would not be generic.
 
 ## 2. What the platform made hard
 
-**A new table format is code in eight places.** This is the big one, and I
-overclaimed the opposite before checking. Switching 9-max → 8-max touched two
+**A new table format is code in eight places.** This is the big one, and the
+opposite was claimed here before anyone checked. Switching 9-max → 8-max touched two
 `Literal` types, two position tuples, a label map and the config schema on the
 backend, plus `types.ts` and `POSITIONS_BY_FORMAT` on the frontend. Adding a
 *chart* is free; adding a *format* is not.
@@ -67,7 +66,7 @@ been seen by a user. Treat it as unproven, not as tested.
 **The fixture/contract pair needs discipline.** `docs/examples/` made true
 parallel work possible — the two services were built simultaneously and
 integration was a config flip. But the illustrative CO fixture diverges from the
-real chart in 20 of 169 cells, and I mis-stated that number twice, because a
+real chart in 20 of 169 cells, and that number was mis-stated twice, because a
 *shape* comparison cannot see `0.5` versus `1.0`. If you keep the pattern, keep
 the fixtures shape-only by construction: a fixture that carries plausible
 *values* invites someone to compare them.
@@ -94,17 +93,17 @@ not have. Do not start there.
 
 ## 4. Process notes worth carrying forward
 
-- **The stop rule earned its keep.** `william-backend` halted four times rather
-  than guess, and was right every time — the limping SB, `55` folding at UTG,
+- **The stop rule earned its keep.** Work halted four times rather than guess,
+  and was right every time — the limping SB, `55` folding at UTG,
   `66` folding at full-ring UTG, and the login-gated source. Every one was a
-  defect in my specification. Had he "helpfully" adjusted a range to satisfy a
-  wrong invariant, we would have shipped bad poker data with a green suite.
+  defect in the specification. Had a range been "helpfully" adjusted to satisfy a
+  wrong invariant, bad poker data would have shipped with a green suite.
 - **Invariants written from the data you happen to have are descriptions.** The
   pairs invariant was wrong three times (`55`, `66`, `77`) before being replaced
   with a structural rule (pairs contiguous from `AA`) that cannot go stale.
 - **Verify branches, do not trust reports.** DA-02 shipped perfect data on a
   branch whose test suite would not collect. Caught at merge because merging is
-  gated on running the suite myself.
+  gated on running the suite at merge time.
 - **Read the output, not just the test names.** Two explanation defects were in
   100% and 25% of all generated copy and passed a defect-pattern sweep. They
   surfaced only by printing 480 sentences and reading them.
@@ -182,7 +181,7 @@ chart's *printed* totals, and our computed `by_action` beside them. For
 `{"3bet": 178, "call": 576}` — a reader compares two numbers and is done.
 
 That is the difference between "trust us" and "check us", and it is worth more
-than any invariant I wrote.
+than any invariant written here.
 
 ## Recommendation for drill #3
 

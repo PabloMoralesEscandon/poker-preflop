@@ -1,6 +1,6 @@
 # RFI Calibration Targets
 
-Owner: `bob-the-boss`. These are the acceptance criteria for RFI range data.
+These are the acceptance criteria for RFI range data.
 They exist so range correctness can be checked automatically instead of by
 someone squinting at 169 cells thirteen times.
 
@@ -21,8 +21,8 @@ RANGE-DATA-FORMAT §4 is the played measure.
 
 ## 2. 6-max, 100bb, 2.5bb opens (3bb from SB)
 
-Primary source: `jl-6max-preflop-charts`, page 3. Verified 2026-08-06 by
-bob-the-boss, who read the rendered page directly.
+Primary source: `jl-6max-preflop-charts`, page 3. Verified 2026-08-06 by reading
+the rendered page directly.
 
 These are **not estimates**. They are the summary figures printed underneath
 each grid in the chart itself, so the tolerance is tight — it only exists to
@@ -95,7 +95,7 @@ needs a mixed cell must construct it.
 
 ### 2.4 Verified compositions
 
-Read off the rendered grids by bob-the-boss on 2026-08-06 and cross-checked
+Read off the rendered grids on 2026-08-06 and cross-checked
 against the chart's own printed totals. Use these to catch a systematic
 transcription error on the first file rather than the fifth.
 
@@ -122,8 +122,7 @@ frequency.
 
 ## 3. Full ring (8-max), 100bb, 2.5bb opens (3bb from SB)
 
-Primary source: `jl-fullring-preflop-charts`. Verified 2026-08-07 by
-bob-the-boss.
+Primary source: `jl-fullring-preflop-charts`. Verified 2026-08-07.
 
 **This section used to specify 9-max against `gtowizard-free-study`.** That
 source is login-gated and unusable (RESOURCES.md §2), so the format changed to

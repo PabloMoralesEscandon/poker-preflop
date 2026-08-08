@@ -52,7 +52,7 @@ frequency differences are the ones easy to miss, because both cells are
 "played" and a shape comparison sails straight past them.
 
 That divergence is correct and expected — one is a transcription of a cited
-chart, the other is my invention.
+chart, the other is invented.
 
 **Consequence worth knowing:** this fixture has **12 mixed cells; the real 6-max
 data has none**, and neither does the full-ring data (RFI-CALIBRATION §2.3). So
@@ -76,9 +76,8 @@ those as different is a false positive, not a finding.
 
 ## Changing a fixture
 
-Don't. They are part of the frozen v1 contract. If one is wrong, report it to
-`bob-the-boss` and stop — a fixture edited on one side silently breaks the
-other.
+Don't. They are part of the frozen v1 contract. If one is wrong, raise it and
+stop — a fixture edited on one side silently breaks the other.
 
 ## About `range_vs_rfi_6max_BB_vs_BTN.json`
 
@@ -95,8 +94,8 @@ already covered and the interesting rendering and grading paths are the ones wit
 
 ## The two `vs_rfi` fixtures and their invented numbers
 
-`claudio-frontend` flagged this at FE-11 and it is worth writing down, because it
-is exactly the kind of gap someone reads as a transcription error.
+This was flagged while building the drill UI and is worth writing down, because
+it is exactly the kind of gap someone reads as a transcription error.
 
 `range_vs_rfi_6max_BB_vs_BTN.json` is illustrative: **50 combos of 3-bet out of
 586 played**. The real transcribed chart is **178 out of 754**. A second fixture
@@ -120,7 +119,7 @@ the backend switched off.
 It was regenerated from the running server on 2026-08-08 and is byte-identical
 to a live `GET /drills`, so the `vs_rfi` config schema in it — field key
 `matchups`, option values like `BB_vs_BTN`, labels like `BB vs BTN` — is the
-contract, not a guess. It was missing when FE-11 started; `claudio-frontend`
-authored a schema in the mock to have something to render and independently
-chose the same key and value format that `william-backend` implemented. That
-they converged is luck, not design, and this fixture is what makes it neither.
+contract, not a guess. It was missing while the drill UI was being built, so a
+schema was authored in the mock to have something to render — and it happened to
+match what the server implemented. That they converged was luck, not design, and
+this fixture is what makes it neither.

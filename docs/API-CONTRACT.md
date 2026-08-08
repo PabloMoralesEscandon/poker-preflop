@@ -1,6 +1,6 @@
 # API Contract v1
 
-Owner: `bob-the-boss`. **Frozen for v1.** Backend implements it exactly.
+**Frozen for v1.** The backend implements it exactly.
 Frontend codes against it exactly. Neither side changes it — raise a blocker
 instead.
 
