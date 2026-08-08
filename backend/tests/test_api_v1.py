@@ -105,11 +105,21 @@ async def test_health_success(client: AsyncClient) -> None:
     assert response.json() == {"status": "ok", "version": "0.1.0"}
 
 
-async def test_drills_matches_canonical_fixture(client: AsyncClient) -> None:
+async def test_drills_preserves_rfi_fixture_and_lists_vs_rfi(
+    client: AsyncClient,
+) -> None:
     response = await client.get("/api/v1/drills")
 
     assert response.status_code == 200
-    assert response.json() == example("drills.json")
+    drills = response.json()["drills"]
+    assert {"drills": drills[:1]} == example("drills.json")
+    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi"]
+    assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
+        "table_format",
+        "matchups",
+        "question_count",
+        "weighting",
+    ]
 
 
 async def test_create_session_success_and_generated_seed(client: AsyncClient) -> None:
@@ -211,9 +221,7 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     assert all_ranges.status_code == 200
     assert six_max.json() == example("ranges_list.json")
     assert all_ranges.json()["ranges"] == (
-        six_max.json()["ranges"]
-        + eight_max.json()["ranges"]
-        + vs_rfi.json()["ranges"]
+        six_max.json()["ranges"] + eight_max.json()["ranges"] + vs_rfi.json()["ranges"]
     )
     assert [item["range_id"] for item in eight_max.json()["ranges"]] == [
         "rfi_8max_UTG",

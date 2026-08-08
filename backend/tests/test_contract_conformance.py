@@ -199,7 +199,10 @@ async def test_success_responses_match_canonical_fixture_shapes(
     range_detail = await client.get("/api/v1/ranges/rfi_6max_CO")
 
     assert drills.status_code == ranges.status_code == range_detail.status_code == 200
-    assert_fixture_shape(drills.json(), fixture("drills"))
+    assert_fixture_shape(
+        {"drills": drills.json()["drills"][:1]},
+        fixture("drills"),
+    )
     assert_fixture_shape(created, fixture("session_create"))
     assert_fixture_shape(
         {"done": False, "question": question}, fixture("next_question")
