@@ -28,16 +28,16 @@ describe('the chart index', () => {
     // role=status is also the loading label, so wait for the count itself.
     expect(await screen.findByText(/\d+ of \d+ charts/)).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', { name: /rfi_6max_CO/ })
+      await screen.findByRole('link', { name: /\brfi_6max_CO\b/ })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /vs_rfi_6max_BB_vs_BTN/ })
+      screen.getByRole('link', { name: /vs_rfi_6max_BB_vs_BTN\b/ })
     ).toBeInTheDocument();
   });
 
   it('groups by spot and then by table format', async () => {
     renderAt('/charts');
-    await screen.findByRole('link', { name: /rfi_6max_CO/ });
+    await screen.findByRole('link', { name: /\brfi_6max_CO\b/ });
 
     const headings = screen
       .getAllByRole('heading', { level: 2 })
@@ -53,52 +53,56 @@ describe('the chart index', () => {
   it('names the source on each card, and flags the ones that are not cited', async () => {
     renderAt('/charts');
     const card = await screen.findByRole('link', {
-      name: /vs_rfi_6max_BB_vs_BTN/,
+      name: /vs_rfi_6max_BB_vs_BTN\b/,
     });
     expect(card).toHaveTextContent('Illustrative fixture data');
-    expect(card).toHaveTextContent('not a cited chart');
+    expect(card).toHaveTextContent('unverified');
   });
 
   it('shows each range totals without opening it', async () => {
     renderAt('/charts');
     const card = await screen.findByRole('link', {
-      name: /vs_rfi_6max_BB_vs_BTN/,
+      name: /vs_rfi_6max_BB_vs_BTN\b/,
     });
     expect(card).toHaveTextContent('586 combos');
-    expect(card).toHaveTextContent('44.2% played');
+    expect(card).toHaveTextContent('44.2%');
   });
 
   it('filters by spot, and keeps the filter in the URL', async () => {
     renderAt('/charts');
-    await screen.findByRole('link', { name: /rfi_6max_CO/ });
+    await screen.findByRole('link', { name: /\brfi_6max_CO\b/ });
 
     await userEvent.selectOptions(screen.getByLabelText('Spot'), 'vs_rfi');
 
     await waitFor(() =>
       expect(
-        screen.queryByRole('link', { name: /rfi_6max_CO/ })
+        screen.queryByRole('link', { name: /\brfi_6max_CO\b/ })
       ).not.toBeInTheDocument()
     );
     expect(
-      screen.getByRole('link', { name: /vs_rfi_6max_BB_vs_BTN/ })
+      screen.getByRole('link', { name: /vs_rfi_6max_BB_vs_BTN\b/ })
     ).toBeInTheDocument();
   });
 
   it('filters by position', async () => {
     renderAt('/charts');
-    await screen.findByRole('link', { name: /rfi_6max_CO/ });
+    await screen.findByRole('link', { name: /\brfi_6max_CO\b/ });
 
+    // BTN is hero in the RFI chart and in three vs_rfi matchups.
     await userEvent.selectOptions(screen.getByLabelText('Position'), 'BTN');
     await waitFor(() =>
-      expect(screen.getByText(/\d+ of \d+ charts/)).toHaveTextContent('1 of')
+      expect(screen.getByText(/\d+ of \d+ charts/)).toHaveTextContent('4 of')
     );
+    expect(
+      screen.getAllByRole('link', { name: /_6max_BTN/ }).length
+    ).toBeGreaterThan(0);
   });
 
   it('opens filtered from a link, so a filtered view is shareable', async () => {
     renderAt('/charts?spot=vs_rfi');
-    await screen.findByRole('link', { name: /vs_rfi_6max_BB_vs_BTN/ });
+    await screen.findByRole('link', { name: /vs_rfi_6max_BB_vs_BTN\b/ });
     expect(
-      screen.queryByRole('link', { name: /rfi_6max_CO/ })
+      screen.queryByRole('link', { name: /\brfi_6max_CO\b/ })
     ).not.toBeInTheDocument();
   });
 
@@ -108,7 +112,7 @@ describe('the chart index', () => {
       .mockRejectedValue(new ApiError('invalid_request', 'No /sources.', 400));
 
     renderAt('/charts');
-    const card = await screen.findByRole('link', { name: /rfi_6max_CO/ });
+    const card = await screen.findByRole('link', { name: /\brfi_6max_CO\b/ });
     expect(card).toHaveTextContent('Unknown source');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
@@ -264,5 +268,78 @@ describe('a two-action chart', () => {
     const legend = within(screen.getByRole('grid').closest('figure')!);
     expect(legend.getByText(/^3bet/)).toBeInTheDocument();
     expect(legend.getByText(/^call/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * FE-12: the browser has to be reachable and pageable without a mouse.
+ */
+describe('paging through charts from the keyboard', () => {
+  it('offers previous and next links naming the neighbouring charts', async () => {
+    renderAt('/charts/rfi_6max_HJ');
+    const nav = await screen.findByRole('navigation', { name: 'Chart paging' });
+
+    const links = within(nav).getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('rel'))).toContain('previous');
+    expect(links.map((link) => link.getAttribute('rel'))).toContain('next');
+    expect(
+      within(nav).getByRole('link', { name: /Previous chart/ })
+    ).toHaveAttribute('href', '/charts/rfi_6max_UTG');
+    expect(
+      within(nav).getByRole('link', { name: /Next chart/ })
+    ).toHaveAttribute('href', '/charts/rfi_6max_CO');
+  });
+
+  it('advertises its key bindings', async () => {
+    renderAt('/charts/rfi_6max_HJ');
+    const nav = await screen.findByRole('navigation', { name: 'Chart paging' });
+    expect(
+      within(nav).getByRole('link', { name: /Previous chart/ })
+    ).toHaveAttribute('aria-keyshortcuts', 'ArrowLeft');
+    expect(
+      within(nav).getByRole('link', { name: /Next chart/ })
+    ).toHaveAttribute('aria-keyshortcuts', 'ArrowRight');
+  });
+
+  it('moves to the next chart on ArrowRight', async () => {
+    renderAt('/charts/rfi_6max_HJ');
+    await screen.findByRole('navigation', { name: 'Chart paging' });
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'CO' })
+    ).toBeInTheDocument();
+  });
+
+  it('moves back on ArrowLeft', async () => {
+    renderAt('/charts/rfi_6max_HJ');
+    await screen.findByRole('navigation', { name: 'Chart paging' });
+
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'UTG' })
+    ).toBeInTheDocument();
+  });
+
+  it('stops at the ends rather than wrapping', async () => {
+    renderAt('/charts/rfi_6max_UTG');
+    const nav = await screen.findByRole('navigation', { name: 'Chart paging' });
+    expect(
+      within(nav).queryByRole('link', { name: /Previous chart/ })
+    ).not.toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'UTG' })
+    ).toBeInTheDocument();
+  });
+
+  it('leaves the filter selects usable with the keyboard', async () => {
+    renderAt('/charts');
+    const spot = await screen.findByLabelText('Spot');
+    spot.focus();
+    expect(spot).toHaveFocus();
+    await userEvent.selectOptions(spot, 'vs_rfi');
+    expect(spot).toHaveValue('vs_rfi');
   });
 });

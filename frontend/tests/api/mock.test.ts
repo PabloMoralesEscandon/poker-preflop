@@ -459,23 +459,38 @@ describe('mock static endpoints', () => {
   it('filters by spot, position and vs_position', async () => {
     const client = new MockApiClient();
 
+    // All fourteen matchups the drills fixture offers.
     const vsRfi = await client.listRanges({ spot: 'vs_rfi' });
-    expect(vsRfi.ranges.map((entry) => entry.range_id).sort()).toEqual([
-      'vs_rfi_6max_BB_vs_BTN',
-      'vs_rfi_6max_HJ_vs_UTG',
-    ]);
+    expect(vsRfi.ranges).toHaveLength(14);
+    expect(vsRfi.ranges.map((entry) => entry.range_id)).toContain(
+      'vs_rfi_6max_BB_vs_BTN'
+    );
+    expect(vsRfi.ranges.every((entry) => entry.spot === 'vs_rfi')).toBe(true);
 
     const co = await client.listRanges({ spot: 'rfi', position: 'CO' });
     expect(co.ranges.map((entry) => entry.range_id)).toEqual(['rfi_6max_CO']);
 
     const vsBtn = await client.listRanges({ vs_position: 'BTN' });
     expect(vsBtn.ranges.map((entry) => entry.range_id)).toEqual([
+      'vs_rfi_6max_SB_vs_BTN',
       'vs_rfi_6max_BB_vs_BTN',
     ]);
 
+    // BB is hero in four matchups, and is never the raiser.
     expect((await client.listRanges({ position: 'BB' })).ranges).toHaveLength(
-      1
+      4
     );
+    expect(
+      (await client.listRanges({ vs_position: 'UTG' })).ranges.map(
+        (entry) => entry.range_id
+      )
+    ).toEqual([
+      'vs_rfi_6max_HJ_vs_UTG',
+      'vs_rfi_6max_CO_vs_UTG',
+      'vs_rfi_6max_BTN_vs_UTG',
+      'vs_rfi_6max_SB_vs_UTG',
+      'vs_rfi_6max_BB_vs_UTG',
+    ]);
   });
 
   it('carries the audit fields every list entry needs', async () => {
@@ -624,5 +639,60 @@ describe('mock static endpoints', () => {
       }
     }
     throw new Error('no limp hand came up');
+  });
+});
+
+/**
+ * The mock offers exactly the matchups the drills fixture advertises, and every
+ * one of them is playable. A selectable option with no chart behind it would be
+ * a dead end the config form cannot warn about.
+ */
+describe('every advertised matchup is serveable', () => {
+  it('lists a chart for each matchup the drill offers', async () => {
+    const client = new MockApiClient();
+    const { drills } = await client.listDrills();
+    const drill = drills.find((entry) => entry.id === 'vs_rfi')!;
+    const field = drill.config_schema.fields.find(
+      (entry) => entry.key === 'matchups'
+    )!;
+    const offered =
+      field.type === 'multi_enum'
+        ? (field.options ?? field.options_by?.['6max'] ?? []).map(
+            (option) => option.value
+          )
+        : [];
+
+    expect(offered).toHaveLength(14);
+    for (const matchup of offered) {
+      const range = await client.getRange(`vs_rfi_6max_${matchup}`);
+      expect(range.actions.length).toBeGreaterThan(0);
+      expect(Object.keys(range.grid)).toHaveLength(169);
+    }
+  });
+
+  it('follows the real files on which matchups have no calling range', async () => {
+    const client = new MockApiClient();
+    const actionsOf = async (matchup: string) =>
+      (await client.getRange(`vs_rfi_6max_${matchup}`)).actions.sort();
+
+    // Read from backend/data/ranges/vs_rfi/6max: shape only, never values.
+    for (const matchup of ['HJ_vs_UTG', 'CO_vs_UTG', 'CO_vs_HJ', 'SB_vs_BTN']) {
+      expect(await actionsOf(matchup)).toEqual(['3bet']);
+    }
+    for (const matchup of ['BB_vs_BTN', 'BB_vs_UTG', 'BTN_vs_CO']) {
+      expect(await actionsOf(matchup)).toEqual(['3bet', 'call']);
+    }
+  });
+
+  it('sizes the 3-bet by position, as the calibration doc specifies', async () => {
+    const client = new MockApiClient();
+    const sizeOf = async (matchup: string) =>
+      (await client.getRange(`vs_rfi_6max_${matchup}`)).action_sizes_bb['3bet'];
+
+    // 3.5x in position, 4x out of position.
+    expect(await sizeOf('BTN_vs_CO')).toBe(3.5);
+    expect(await sizeOf('CO_vs_UTG')).toBe(3.5);
+    expect(await sizeOf('BB_vs_BTN')).toBe(4);
+    expect(await sizeOf('SB_vs_UTG')).toBe(4);
   });
 });

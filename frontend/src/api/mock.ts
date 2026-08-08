@@ -72,92 +72,42 @@ import {
   handTypeOf,
 } from '../lib/hands';
 
-const RFI_DRILLS = drillsFixture as DrillsResponse;
+const DRILLS = drillsFixture as DrillsResponse;
 
 /**
- * The matchups this mock can serve. `BB_vs_BTN` is the real fixture — it calls
- * and 3-bets, so it exercises three buttons. `HJ_vs_UTG` is derived from it by
- * dropping every calling cell, because VS-RFI-CALIBRATION §4 records that this
- * matchup genuinely has no calling range: in position against an early open the
- * chart is 3-bet-or-fold. That gives a two-button spot without inventing a
- * strategy — the shape is real even though these particular cells are not.
+ * The matchups the `vs_rfi` drill offers, taken from the drills fixture rather
+ * than declared here — the fixture is regenerated from the live server, so this
+ * cannot drift from what the real config form will show.
  */
-const VS_RFI_MATCHUPS = ['BB_vs_BTN', 'HJ_vs_UTG'] as const;
+const VS_RFI_MATCHUPS: string[] = (() => {
+  const drill = DRILLS.drills.find((entry) => entry.id === 'vs_rfi');
+  const field = drill?.config_schema.fields.find(
+    (entry) => entry.key === 'matchups'
+  );
+  if (field?.type !== 'multi_enum') return [];
+  const options = field.options ?? field.options_by?.['6max'] ?? [];
+  return options.map((option) => option.value);
+})();
 
 /**
- * `docs/examples/drills.json` still lists only `rfi`, although v2 §13 says
- * `GET /drills` lists `vs_rfi` alongside it with its own `config_schema`. The
- * schema below is therefore the mock's own, not a fixture — reported rather
- * than treated as settled. Its shape follows §3 exactly, which is the point of
- * the exercise: the generic config form should render it with no changes.
+ * Which matchups have no calling range.
  *
- * Only the matchups this mock can actually serve are offered.
+ * Read off the fourteen real files in `backend/data/ranges/vs_rfi/6max/` — the
+ * mock cannot import them, but their *shape* is a fact worth copying so that a
+ * two-button spot appears where a two-button spot really exists. Only the shape
+ * is taken; every cell here still comes from the one illustrative fixture, and
+ * every derived range is labelled `fixture-illustrative` so the chart browser
+ * flags it. For anything that cares about values, use the live server.
  */
-const VS_RFI_DRILL: DrillInfo = {
-  id: 'vs_rfi',
-  name: 'Facing a Raise',
-  description:
-    'Decide whether to fold, call or 3-bet when one player has opened before you.',
-  version: 1,
-  config_schema: {
-    fields: [
-      {
-        key: 'table_format',
-        label: 'Table format',
-        type: 'enum',
-        default: '6max',
-        options: [{ value: '6max', label: '6-max' }],
-      },
-      {
-        key: 'matchups',
-        label: 'Matchups',
-        type: 'multi_enum',
-        default: ['BB_vs_BTN'],
-        depends_on: 'table_format',
-        options_by: {
-          '6max': VS_RFI_MATCHUPS.map((matchup) => ({
-            value: matchup,
-            label: matchup.replace('_vs_', ' vs '),
-          })),
-        },
-      },
-      {
-        key: 'question_count',
-        label: 'Hands',
-        type: 'int',
-        default: 25,
-        min: 5,
-        max: 200,
-      },
-      {
-        key: 'weighting',
-        label: 'Hand selection',
-        type: 'enum',
-        default: 'borderline',
-        options: [
-          { value: 'uniform', label: 'Uniform — any of the 169 hands' },
-          {
-            value: 'borderline',
-            label: 'Borderline — favour close decisions',
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const DRILLS: DrillsResponse = {
-  drills: [...RFI_DRILLS.drills, VS_RFI_DRILL],
-};
 const RAISE_ACTION_ID = 'raise';
 const LIMP_ACTION_ID = 'limp';
 
 /**
  * `range_rfi_6max_CO.json` was not migrated when v2 replaced `open_size_bb`
  * with `action_sizes_bb` and made `stats.by_action` required — it is still v1
- * shaped, while the other two range fixtures are v2. `docs/` is read-only to
- * me, so the mock reads whichever form it finds and this is reported rather
- * than papered over. Delete the fallback once the fixture is migrated.
+ * shaped, while the other range fixture is v2. `docs/` is read-only to me, so
+ * the mock reads whichever form it finds. Delete the fallback once the fixture
+ * is migrated.
  */
 function normaliseRange(raw: unknown): RangeDetail {
   const range = raw as RangeDetail & { open_size_bb?: number };
@@ -180,6 +130,16 @@ function normaliseRange(raw: unknown): RangeDetail {
 const CO_RANGE = normaliseRange(rangeCoFixture);
 const VS_RFI_RANGE = normaliseRange(rangeVsRfiFixture);
 const SOURCES = sourcesFixture as unknown as SourcesResponse;
+
+const THREE_BET_ONLY_MATCHUPS = new Set([
+  'HJ_vs_UTG',
+  'CO_vs_UTG',
+  'CO_vs_HJ',
+  'SB_vs_UTG',
+  'SB_vs_HJ',
+  'SB_vs_CO',
+  'SB_vs_BTN',
+]);
 
 /** Ranges served verbatim from a fixture, keyed by id. */
 const FIXTURE_RANGES: Record<string, RangeDetail> = {
@@ -237,16 +197,6 @@ const SB_GRID = toSmallBlindGrid(CO_RANGE.grid);
 const CALL_ACTION_ID = 'call';
 const THREE_BET_ACTION_ID = '3bet';
 
-/**
- * A matchup this mock can serve, keyed as the range id suffix.
- *
- * `BB_vs_BTN` is the real fixture: it calls and 3-bets, so it exercises three
- * buttons. `HJ_vs_UTG` is derived from it by dropping every calling cell,
- * because VS-RFI-CALIBRATION §4 records that this matchup genuinely has no
- * calling range — in position against an early open the chart is 3-bet-or-fold.
- * That gives a two-button spot to render without inventing a strategy: the
- * shape is real even though these particular cells are not.
- */
 function threeBetOnlyGrid(grid: RangeGrid): RangeGrid {
   const derived: RangeGrid = {};
   for (const hand of ALL_HANDS) {
@@ -275,7 +225,7 @@ function vsRfiChartFor(matchup: string): MockChart {
   const threeBetSize = outOfPosition ? 4 : 3.5;
   const facing = VS_RFI_RANGE.facing_size_bb ?? 2.5;
 
-  if (matchup === 'HJ_vs_UTG') {
+  if (THREE_BET_ONLY_MATCHUPS.has(matchup)) {
     return {
       actions: [THREE_BET_ACTION_ID],
       grid: HJ_VS_UTG_GRID,

@@ -29,9 +29,20 @@ function renderRunner(client = new MockApiClient()) {
   );
 }
 
-async function startSession(hands = 5) {
+/** Leaves exactly the named matchup ticked, so a session is deterministic. */
+async function selectOnly(matchup: string) {
+  for (const box of screen.getAllByRole('checkbox')) {
+    const wanted = box.closest('label')?.textContent?.trim() === matchup;
+    if ((box as HTMLInputElement).checked !== wanted) {
+      await userEvent.click(box);
+    }
+  }
+}
+
+async function startSession(hands = 5, matchup?: string) {
   renderRunner();
   await screen.findByRole('button', { name: 'Start session' });
+  if (matchup) await selectOnly(matchup);
 
   const count = screen.getByRole('spinbutton', { name: /Hands/ });
   await userEvent.clear(count);
@@ -49,7 +60,7 @@ describe('the generic config form renders the vs_rfi schema', () => {
   it('loads the drill by id and shows its own name', async () => {
     renderRunner();
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'Facing a Raise'
+      'Facing an RFI'
     );
   });
 
@@ -77,10 +88,18 @@ describe('the generic config form renders the vs_rfi schema', () => {
     expect(count).toHaveAttribute('max', '200');
   });
 
+  it('offers every matchup the fixture advertises', async () => {
+    renderRunner();
+    await screen.findByRole('button', { name: 'Start session' });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(14);
+  });
+
   it('blocks starting with no matchup selected', async () => {
     renderRunner();
     await screen.findByRole('button', { name: 'Start session' });
-    await userEvent.click(screen.getByRole('checkbox', { name: 'BB vs BTN' }));
+    for (const box of screen.getAllByRole('checkbox')) {
+      await userEvent.click(box);
+    }
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(
@@ -104,7 +123,7 @@ describe('a vs_rfi session through the unmodified runner', () => {
   it('marks every seat before the raiser as folded', async () => {
     renderRunner();
     await screen.findByRole('button', { name: 'Start session' });
-    // BB vs BTN only, so the seat layout is deterministic.
+    await selectOnly('BB vs BTN');
     await userEvent.click(
       screen.getByRole('button', { name: 'Start session' })
     );
@@ -216,18 +235,11 @@ describe('a vs_rfi session through the unmodified runner', () => {
 
 describe('a matchup with no calling range', () => {
   it('offers two buttons, never assuming three', async () => {
-    renderRunner();
-    await screen.findByRole('button', { name: 'Start session' });
-
-    // Drill only the 3-bet-or-fold matchup.
-    await userEvent.click(screen.getByRole('checkbox', { name: 'BB vs BTN' }));
-    await userEvent.click(screen.getByRole('checkbox', { name: 'HJ vs UTG' }));
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Start session' })
-    );
+    // HJ vs UTG genuinely has no calling range (VS-RFI-CALIBRATION §4).
+    await startSession(5, 'HJ vs UTG');
 
     const actions = within(
-      await screen.findByRole('group', { name: 'Your action' })
+      screen.getByRole('group', { name: 'Your action' })
     ).getAllByRole('button');
 
     expect(actions).toHaveLength(2);

@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { apiClient, type RangeListItem, type SourceInfo } from '../api';
 import { ErrorState, LoadingState } from '../components/states';
-import { cn } from '../lib/cn';
 
 /**
  * The chart index: every stored range, grouped by spot then table format.
@@ -207,29 +206,34 @@ function ChartCard({
   return (
     <Link
       to={`/charts/${encodeURIComponent(entry.range_id)}`}
-      className="border-line bg-surface hover:border-accent block h-full space-y-2 rounded-lg border p-3 transition-colors"
+      className="border-line bg-surface hover:border-accent block h-full space-y-1 rounded-lg border px-3 py-2 transition-colors"
     >
-      <span className="text-fg block text-sm font-semibold">
-        {titleOf(entry)}
+      <span className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-fg text-sm font-semibold">{titleOf(entry)}</span>
+        <span className="text-fg-muted text-xs">
+          {Math.round(entry.stats.vpip * 1000) / 10}% · {entry.stats.combos}{' '}
+          combos
+        </span>
       </span>
+
       <span className="text-fg-muted block font-mono text-xs">
         {entry.range_id}
       </span>
 
-      <span className="text-fg-muted flex flex-wrap gap-x-3 gap-y-1 text-xs">
-        <span>{Math.round(entry.stats.vpip * 1000) / 10}% played</span>
-        <span>{entry.stats.combos} combos</span>
-      </span>
-
-      <span
-        data-role={source?.role ?? 'unknown'}
-        className={cn(
-          'block text-xs',
-          unverified ? 'text-[var(--viz-series-4)]' : 'text-fg-muted'
-        )}
-      >
-        {source ? source.name : `Unknown source ${entry.source_id}`}
-        {unverified ? ' — not a cited chart' : ''}
+      {/* The audit signal: anything not traceable to a published chart says so
+          on the card, before it is opened. */}
+      <span className="flex flex-wrap items-center gap-x-2 text-xs">
+        {unverified ? (
+          <span
+            data-role={source?.role ?? 'unknown'}
+            className="rounded-full border border-[var(--viz-series-4)] px-1.5 text-[0.625rem] text-[var(--viz-series-4)]"
+          >
+            unverified
+          </span>
+        ) : null}
+        <span className="text-fg-muted">
+          {source ? source.name : `Unknown source ${entry.source_id}`}
+        </span>
       </span>
     </Link>
   );
