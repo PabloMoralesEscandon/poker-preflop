@@ -108,3 +108,86 @@ not have. Do not start there.
 - **Read the output, not just the test names.** Two explanation defects were in
   100% and 25% of all generated copy and passed a defect-pattern sweep. They
   surfaced only by printing 480 sentences and reading them.
+
+---
+
+# What drill #2 actually cost — measured at CP-04, 2026-08-08
+
+This document predicted the cost of a second drill before building one. Facing
+an RFI is now shipped, so here is the reckoning against the prediction.
+
+## The core claim held, and it is measurable
+
+Adding a whole second drill — new spot, new action ids, new prompt shape, 14 new
+range files, a matchup-keyed config — required **no change to any shared layer**.
+
+| Layer | Change |
+|---|---|
+| `backend/src/learner/api/` | **none** — zero references to any drill |
+| `backend/src/learner/sessions/` | **none** — zero references to any drill |
+| `backend/src/learner/main.py` | one import, one entry in `DrillRegistry([...])` |
+| `frontend/src/drills/DrillRunner.tsx` | **unchanged** |
+| `frontend/src/drills/registry.ts` | **unchanged** |
+| `frontend/src/lib/history.ts` | **unchanged** |
+| `frontend/src/components/HandGrid.tsx` | **unchanged** |
+| `frontend/src/drills/register.ts` | one import, one `registerDrill` call |
+| `frontend/src/components/SummaryView.tsx` | one line — a `/range/` → `/charts/` route rename, unrelated to the drill |
+
+Both services have a composition root that names its drills, and nothing else
+knows they exist. §2 of this document predicted that "a new table format is code
+in eight places"; a new **drill** is code in two, and both are wiring.
+
+The grading rule needed no change at all — `correct = chosen frequency > 0`
+turned out to be genuinely action-agnostic, working unmodified for `call` and
+`3bet` after being written for `raise` and `limp`.
+
+## What the prediction got wrong
+
+§3 recommended big-blind defence as the cheap second drill. That was right in
+substance — facing an RFI is the same family — but it **understated the data
+cost**. Fourteen matchups is fourteen transcriptions, not one, and the data was
+the long pole by a wide margin: the drill module itself was a few hours, the
+charts were the work.
+
+Plan the next drill around **how many range files it needs**, not around how
+much code it needs. Code has been the cheap part twice now.
+
+## The rules that broke, and what replaced them
+
+Three specification rules failed on contact with the second drill. All three had
+the same defect — written from memory, not derived from data.
+
+1. **The closed action set** listed `rfi: raise`, which would have rejected the
+   verified small-blind range and its 504 combos of limp. Replaced by a derived
+   set plus a test that walks `backend/data/` and asserts every action id present
+   is declared.
+2. **"No changes to `main.py`"** demanded auto-discovery and flagged a design
+   that was actually correct. Replaced by the measurable rule above, enforced by
+   `tests/test_drill_abstraction.py` rather than by prose.
+3. **The `GET /drills` fixture** was never updated for `vs_rfi`, so the frontend
+   invented a config schema. It happened to match the backend exactly — luck,
+   not contract. `drills.json` is now regenerated from the live server.
+
+The pattern is consistent enough to state as a rule: **a specification written
+from memory about data you have already verified is a guess.** Derive it once,
+then declare it — the declaration's job is catching typos, not establishing
+truth.
+
+## The chart browser changed the audit posture
+
+The provenance view means any chart can be traced from the UI to its source in
+one hop: publisher, URL, verification date, the file's own notes recording the
+chart's *printed* totals, and our computed `by_action` beside them. For
+`BB_vs_BTN` the notes read "3Bet 13.4%, 178 / 754" and the computed figure is
+`{"3bet": 178, "call": 576}` — a reader compares two numbers and is done.
+
+That is the difference between "trust us" and "check us", and it is worth more
+than any invariant I wrote.
+
+## Recommendation for drill #3
+
+Blind-versus-blind is the natural next step: page 6 of the same PDF, already
+verified, three grids rather than fourteen, and it introduces a limp branch the
+`rfi` action set already supports. Cheap data, no new format, no new rules.
+
+Avoid postflop until there is a free data source. Nothing has changed there.
