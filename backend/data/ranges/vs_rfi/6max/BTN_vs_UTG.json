@@ -1,125 +1,97 @@
 {
-  "range_id": "rfi_6max_HJ",
-  "spot": "rfi",
+  "range_id": "vs_rfi_6max_BTN_vs_UTG",
+  "spot": "vs_rfi",
   "table_format": "6max",
-  "position": "HJ",
+  "position": "BTN",
+  "vs_position": "UTG",
   "stack_bb": 100,
-  "action_sizes_bb": {"raise": 2.5},
-  "source_id": "jl-6max-preflop-charts",
-  "notes": "100bb RFI; 2.5bb open; typical $2/$5 online cash game with 5% rake capped at $3; chart p.3.",
+  "facing_size_bb": 2.5,
   "actions": [
-    "raise"
+    "3bet",
+    "call"
   ],
+  "action_sizes_bb": {
+    "3bet": 3.5,
+    "call": 2.5
+  },
+  "source_id": "jl-6max-preflop-charts",
+  "notes": "Chart p.4, bottom-left grid. Printed totals: 3Bet 7.2%, 96 / 188, 51.1%; Call 6.9%, 92 / 188, 48.9%; Fold 85.8%, 1138 / 1326.",
   "grid": {
-    "22": {},
-    "33": {},
-    "44": {},
-    "55": {
-      "raise": 1
-    },
-    "66": {
-      "raise": 1
-    },
-    "77": {
-      "raise": 1
-    },
-    "88": {
-      "raise": 1
-    },
-    "99": {
-      "raise": 1
-    },
     "AA": {
-      "raise": 1
+      "3bet": 1.0
     },
     "AKs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "AQs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "AJs": {
-      "raise": 1
+      "call": 1.0
     },
     "ATs": {
-      "raise": 1
+      "call": 1.0
     },
     "A9s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "A8s": {
-      "raise": 1
+      "3bet": 1.0
     },
-    "A7s": {
-      "raise": 1
-    },
-    "A6s": {
-      "raise": 1
-    },
+    "A7s": {},
+    "A6s": {},
     "A5s": {
-      "raise": 1
+      "call": 1.0
     },
     "A4s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "A3s": {
-      "raise": 1
+      "3bet": 1.0
     },
-    "A2s": {
-      "raise": 1
-    },
+    "A2s": {},
     "AKo": {
-      "raise": 1
+      "3bet": 1.0
     },
     "KK": {
-      "raise": 1
+      "3bet": 1.0
     },
     "KQs": {
-      "raise": 1
+      "call": 1.0
     },
     "KJs": {
-      "raise": 1
+      "call": 1.0
     },
     "KTs": {
-      "raise": 1
+      "call": 1.0
     },
     "K9s": {
-      "raise": 1
+      "3bet": 1.0
     },
-    "K8s": {
-      "raise": 1
-    },
-    "K7s": {
-      "raise": 1
-    },
-    "K6s": {
-      "raise": 1
-    },
+    "K8s": {},
+    "K7s": {},
+    "K6s": {},
     "K5s": {},
     "K4s": {},
     "K3s": {},
     "K2s": {},
     "AQo": {
-      "raise": 1
+      "call": 1.0
     },
     "KQo": {
-      "raise": 1
+      "3bet": 1.0
     },
     "QQ": {
-      "raise": 1
+      "3bet": 1.0
     },
     "QJs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "QTs": {
-      "raise": 1
+      "call": 1.0
     },
-    "Q9s": {
-      "raise": 1
-    },
-    "Q8s": {
-      "raise": 1
-    },
+    "Q9s": {},
+    "Q8s": {},
     "Q7s": {},
     "Q6s": {},
     "Q5s": {},
@@ -127,23 +99,17 @@
     "Q3s": {},
     "Q2s": {},
     "AJo": {
-      "raise": 1
+      "3bet": 1.0
     },
-    "KJo": {
-      "raise": 1
-    },
-    "QJo": {
-      "raise": 1
-    },
+    "KJo": {},
+    "QJo": {},
     "JJ": {
-      "raise": 1
+      "3bet": 1.0
     },
     "JTs": {
-      "raise": 1
+      "call": 1.0
     },
-    "J9s": {
-      "raise": 1
-    },
+    "J9s": {},
     "J8s": {},
     "J7s": {},
     "J6s": {},
@@ -151,21 +117,15 @@
     "J4s": {},
     "J3s": {},
     "J2s": {},
-    "ATo": {
-      "raise": 1
-    },
-    "KTo": {
-      "raise": 1
-    },
-    "QTo": {
-      "raise": 1
-    },
+    "ATo": {},
+    "KTo": {},
+    "QTo": {},
     "JTo": {},
     "TT": {
-      "raise": 1
+      "call": 1.0
     },
     "T9s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "T8s": {},
     "T7s": {},
@@ -179,9 +139,10 @@
     "Q9o": {},
     "J9o": {},
     "T9o": {},
-    "98s": {
-      "raise": 1
+    "99": {
+      "call": 1.0
     },
+    "98s": {},
     "97s": {},
     "96s": {},
     "95s": {},
@@ -194,9 +155,10 @@
     "J8o": {},
     "T8o": {},
     "98o": {},
-    "87s": {
-      "raise": 1
+    "88": {
+      "call": 1.0
     },
+    "87s": {},
     "86s": {},
     "85s": {},
     "84s": {},
@@ -209,8 +171,11 @@
     "T7o": {},
     "97o": {},
     "87o": {},
+    "77": {
+      "call": 1.0
+    },
     "76s": {
-      "raise": 1
+      "call": 1.0
     },
     "75s": {},
     "74s": {},
@@ -224,7 +189,12 @@
     "96o": {},
     "86o": {},
     "76o": {},
-    "65s": {},
+    "66": {
+      "call": 1.0
+    },
+    "65s": {
+      "call": 1.0
+    },
     "64s": {},
     "63s": {},
     "62s": {},
@@ -237,7 +207,12 @@
     "85o": {},
     "75o": {},
     "65o": {},
-    "54s": {},
+    "55": {
+      "call": 1.0
+    },
+    "54s": {
+      "call": 1.0
+    },
     "53s": {},
     "52s": {},
     "A4o": {},
@@ -250,6 +225,7 @@
     "74o": {},
     "64o": {},
     "54o": {},
+    "44": {},
     "43s": {},
     "42s": {},
     "A3o": {},
@@ -263,6 +239,7 @@
     "63o": {},
     "53o": {},
     "43o": {},
+    "33": {},
     "32s": {},
     "A2o": {},
     "K2o": {},
@@ -275,6 +252,7 @@
     "62o": {},
     "52o": {},
     "42o": {},
-    "32o": {}
+    "32o": {},
+    "22": {}
   }
 }

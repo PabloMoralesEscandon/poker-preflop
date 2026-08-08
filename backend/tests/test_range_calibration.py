@@ -1,4 +1,7 @@
+import hashlib
+import json
 from itertools import pairwise
+from pathlib import Path
 
 import pytest
 
@@ -42,6 +45,45 @@ POSITION_ORDER = {
 PREMIUMS = {"AA", "KK", "QQ", "JJ", "AKs", "AKo", "AQs"}
 BOTTOM = {"72o", "82o", "83o", "92o", "93o", "32o", "42o", "52o"}
 
+RFI_GRID_DIGESTS = {
+    "rfi/6max/BTN.json": (
+        "6777478ba333b0c7c0d0c9934cd2b50fe5266c44396e392fea441b2a5bbf167d"
+    ),
+    "rfi/6max/CO.json": (
+        "87dfedfdb8c5750888e34f7a6006e08a5cac66355aae6cd02bb5e75d0c61a0d6"
+    ),
+    "rfi/6max/HJ.json": (
+        "84c6e223413cbc8576397c57718d046b9cfc51f5c056005d773073bdd8e3a434"
+    ),
+    "rfi/6max/SB.json": (
+        "b449bb2a0517138c2002e3ae65263e644635dda9ead79c5551b90672162b917e"
+    ),
+    "rfi/6max/UTG.json": (
+        "eca6396e63ad7d56733b38301ffb8f1a431d789e4c870feacf3d3b4869294869"
+    ),
+    "rfi/8max/BTN.json": (
+        "eca04affed4f7ff231efd046b9e6ca7b8d96f833094cc1c9f9084006daefcf04"
+    ),
+    "rfi/8max/CO.json": (
+        "2f155772f4d28036f7ff57c02bd44672b96ca766cd576cd55bcfbb3e4631306e"
+    ),
+    "rfi/8max/HJ.json": (
+        "6315836d0607857a1c2e2a82c8e65176dbddc9d1d00f431caae8a8714c4a63f4"
+    ),
+    "rfi/8max/LJ.json": (
+        "759c79aa4cc64cec9a080e8218cfacc8e56e3d6b1ca34894e7a721cb3e61e1b5"
+    ),
+    "rfi/8max/SB.json": (
+        "608a206a31a9de2ab980a8d3519321280a8510e8e6df1a1c4ef4bee57a62637f"
+    ),
+    "rfi/8max/UTG.json": (
+        "b7fb859554d74df8aaa4f5622a390740e3e447b2d765700b403c1f44588c52a0"
+    ),
+    "rfi/8max/UTG1.json": (
+        "070f60a4b8efed64ec2b7c4867255a3eebe2c745214dcad990ded8eb6523b952"
+    ),
+}
+
 
 @pytest.fixture(scope="module")
 def ranges() -> RangeIndex:
@@ -52,6 +94,19 @@ def action_combos(range_data: RangeData, action: str) -> float:
     return sum(
         cell.get(action, 0.0) * combos(hand) for hand, cell in range_data.grid.items()
     )
+
+
+def test_action_size_migration_did_not_change_any_rfi_grid() -> None:
+    data_root = Path(__file__).resolve().parents[1] / "data" / "ranges"
+    actual: dict[str, str] = {}
+    for path in sorted((data_root / "rfi").rglob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        encoded = json.dumps(
+            payload["grid"], sort_keys=True, separators=(",", ":")
+        ).encode()
+        actual[str(path.relative_to(data_root))] = hashlib.sha256(encoded).hexdigest()
+
+    assert actual == RFI_GRID_DIGESTS
 
 
 def test_6max_exact_action_combos_and_vpip_bands(ranges: RangeIndex) -> None:

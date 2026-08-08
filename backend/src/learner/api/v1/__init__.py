@@ -6,6 +6,7 @@ from learner import __version__
 from learner.api.v1.drills import router as drills_router
 from learner.api.v1.ranges import router as ranges_router
 from learner.api.v1.sessions import router as sessions_router
+from learner.api.v1.sources import router as sources_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -19,3 +20,4 @@ async def health() -> dict[str, str]:
 router.include_router(drills_router)
 router.include_router(sessions_router)
 router.include_router(ranges_router)
+router.include_router(sources_router)

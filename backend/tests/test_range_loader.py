@@ -5,8 +5,8 @@ import pytest
 
 from learner.errors import LearnerError
 from learner.main import create_app
-from learner.ranges.loader import RangeLoadError, load_ranges
-from learner.ranges.models import canonical_hands
+from learner.ranges.loader import DEFAULT_RANGE_DATA_DIR, RangeLoadError, load_ranges
+from learner.ranges.models import ALLOWED_ACTIONS_BY_SPOT, canonical_hands
 
 
 def test_absent_and_empty_directories_produce_empty_indexes(tmp_path: Path) -> None:
@@ -25,6 +25,22 @@ def test_loader_indexes_and_filters_valid_ranges(range_payload, range_writer) ->
     assert index.get("rfi_6max_CO").position == "CO"
     assert index.list(spot="rfi", table_format="6max") == [index.get("rfi_6max_CO")]
     assert index.list(table_format="8max") == []
+
+
+def test_loader_accepts_matchup_path_and_metadata(
+    matchup_range_payload, range_writer
+) -> None:
+    root, _ = range_writer(
+        matchup_range_payload(), relative="vs_rfi/6max/BB_vs_BTN.json"
+    )
+
+    loaded = load_ranges(root).get("vs_rfi_6max_BB_vs_BTN")
+
+    assert loaded.position == "BB"
+    assert loaded.vs_position == "BTN"
+    assert loaded.facing_size_bb == 2.5
+    assert loaded.action_sizes_bb == {"3bet": 4.0, "call": 2.5}
+    assert loaded.stats.by_action == {"3bet": 6.0, "call": 4.0}
 
 
 def test_loader_accepts_fullring_source_and_8max_positions(
@@ -68,7 +84,10 @@ def test_missing_range_maps_to_domain_error(tmp_path: Path) -> None:
 def test_two_action_fixture_round_trips_and_sums_played_stats(
     range_payload, range_writer
 ) -> None:
-    payload = range_payload(actions=["raise", "limp"])
+    payload = range_payload(
+        actions=["raise", "limp"],
+        action_sizes_bb={"raise": 2.5, "limp": 1.0},
+    )
     payload["grid"]["K9s"] = {"limp": 1.0}
     root, _ = range_writer(payload)
 
@@ -80,6 +99,82 @@ def test_two_action_fixture_round_trips_and_sums_played_stats(
     assert loaded.stats.combos == 10.0
     assert loaded.stats.vpip == 0.0075
     assert loaded.stats.hands_played == 2
+    assert loaded.stats.by_action == {"raise": 6.0, "limp": 4.0}
+
+
+def test_rfi_rejects_vs_position(range_payload, range_writer) -> None:
+    root, _ = range_writer(range_payload(vs_position="BTN"))
+
+    with pytest.raises(RangeLoadError, match="vs_position must be absent"):
+        load_ranges(root)
+
+
+def test_vs_rfi_requires_vs_position(matchup_range_payload, range_writer) -> None:
+    payload = matchup_range_payload()
+    del payload["vs_position"]
+    root, _ = range_writer(payload, relative="vs_rfi/6max/BB_vs_BTN.json")
+
+    with pytest.raises(RangeLoadError, match="vs_position is required"):
+        load_ranges(root)
+
+
+def test_vs_rfi_positions_must_differ(matchup_range_payload, range_writer) -> None:
+    root, _ = range_writer(
+        matchup_range_payload(vs_position="BB"),
+        relative="vs_rfi/6max/BB_vs_BB.json",
+    )
+
+    with pytest.raises(RangeLoadError, match="vs_position must differ"):
+        load_ranges(root)
+
+
+def test_action_sizes_must_cover_every_declared_action(
+    matchup_range_payload, range_writer
+) -> None:
+    root, _ = range_writer(
+        matchup_range_payload(action_sizes_bb={"3bet": 4.0}),
+        relative="vs_rfi/6max/BB_vs_BTN.json",
+    )
+
+    with pytest.raises(RangeLoadError, match=r"action_sizes_bb.*missing=\['call'\]"):
+        load_ranges(root)
+
+
+def test_cross_spot_action_ids_are_rejected(range_payload, range_writer) -> None:
+    payload = range_payload(
+        actions=["raise", "call"],
+        action_sizes_bb={"raise": 2.5, "call": 2.5},
+    )
+    payload["grid"]["KQs"] = {"call": 1.0}
+    root, _ = range_writer(payload)
+
+    with pytest.raises(RangeLoadError, match="call.*invalid for spot 'rfi'"):
+        load_ranges(root)
+
+
+def test_limp_is_rejected_inside_vs_rfi(matchup_range_payload, range_writer) -> None:
+    payload = matchup_range_payload(
+        actions=["3bet", "limp"],
+        action_sizes_bb={"3bet": 4.0, "limp": 1.0},
+    )
+    payload["grid"]["KQs"] = {"limp": 1.0}
+    root, _ = range_writer(payload, relative="vs_rfi/6max/BB_vs_BTN.json")
+
+    with pytest.raises(RangeLoadError, match="limp.*invalid for spot 'vs_rfi'"):
+        load_ranges(root)
+
+
+def test_shipped_action_ids_belong_to_each_spots_declared_set() -> None:
+    found: dict[str, set[str]] = {}
+    for path in DEFAULT_RANGE_DATA_DIR.rglob("*.json"):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        actions = set(payload["actions"])
+        actions.update(action for cell in payload["grid"].values() for action in cell)
+        found.setdefault(payload["spot"], set()).update(actions)
+
+    assert set(found) <= set(ALLOWED_ACTIONS_BY_SPOT)
+    for spot, actions in found.items():
+        assert actions <= ALLOWED_ACTIONS_BY_SPOT[spot]
 
 
 def test_grid_must_have_exactly_169_keys(range_payload, range_writer) -> None:
@@ -126,7 +221,10 @@ def test_frequencies_must_be_in_open_closed_unit_interval(
 def test_cell_action_frequencies_cannot_sum_above_one(
     range_payload, range_writer
 ) -> None:
-    payload = range_payload(actions=["raise", "limp"])
+    payload = range_payload(
+        actions=["raise", "limp"],
+        action_sizes_bb={"raise": 2.5, "limp": 1.0},
+    )
     payload["grid"]["AA"] = {"raise": 0.6, "limp": 0.400002}
     root, _ = range_writer(payload)
 
@@ -168,7 +266,12 @@ def test_fold_cells_must_be_empty_objects(range_payload, range_writer) -> None:
 
 
 def test_every_declared_action_must_appear(range_payload, range_writer) -> None:
-    root, _ = range_writer(range_payload(actions=["raise", "limp"]))
+    root, _ = range_writer(
+        range_payload(
+            actions=["raise", "limp"],
+            action_sizes_bb={"raise": 2.5, "limp": 1.0},
+        )
+    )
 
     with pytest.raises(RangeLoadError, match="limp.*do not appear"):
         load_ranges(root)
@@ -233,3 +336,4 @@ def test_fully_open_fixture_has_1326_combos(range_payload, range_writer) -> None
     assert stats.combos == 1326.0
     assert stats.vpip == 1.0
     assert stats.hands_played == 169
+    assert stats.by_action == {"raise": 1326.0}

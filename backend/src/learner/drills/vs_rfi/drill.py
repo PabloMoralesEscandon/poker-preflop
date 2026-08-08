@@ -1,4 +1,4 @@
-"""Raise First In drill implementation."""
+"""Facing-an-RFI drill implementation."""
 
 from __future__ import annotations
 
@@ -24,12 +24,12 @@ from learner.drills.base import (
 )
 from learner.drills.positions import POSITION_LABELS, folded_before
 from learner.drills.range_grading import grade_range_action
-from learner.drills.rfi.models import (
-    RfiConfig,
-    RfiExplanation,
-    RfiHand,
-    RfiMistake,
-    RfiPrompt,
+from learner.drills.vs_rfi.models import (
+    VsRfiConfig,
+    VsRfiExplanation,
+    VsRfiHand,
+    VsRfiMistake,
+    VsRfiPrompt,
 )
 from learner.errors import LearnerError
 from learner.ranges.loader import RangeIndex, load_ranges
@@ -43,22 +43,24 @@ from learner.ranges.models import (
     sampling_weight,
 )
 
-ACTION_ORDER = {"limp": 0, "raise": 1}
+ACTION_ORDER = {"call": 0, "3bet": 1}
+BLIND_CONTRIBUTIONS = {"SB": 0.5, "BB": 1.0}
 
 
-class RfiDrill:
-    """Generate, grade, and summarize Raise First In questions."""
+class VsRfiDrill:
+    """Generate, grade, and summarize facing-an-RFI questions."""
 
-    id = "rfi"
-    name = "Raise First In"
-    description = "Decide whether to open-raise or fold when the pot is unopened."
+    id = "vs_rfi"
+    name = "Facing an RFI"
+    description = "Decide whether to fold, call, or 3-bet after an open-raise."
     version = 1
 
     def __init__(self, ranges: RangeIndex | None = None) -> None:
         self.ranges = load_ranges() if ranges is None else ranges
 
     def config_schema(self) -> ConfigSchema:
-        """Return the frozen v1 declarative configuration schema."""
+        """Return configuration derived from the loaded matchup ranges."""
+        options = self._matchup_options("6max")
         return ConfigSchema(
             fields=[
                 EnumField(
@@ -66,31 +68,15 @@ class RfiDrill:
                     label="Table format",
                     type="enum",
                     default="6max",
-                    options=[
-                        Option(value="6max", label="6-max"),
-                        Option(value="8max", label="8-max (full ring)"),
-                    ],
+                    options=[Option(value="6max", label="6-max")],
                 ),
                 MultiEnumField(
-                    key="positions",
-                    label="Positions",
+                    key="matchups",
+                    label="Matchups",
                     type="multi_enum",
-                    default=["UTG", "HJ", "CO", "BTN", "SB"],
+                    default=[option.value for option in options],
                     depends_on="table_format",
-                    options_by={
-                        "6max": _position_options(("UTG", "HJ", "CO", "BTN", "SB")),
-                        "8max": _position_options(
-                            (
-                                "UTG",
-                                "UTG1",
-                                "LJ",
-                                "HJ",
-                                "CO",
-                                "BTN",
-                                "SB",
-                            )
-                        ),
-                    },
+                    options_by={"6max": options},
                 ),
                 IntField(
                     key="question_count",
@@ -106,10 +92,7 @@ class RfiDrill:
                     type="enum",
                     default="borderline",
                     options=[
-                        Option(
-                            value="uniform",
-                            label="Uniform — any of the 169 hands",
-                        ),
+                        Option(value="uniform", label="Uniform — any of the 169 hands"),
                         Option(
                             value="borderline",
                             label="Borderline — favour close decisions",
@@ -119,33 +102,42 @@ class RfiDrill:
             ]
         )
 
-    def validate_config(self, config: dict[str, Any]) -> RfiConfig:
-        """Validate raw RFI configuration with field-specific domain errors."""
+    def validate_config(self, config: dict[str, Any]) -> VsRfiConfig:
+        """Validate raw facing-an-RFI configuration."""
         values = validate_config_values(self.config_schema(), config)
-        return RfiConfig.model_validate(values)
+        return VsRfiConfig.model_validate(values)
 
     def generate(self, config: DrillConfig, index: int, rng: Random) -> Question:
-        """Generate one reproducible question from configured positions."""
-        rfi_config = _as_rfi_config(config)
-        position = rng.choice(rfi_config.positions)
-        range_data = self._range(rfi_config.table_format, position)
+        """Generate one reproducible question from configured matchups."""
+        vs_config = _as_vs_rfi_config(config)
+        matchup = rng.choice(vs_config.matchups)
+        range_data = self._range(vs_config.table_format, matchup)
         hands = canonical_hands()
-        weights = self._weights(rfi_config, range_data)
+        weights = self._weights(vs_config, range_data)
         notation = rng.choices(hands, weights=weights, k=1)[0]
         cards = cards_for_notation(notation, rng)
+        facing_size = range_data.facing_size_bb
+        assert facing_size is not None
+        pot_bb = 1.5 + facing_size
+        to_call_bb = facing_size - BLIND_CONTRIBUTIONS.get(range_data.position, 0.0)
 
         return Question(
             question_id=f"q_{index}",
             index=index,
-            total=rfi_config.question_count,
+            total=vs_config.question_count,
             drill_id=self.id,
-            prompt=RfiPrompt(
-                table_format=rfi_config.table_format,
-                hero_position=position,
+            prompt=VsRfiPrompt(
+                table_format=vs_config.table_format,
+                hero_position=range_data.position,
+                raiser_position=range_data.vs_position,
                 stack_bb=range_data.stack_bb,
-                hand=RfiHand(cards=list(cards), notation=notation),
-                folded_before=folded_before(rfi_config.table_format, position),
-                pot_bb=1.5,
+                hand=VsRfiHand(cards=list(cards), notation=notation),
+                folded_before=folded_before(
+                    vs_config.table_format, range_data.vs_position
+                ),
+                facing_size_bb=facing_size,
+                pot_bb=pot_bb,
+                to_call_bb=to_call_bb,
             ),
             actions=actions_for_range(range_data),
         )
@@ -156,10 +148,11 @@ class RfiDrill:
         question: Question,
         action_id: str,
     ) -> Grade:
-        """Grade one answer from the exact frequencies in its range cell."""
-        rfi_config = _as_rfi_config(config)
-        prompt = RfiPrompt.model_validate(question.prompt.model_dump())
-        range_data = self._range(rfi_config.table_format, prompt.hero_position)
+        """Grade with the shared positive-frequency range rule."""
+        vs_config = _as_vs_rfi_config(config)
+        prompt = VsRfiPrompt.model_validate(question.prompt.model_dump())
+        matchup = f"{prompt.hero_position}_vs_{prompt.raiser_position}"
+        range_data = self._range(vs_config.table_format, matchup)
         labels = {action.id: action.label for action in question.actions}
         if action_id not in labels:
             raise LearnerError(
@@ -169,7 +162,6 @@ class RfiDrill:
             )
 
         decision = grade_range_action(range_data, prompt.hand.notation, action_id)
-
         return Grade(
             correct=decision.correct,
             mixed=True if decision.mixed else None,
@@ -181,7 +173,7 @@ class RfiDrill:
             ),
             explanation=_explanation(
                 range_data,
-                prompt.hand.notation,
+                prompt,
                 decision.expected_id,
                 decision.frequencies,
                 decision.mixed,
@@ -193,24 +185,24 @@ class RfiDrill:
         config: DrillConfig,
         answers: list[AnsweredQuestion],
     ) -> Summary:
-        """Summarize accuracy by configured position and list mistakes."""
-        rfi_config = _as_rfi_config(config)
+        """Summarize accuracy by configured matchup and list mistakes."""
+        vs_config = _as_vs_rfi_config(config)
         breakdown: list[BreakdownItem] = []
-        mistakes: list[RfiMistake] = []
-        for position in rfi_config.positions:
-            position_answers = [
+        mistakes: list[VsRfiMistake] = []
+        for matchup in vs_config.matchups:
+            matchup_answers = [
                 answer
                 for answer in answers
-                if _prompt(answer.question).hero_position == position
+                if _matchup(_prompt(answer.question)) == matchup
             ]
-            correct = sum(answer.grade.correct for answer in position_answers)
+            correct = sum(answer.grade.correct for answer in matchup_answers)
             breakdown.append(
                 BreakdownItem(
-                    key=position,
-                    label=POSITION_LABELS[position].display,
-                    answered=len(position_answers),
+                    key=matchup,
+                    label=matchup.replace("_vs_", " vs "),
+                    answered=len(matchup_answers),
                     correct=correct,
-                    accuracy=_accuracy(correct, len(position_answers)),
+                    accuracy=_accuracy(correct, len(matchup_answers)),
                 )
             )
 
@@ -218,13 +210,13 @@ class RfiDrill:
             if answer.grade.correct:
                 continue
             prompt = _prompt(answer.question)
-            explanation = RfiExplanation.model_validate(
+            explanation = VsRfiExplanation.model_validate(
                 answer.grade.explanation.model_dump()
             )
             mistakes.append(
-                RfiMistake(
+                VsRfiMistake(
                     question_id=answer.question.question_id,
-                    position=prompt.hero_position,
+                    matchup=_matchup(prompt),
                     hand=prompt.hand.notation,
                     chosen=answer.grade.chosen.action_id,
                     expected=answer.grade.expected.action_id,
@@ -237,23 +229,32 @@ class RfiDrill:
             answered=len(answers),
             correct=correct,
             accuracy=_accuracy(correct, len(answers)),
-            complete=len(answers) >= rfi_config.question_count,
+            complete=len(answers) >= vs_config.question_count,
             breakdown=breakdown,
             mistakes=mistakes,
         )
 
-    def _range(self, table_format: str, position: str) -> RangeData:
-        return self.ranges.get(f"rfi_{table_format}_{position}")
+    def _matchup_options(self, table_format: str) -> list[Option]:
+        return [
+            Option(
+                value=f"{item.position}_vs_{item.vs_position}",
+                label=f"{item.position} vs {item.vs_position}",
+            )
+            for item in self.ranges.list(spot="vs_rfi", table_format=table_format)
+        ]
+
+    def _range(self, table_format: str, matchup: str) -> RangeData:
+        return self.ranges.get(f"vs_rfi_{table_format}_{matchup}")
 
     @staticmethod
-    def _weights(config: RfiConfig, range_data: RangeData) -> list[int]:
+    def _weights(config: VsRfiConfig, range_data: RangeData) -> list[int]:
         if config.weighting == "uniform":
             return [combos(hand) for hand in canonical_hands()]
         return [sampling_weight(hand, range_data.grid) for hand in canonical_hands()]
 
 
 def actions_for_range(range_data: RangeData) -> list[Action]:
-    """Build offered actions from range metadata, including fold."""
+    """Build offered actions from matchup metadata, including fold."""
     non_fold = sorted(
         range_data.actions,
         key=lambda action: (ACTION_ORDER.get(action, 99), action),
@@ -265,46 +266,51 @@ def actions_for_range(range_data: RangeData) -> list[Action]:
 
 
 def _action_label(action: str, range_data: RangeData) -> str:
-    if action == "raise":
-        return f"Raise {range_data.action_sizes_bb[action]:g}bb"
-    if action == "limp":
-        return f"Limp {range_data.action_sizes_bb[action]:g}bb"
+    size = range_data.action_sizes_bb[action]
+    if action == "call":
+        return f"Call {size:g}bb"
+    if action == "3bet":
+        return f"3-Bet to {size:g}bb"
     return action.replace("_", " ").title()
 
 
-def _position_options(positions: tuple[str, ...]) -> list[Option]:
-    return [
-        Option(value=position, label=POSITION_LABELS[position].display)
-        for position in positions
-    ]
-
-
-def _as_rfi_config(config: DrillConfig) -> RfiConfig:
-    if isinstance(config, RfiConfig):
+def _as_vs_rfi_config(config: DrillConfig) -> VsRfiConfig:
+    if isinstance(config, VsRfiConfig):
         return config
-    return RfiConfig.model_validate(config.model_dump())
+    return VsRfiConfig.model_validate(config.model_dump())
 
 
-def _prompt(question: Question) -> RfiPrompt:
-    return RfiPrompt.model_validate(question.prompt.model_dump())
+def _prompt(question: Question) -> VsRfiPrompt:
+    return VsRfiPrompt.model_validate(question.prompt.model_dump())
+
+
+def _matchup(prompt: VsRfiPrompt) -> str:
+    return f"{prompt.hero_position}_vs_{prompt.raiser_position}"
 
 
 def _accuracy(correct: int, answered: int) -> float:
     return round(correct / answered, 4) if answered else 0.0
 
 
+def _prose_action(action: str) -> str:
+    return "3-bet" if action == "3bet" else action
+
+
 def _explanation(
     range_data: RangeData,
-    notation: str,
+    prompt: VsRfiPrompt,
     expected_id: str,
     frequencies: dict[str, float],
     mixed: bool,
-) -> RfiExplanation:
-    position = POSITION_LABELS[range_data.position]
+) -> VsRfiExplanation:
+    notation = prompt.hand.notation
+    hero = POSITION_LABELS[prompt.hero_position]
+    raiser = POSITION_LABELS[prompt.raiser_position]
+    context = f"from {hero.phrase} against an open from {raiser.phrase}"
     if mixed:
-        summary = f"{notation} is a mixed spot from {position.phrase}."
+        summary = f"{notation} is a mixed spot {context}."
     else:
-        summary = f"{notation} is a pure {expected_id} from {position.phrase}."
+        summary = f"{notation} is a pure {_prose_action(expected_id)} {context}."
 
     hand_class = (
         "pair"
@@ -315,7 +321,7 @@ def _explanation(
     )
     article = "an" if hand_class[0] in "aeiou" else "a"
     frequency_text = ", ".join(
-        f"{action} {frequency:.0%}"
+        f"{_prose_action(action)} {frequency:.0%}"
         for action, frequency in frequencies.items()
         if frequency > 0.0
     )
@@ -328,12 +334,14 @@ def _explanation(
     fold_verb = "folds" if folded_neighbours == 1 else "fold"
     detail = (
         f"{notation} is {article} {hand_class}. "
-        f"The {position.display} chart assigns "
-        f"{frequency_text}. Of its {len(neighbours)} adjacent grid cells, "
+        f"The {hero.display} versus {raiser.display} chart assigns "
+        f"{frequency_text}. Facing {prompt.facing_size_bb:g}bb with "
+        f"{prompt.pot_bb:g}bb in the pot, hero has {prompt.to_call_bb:g}bb "
+        f"to call. Of its {len(neighbours)} adjacent grid cells, "
         f"{played_neighbours} {played_verb} played and "
         f"{folded_neighbours} {fold_verb}."
     )
-    return RfiExplanation(
+    return VsRfiExplanation(
         summary=summary,
         detail=detail,
         range_id=range_data.range_id,
@@ -354,4 +362,4 @@ def _adjacent_hands(notation: str) -> list[str]:
     ]
 
 
-drill = RfiDrill()
+drill = VsRfiDrill()

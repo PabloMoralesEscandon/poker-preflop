@@ -105,11 +105,21 @@ async def test_health_success(client: AsyncClient) -> None:
     assert response.json() == {"status": "ok", "version": "0.1.0"}
 
 
-async def test_drills_matches_canonical_fixture(client: AsyncClient) -> None:
+async def test_drills_preserves_rfi_fixture_and_lists_vs_rfi(
+    client: AsyncClient,
+) -> None:
     response = await client.get("/api/v1/drills")
 
     assert response.status_code == 200
-    assert response.json() == example("drills.json")
+    drills = response.json()["drills"]
+    assert {"drills": drills[:1]} == example("drills.json")
+    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi"]
+    assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
+        "table_format",
+        "matchups",
+        "question_count",
+        "weighting",
+    ]
 
 
 async def test_create_session_success_and_generated_seed(client: AsyncClient) -> None:
@@ -203,12 +213,21 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     eight_max = await client.get(
         "/api/v1/ranges", params={"spot": "rfi", "table_format": "8max"}
     )
+    vs_rfi = await client.get(
+        "/api/v1/ranges", params={"spot": "vs_rfi", "table_format": "6max"}
+    )
     missing = await client.get("/api/v1/ranges", params={"spot": "missing"})
 
     assert all_ranges.status_code == 200
-    assert six_max.json() == example("ranges_list.json")
+    legacy_fields = set(example("ranges_list.json")["ranges"][0])
+    assert {
+        "ranges": [
+            {key: item[key] for key in legacy_fields}
+            for item in six_max.json()["ranges"]
+        ]
+    } == example("ranges_list.json")
     assert all_ranges.json()["ranges"] == (
-        six_max.json()["ranges"] + eight_max.json()["ranges"]
+        six_max.json()["ranges"] + eight_max.json()["ranges"] + vs_rfi.json()["ranges"]
     )
     assert [item["range_id"] for item in eight_max.json()["ranges"]] == [
         "rfi_8max_UTG",
@@ -220,6 +239,37 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
         "rfi_8max_SB",
     ]
     assert missing.json() == {"ranges": []}
+    assert all_ranges.headers["cache-control"] == "public, max-age=3600"
+
+
+async def test_ranges_list_is_enriched_and_filters_matchups(
+    client: AsyncClient,
+) -> None:
+    response = await client.get(
+        "/api/v1/ranges",
+        params={"position": "BB", "vs_position": "BTN"},
+    )
+
+    assert response.status_code == 200
+    assert [item["range_id"] for item in response.json()["ranges"]] == [
+        "vs_rfi_6max_BB_vs_BTN"
+    ]
+    item = response.json()["ranges"][0]
+    assert set(item) == set(example("ranges_list_v2.json")["ranges"][1])
+    assert item["actions"] == ["3bet", "call"]
+    assert item["action_sizes_bb"] == {"3bet": 4.0, "call": 2.5}
+    assert item["facing_size_bb"] == 2.5
+    assert item["stats"]["by_action"] == {"3bet": 178.0, "call": 576.0}
+
+
+async def test_sources_matches_fixture_and_has_cache_header(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/api/v1/sources")
+
+    assert response.status_code == 200
+    assert response.json() == example("sources.json")
+    assert response.headers["cache-control"] == "public, max-age=3600"
 
 
 async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> None:
@@ -229,7 +279,15 @@ async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> N
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "public, max-age=3600"
-    assert set(body) == set(fixture)
+    expected_fields = (set(fixture) - {"open_size_bb"}) | {
+        "vs_position",
+        "facing_size_bb",
+        "action_sizes_bb",
+    }
+    assert set(body) == expected_fields
+    assert body["vs_position"] is None
+    assert body["facing_size_bb"] is None
+    assert body["action_sizes_bb"] == {"raise": 2.5}
     assert set(body["grid"]) == set(fixture["grid"])
     assert all(
         isinstance(cell, dict)
@@ -243,6 +301,7 @@ async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> N
         "combos": 368.0,
         "vpip": 0.2775,
         "hands_played": 62,
+        "by_action": {"raise": 368.0},
     }
 
 

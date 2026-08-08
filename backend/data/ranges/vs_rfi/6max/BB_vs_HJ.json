@@ -1,296 +1,257 @@
 {
-  "range_id": "rfi_6max_BTN",
-  "spot": "rfi",
+  "range_id": "vs_rfi_6max_BB_vs_HJ",
+  "spot": "vs_rfi",
   "table_format": "6max",
-  "position": "BTN",
+  "position": "BB",
+  "vs_position": "HJ",
   "stack_bb": 100,
-  "action_sizes_bb": {"raise": 2.5},
-  "source_id": "jl-6max-preflop-charts",
-  "notes": "100bb RFI; 2.5bb open; typical $2/$5 online cash game with 5% rake capped at $3; chart p.3.",
+  "facing_size_bb": 2.5,
   "actions": [
-    "raise"
+    "3bet",
+    "call"
   ],
+  "action_sizes_bb": {
+    "3bet": 4,
+    "call": 2.5
+  },
+  "source_id": "jl-6max-preflop-charts",
+  "notes": "Chart p.5, bottom row second grid. Printed totals: 3Bet 7.4%, 98 / 418, 23.4%; Call 24.1%, 320 / 418, 76.6%; Fold 68.5%, 908 / 1326.",
   "grid": {
-    "22": {
-      "raise": 1
-    },
-    "33": {
-      "raise": 1
-    },
-    "44": {
-      "raise": 1
-    },
-    "55": {
-      "raise": 1
-    },
-    "66": {
-      "raise": 1
-    },
-    "77": {
-      "raise": 1
-    },
-    "88": {
-      "raise": 1
-    },
-    "99": {
-      "raise": 1
-    },
     "AA": {
-      "raise": 1
+      "3bet": 1.0
     },
     "AKs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "AQs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "AJs": {
-      "raise": 1
+      "call": 1.0
     },
     "ATs": {
-      "raise": 1
+      "call": 1.0
     },
     "A9s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "A8s": {
-      "raise": 1
+      "call": 1.0
     },
     "A7s": {
-      "raise": 1
+      "call": 1.0
     },
     "A6s": {
-      "raise": 1
+      "call": 1.0
     },
     "A5s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "A4s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "A3s": {
-      "raise": 1
+      "call": 1.0
     },
     "A2s": {
-      "raise": 1
+      "call": 1.0
     },
     "AKo": {
-      "raise": 1
+      "3bet": 1.0
     },
     "KK": {
-      "raise": 1
+      "3bet": 1.0
     },
     "KQs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "KJs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "KTs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "K9s": {
-      "raise": 1
+      "call": 1.0
     },
     "K8s": {
-      "raise": 1
+      "call": 1.0
     },
     "K7s": {
-      "raise": 1
+      "call": 1.0
     },
     "K6s": {
-      "raise": 1
+      "call": 1.0
     },
     "K5s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "K4s": {
-      "raise": 1
+      "call": 1.0
     },
     "K3s": {
-      "raise": 1
+      "call": 1.0
     },
     "K2s": {
-      "raise": 1
+      "call": 1.0
     },
     "AQo": {
-      "raise": 1
+      "call": 1.0
     },
     "KQo": {
-      "raise": 1
+      "call": 1.0
     },
     "QQ": {
-      "raise": 1
+      "3bet": 1.0
     },
     "QJs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "QTs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "Q9s": {
-      "raise": 1
+      "call": 1.0
     },
     "Q8s": {
-      "raise": 1
+      "call": 1.0
     },
     "Q7s": {
-      "raise": 1
+      "call": 1.0
     },
     "Q6s": {
-      "raise": 1
+      "call": 1.0
     },
     "Q5s": {
-      "raise": 1
+      "call": 1.0
     },
-    "Q4s": {
-      "raise": 1
-    },
-    "Q3s": {
-      "raise": 1
-    },
+    "Q4s": {},
+    "Q3s": {},
     "Q2s": {},
     "AJo": {
-      "raise": 1
+      "call": 1.0
     },
     "KJo": {
-      "raise": 1
+      "call": 1.0
     },
     "QJo": {
-      "raise": 1
+      "call": 1.0
     },
     "JJ": {
-      "raise": 1
+      "3bet": 1.0
     },
     "JTs": {
-      "raise": 1
+      "3bet": 1.0
     },
     "J9s": {
-      "raise": 1
+      "call": 1.0
     },
     "J8s": {
-      "raise": 1
+      "call": 1.0
     },
     "J7s": {
-      "raise": 1
+      "call": 1.0
     },
-    "J6s": {
-      "raise": 1
-    },
-    "J5s": {
-      "raise": 1
-    },
-    "J4s": {
-      "raise": 1
-    },
+    "J6s": {},
+    "J5s": {},
+    "J4s": {},
     "J3s": {},
     "J2s": {},
     "ATo": {
-      "raise": 1
+      "call": 1.0
     },
     "KTo": {
-      "raise": 1
+      "call": 1.0
     },
     "QTo": {
-      "raise": 1
+      "call": 1.0
     },
     "JTo": {
-      "raise": 1
+      "call": 1.0
     },
     "TT": {
-      "raise": 1
+      "3bet": 1.0
     },
     "T9s": {
-      "raise": 1
+      "call": 1.0
     },
     "T8s": {
-      "raise": 1
+      "call": 1.0
     },
     "T7s": {
-      "raise": 1
+      "call": 1.0
     },
-    "T6s": {
-      "raise": 1
-    },
+    "T6s": {},
     "T5s": {},
     "T4s": {},
     "T3s": {},
     "T2s": {},
     "A9o": {
-      "raise": 1
+      "call": 1.0
     },
-    "K9o": {
-      "raise": 1
-    },
-    "Q9o": {
-      "raise": 1
-    },
-    "J9o": {
-      "raise": 1
-    },
-    "T9o": {
-      "raise": 1
+    "K9o": {},
+    "Q9o": {},
+    "J9o": {},
+    "T9o": {},
+    "99": {
+      "call": 1.0
     },
     "98s": {
-      "raise": 1
+      "call": 1.0
     },
     "97s": {
-      "raise": 1
+      "call": 1.0
     },
     "96s": {
-      "raise": 1
+      "call": 1.0
     },
     "95s": {},
     "94s": {},
     "93s": {},
     "92s": {},
-    "A8o": {
-      "raise": 1
-    },
-    "K8o": {
-      "raise": 1
-    },
+    "A8o": {},
+    "K8o": {},
     "Q8o": {},
     "J8o": {},
-    "T8o": {
-      "raise": 1
-    },
-    "98o": {
-      "raise": 1
+    "T8o": {},
+    "98o": {},
+    "88": {
+      "call": 1.0
     },
     "87s": {
-      "raise": 1
+      "call": 1.0
     },
     "86s": {
-      "raise": 1
+      "call": 1.0
     },
     "85s": {
-      "raise": 1
+      "call": 1.0
     },
     "84s": {},
     "83s": {},
     "82s": {},
-    "A7o": {
-      "raise": 1
-    },
+    "A7o": {},
     "K7o": {},
     "Q7o": {},
     "J7o": {},
     "T7o": {},
     "97o": {},
     "87o": {},
+    "77": {
+      "call": 1.0
+    },
     "76s": {
-      "raise": 1
+      "call": 1.0
     },
     "75s": {
-      "raise": 1
+      "call": 1.0
     },
-    "74s": {},
+    "74s": {
+      "call": 1.0
+    },
     "73s": {},
     "72s": {},
-    "A6o": {
-      "raise": 1
-    },
+    "A6o": {},
     "K6o": {},
     "Q6o": {},
     "J6o": {},
@@ -298,17 +259,20 @@
     "96o": {},
     "86o": {},
     "76o": {},
+    "66": {
+      "call": 1.0
+    },
     "65s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "64s": {
-      "raise": 1
+      "call": 1.0
     },
-    "63s": {},
+    "63s": {
+      "call": 1.0
+    },
     "62s": {},
-    "A5o": {
-      "raise": 1
-    },
+    "A5o": {},
     "K5o": {},
     "Q5o": {},
     "J5o": {},
@@ -317,16 +281,17 @@
     "85o": {},
     "75o": {},
     "65o": {},
+    "55": {
+      "call": 1.0
+    },
     "54s": {
-      "raise": 1
+      "3bet": 1.0
     },
     "53s": {
-      "raise": 1
+      "call": 1.0
     },
     "52s": {},
-    "A4o": {
-      "raise": 1
-    },
+    "A4o": {},
     "K4o": {},
     "Q4o": {},
     "J4o": {},
@@ -336,7 +301,12 @@
     "74o": {},
     "64o": {},
     "54o": {},
-    "43s": {},
+    "44": {
+      "call": 1.0
+    },
+    "43s": {
+      "call": 1.0
+    },
     "42s": {},
     "A3o": {},
     "K3o": {},
@@ -349,6 +319,9 @@
     "63o": {},
     "53o": {},
     "43o": {},
+    "33": {
+      "call": 1.0
+    },
     "32s": {},
     "A2o": {},
     "K2o": {},
@@ -361,6 +334,9 @@
     "62o": {},
     "52o": {},
     "42o": {},
-    "32o": {}
+    "32o": {},
+    "22": {
+      "call": 1.0
+    }
   }
 }
