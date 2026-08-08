@@ -29,8 +29,9 @@
  */
 
 import drillsFixture from '@fixtures/drills.json';
-import rangesListFixture from '@fixtures/ranges_list.json';
 import rangeCoFixture from '@fixtures/range_rfi_6max_CO.json';
+import rangeVsRfiFixture from '@fixtures/range_vs_rfi_6max_BB_vs_BTN.json';
+import sourcesFixture from '@fixtures/sources.json';
 
 import { ApiError, type ApiClient } from './client';
 import { FOLD_ACTION_ID, gradeCell } from './grading';
@@ -54,8 +55,10 @@ import {
   type RangeDetail,
   type RangeFilter,
   type RangeGrid,
+  type RangeListItem,
   type RangeStats,
   type RangesResponse,
+  type SourcesResponse,
   type SessionResponse,
   type SessionSummary,
   type TableFormat,
@@ -69,11 +72,42 @@ import {
 } from '../lib/hands';
 
 const DRILLS = drillsFixture as DrillsResponse;
-const RANGES = rangesListFixture as unknown as RangesResponse;
-const CO_RANGE = rangeCoFixture as unknown as RangeDetail;
-
 const RAISE_ACTION_ID = 'raise';
 const LIMP_ACTION_ID = 'limp';
+
+/**
+ * `range_rfi_6max_CO.json` was not migrated when v2 replaced `open_size_bb`
+ * with `action_sizes_bb` and made `stats.by_action` required — it is still v1
+ * shaped, while the other two range fixtures are v2. `docs/` is read-only to
+ * me, so the mock reads whichever form it finds and this is reported rather
+ * than papered over. Delete the fallback once the fixture is migrated.
+ */
+function normaliseRange(raw: unknown): RangeDetail {
+  const range = raw as RangeDetail & { open_size_bb?: number };
+  const sizes =
+    range.action_sizes_bb ??
+    (range.open_size_bb !== undefined
+      ? { [RAISE_ACTION_ID]: range.open_size_bb }
+      : {});
+  return {
+    ...range,
+    vs_position: range.vs_position ?? null,
+    facing_size_bb: range.facing_size_bb ?? null,
+    action_sizes_bb: sizes,
+    stats: range.stats.by_action
+      ? range.stats
+      : { ...range.stats, by_action: {} },
+  };
+}
+
+const CO_RANGE = normaliseRange(rangeCoFixture);
+const VS_RFI_RANGE = normaliseRange(rangeVsRfiFixture);
+const SOURCES = sourcesFixture as unknown as SourcesResponse;
+
+/** Ranges served verbatim from a fixture, keyed by id. */
+const FIXTURE_RANGES: Record<string, RangeDetail> = {
+  [VS_RFI_RANGE.range_id]: VS_RFI_RANGE,
+};
 
 // ---------------------------------------------------------------------------
 // Per-position charts, derived from the one fixture chart
@@ -89,7 +123,8 @@ const LIMP_ACTION_ID = 'limp';
 interface MockChart {
   actions: string[];
   grid: RangeGrid;
-  openSizeBb: number;
+  /** Action id → size in big blinds, replacing v1's single `open_size_bb`. */
+  actionSizesBb: Record<string, number>;
   /** Label for each non-fold action, including its sizing. */
   actionLabels: Record<string, string>;
 }
@@ -127,19 +162,20 @@ function chartFor(position: Position): MockChart {
     return {
       actions: [RAISE_ACTION_ID, LIMP_ACTION_ID],
       grid: SB_GRID,
-      openSizeBb: 3,
+      actionSizesBb: { [RAISE_ACTION_ID]: 3, [LIMP_ACTION_ID]: 1 },
       actionLabels: {
         [RAISE_ACTION_ID]: 'Raise 3bb',
         [LIMP_ACTION_ID]: 'Limp 1bb',
       },
     };
   }
+  const openSize = CO_RANGE.action_sizes_bb[RAISE_ACTION_ID] ?? 2.5;
   return {
     actions: [RAISE_ACTION_ID],
     grid: CO_RANGE.grid,
-    openSizeBb: CO_RANGE.open_size_bb,
+    actionSizesBb: { [RAISE_ACTION_ID]: openSize },
     actionLabels: {
-      [RAISE_ACTION_ID]: `Raise ${formatBb(CO_RANGE.open_size_bb)}bb`,
+      [RAISE_ACTION_ID]: `Raise ${formatBb(openSize)}bb`,
     },
   };
 }
@@ -160,6 +196,7 @@ function actionOptionsFor(position: Position): ActionOption[] {
 function statsFor(grid: RangeGrid): RangeStats {
   let combos = 0;
   let handsPlayed = 0;
+  const byAction: Record<string, number> = {};
   for (const hand of ALL_HANDS) {
     const frequencies = grid[hand] ?? {};
     const played = Object.values(frequencies).reduce(
@@ -168,12 +205,65 @@ function statsFor(grid: RangeGrid): RangeStats {
     );
     if (played > 0) handsPlayed += 1;
     combos += played * combosOf(hand);
+    for (const [actionId, frequency] of Object.entries(frequencies)) {
+      byAction[actionId] =
+        (byAction[actionId] ?? 0) + frequency * combosOf(hand);
+    }
+  }
+  for (const actionId of Object.keys(byAction)) {
+    byAction[actionId] = Math.round((byAction[actionId] ?? 0) * 100) / 100;
   }
   return {
     combos: Math.round(combos * 100) / 100,
     vpip: Math.round((combos / 1326) * 10000) / 10000,
     hands_played: handsPlayed,
+    by_action: byAction,
   };
+}
+
+/**
+ * Every range the mock will serve, in the enriched v2 list shape.
+ *
+ * Two fixture-backed entries carry their real provenance; the remaining RFI
+ * positions are derived from the CO chart and say so through the
+ * `fixture-illustrative` source id, so the browser shows them as what they are.
+ */
+function catalogue(): RangeListItem[] {
+  const derived = (['UTG', 'HJ', 'CO', 'BTN', 'SB'] as const).map(
+    (position) => {
+      const chart = chartFor(position);
+      return {
+        range_id: `rfi_6max_${position}`,
+        spot: 'rfi',
+        table_format: '6max' as const,
+        position,
+        vs_position: null,
+        stack_bb: CO_RANGE.stack_bb,
+        actions: [...chart.actions],
+        action_sizes_bb: { ...chart.actionSizesBb },
+        facing_size_bb: null,
+        source_id: 'fixture-illustrative',
+        stats: statsFor(chart.grid),
+      } satisfies RangeListItem;
+    }
+  );
+
+  return [
+    ...derived,
+    {
+      range_id: VS_RFI_RANGE.range_id,
+      spot: VS_RFI_RANGE.spot,
+      table_format: VS_RFI_RANGE.table_format,
+      position: VS_RFI_RANGE.position,
+      vs_position: VS_RFI_RANGE.vs_position,
+      stack_bb: VS_RFI_RANGE.stack_bb,
+      actions: [...VS_RFI_RANGE.actions],
+      action_sizes_bb: { ...VS_RFI_RANGE.action_sizes_bb },
+      facing_size_bb: VS_RFI_RANGE.facing_size_bb,
+      source_id: VS_RFI_RANGE.source_id,
+      stats: VS_RFI_RANGE.stats,
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -381,18 +471,26 @@ export class MockApiClient implements ApiClient {
     };
   }
 
+  async getSources(): Promise<SourcesResponse> {
+    return clone(SOURCES);
+  }
+
   async listRanges(filter?: RangeFilter): Promise<RangesResponse> {
-    const ranges = RANGES.ranges.filter(
+    const ranges = catalogue().filter(
       (entry) =>
         (filter?.spot === undefined || entry.spot === filter.spot) &&
         (filter?.table_format === undefined ||
-          entry.table_format === filter.table_format)
+          entry.table_format === filter.table_format) &&
+        (filter?.position === undefined ||
+          entry.position === filter.position) &&
+        (filter?.vs_position === undefined ||
+          entry.vs_position === filter.vs_position)
     );
     return { ranges: clone(ranges) };
   }
 
   async getRange(rangeId: string): Promise<RangeDetail> {
-    const listed = RANGES.ranges.find((entry) => entry.range_id === rangeId);
+    const listed = catalogue().find((entry) => entry.range_id === rangeId);
     if (!listed) {
       throw new ApiError(
         'range_not_found',
@@ -400,17 +498,26 @@ export class MockApiClient implements ApiClient {
         404
       );
     }
-    // Only the CO chart exists as a fixture, so every position is derived from
-    // it. Serving exactly what `grade` used keeps the mock self-consistent: the
-    // chart in the feedback panel is the chart the answer was graded against.
-    // It is illustrative data, not a real chart for that position.
+
+    // Ranges that exist as a fixture are served verbatim — the chart browser is
+    // an audit tool, so it must show the file, not a reconstruction of it.
+    const fixture = FIXTURE_RANGES[rangeId];
+    if (fixture) return clone(fixture);
+
+    // The rest are derived from the CO chart, because no other RFI chart exists
+    // as a fixture. Serving exactly what `grade` used keeps the mock
+    // self-consistent: the chart in the feedback panel is the chart the answer
+    // was graded against. It is illustrative data, not a real chart.
     const chart = chartFor(listed.position);
     return {
       ...clone(CO_RANGE),
       range_id: listed.range_id,
+      spot: listed.spot,
       position: listed.position,
+      vs_position: listed.vs_position,
       table_format: listed.table_format,
-      open_size_bb: chart.openSizeBb,
+      action_sizes_bb: { ...chart.actionSizesBb },
+      facing_size_bb: listed.facing_size_bb,
       actions: [...chart.actions],
       grid: clone(chart.grid),
       stats: statsFor(chart.grid),

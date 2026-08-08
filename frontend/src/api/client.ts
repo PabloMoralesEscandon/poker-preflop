@@ -11,6 +11,7 @@ import type {
   RangesResponse,
   SessionResponse,
   SessionSummary,
+  SourcesResponse,
 } from './types';
 
 /**
@@ -42,6 +43,8 @@ export interface ApiClient {
   ): Promise<AnswerResponse>;
   /** §4.4 `GET /sessions/{id}/summary` */
   getSummary(sessionId: string, signal?: AbortSignal): Promise<SessionSummary>;
+  /** v2 §11 `GET /sources` */
+  getSources(signal?: AbortSignal): Promise<SourcesResponse>;
   /** §5.1 `GET /ranges` */
   listRanges(
     filter?: RangeFilter,

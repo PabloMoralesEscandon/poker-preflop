@@ -22,7 +22,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-fg-muted hidden text-sm sm:inline">
             preflop and postflop drills
           </span>
-          <nav aria-label="Main" className="ml-auto">
+          <nav aria-label="Main" className="ml-auto flex gap-4">
+            <Link to="/charts" className="text-fg-muted hover:text-fg text-sm">
+              Charts
+            </Link>
             <Link to="/history" className="text-fg-muted hover:text-fg text-sm">
               History
             </Link>

@@ -55,7 +55,7 @@ export function SummaryView({
                 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
               >
                 <Link
-                  to={`/range/${encodeURIComponent(mistake.range_id)}?hand=${encodeURIComponent(mistake.hand)}`}
+                  to={`/charts/${encodeURIComponent(mistake.range_id)}?hand=${encodeURIComponent(mistake.hand)}`}
                   className="text-accent font-mono font-medium underline underline-offset-4"
                   title={`Show ${mistake.hand} in the ${mistake.range_id} chart`}
                 >
