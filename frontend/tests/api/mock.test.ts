@@ -431,7 +431,7 @@ describe('mock static endpoints', () => {
   it('serves the drills fixture', async () => {
     const client = new MockApiClient();
     const { drills } = await client.listDrills();
-    expect(drills.map((drill) => drill.id)).toEqual(['rfi']);
+    expect(drills.map((drill) => drill.id)).toEqual(['rfi', 'vs_rfi']);
     expect(drills[0]?.config_schema.fields.map((f) => f.key)).toEqual([
       'table_format',
       'positions',
@@ -460,8 +460,9 @@ describe('mock static endpoints', () => {
     const client = new MockApiClient();
 
     const vsRfi = await client.listRanges({ spot: 'vs_rfi' });
-    expect(vsRfi.ranges.map((entry) => entry.range_id)).toEqual([
+    expect(vsRfi.ranges.map((entry) => entry.range_id).sort()).toEqual([
       'vs_rfi_6max_BB_vs_BTN',
+      'vs_rfi_6max_HJ_vs_UTG',
     ]);
 
     const co = await client.listRanges({ spot: 'rfi', position: 'CO' });

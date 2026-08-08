@@ -6,12 +6,21 @@
  * directory under `src/drills/`. Nothing in `DrillRunner` changes.
  */
 
-import type { RfiPrompt as RfiPromptData } from '../api';
+import type {
+  RfiPrompt as RfiPromptData,
+  VsRfiPrompt as VsRfiPromptData,
+} from '../api';
 import { RfiPrompt } from './rfi/RfiPrompt';
 import { registerDrill } from './registry';
+import { VsRfiPrompt } from './vs_rfi/VsRfiPrompt';
 
 registerDrill<RfiPromptData>('rfi', {
   Prompt: RfiPrompt,
   // The feedback chart highlights the hand that was just played.
+  gridHighlight: (prompt) => prompt.hand.notation,
+});
+
+registerDrill<VsRfiPromptData>('vs_rfi', {
+  Prompt: VsRfiPrompt,
   gridHighlight: (prompt) => prompt.hand.notation,
 });
