@@ -18,24 +18,20 @@ CONFORMED_FIXTURES = {
     "answer_correct",
     "answer_incorrect",
     "answer_mixed",
+    "answer_vs_rfi",
     "drills",
     "errors",
     "next_done",
     "next_question",
+    "next_question_vs_rfi",
     "range_rfi_6max_CO",
+    "range_vs_rfi_6max_BB_vs_BTN",
     "ranges_list",
     "ranges_list_v2",
     "session_create",
     "sources",
     "summary",
 }
-PENDING_V2_FIXTURES = {
-    "answer_vs_rfi",
-    "next_question_vs_rfi",
-    "range_vs_rfi_6max_BB_vs_BTN",
-}
-
-
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
@@ -126,6 +122,21 @@ def session_request(
     }
 
 
+def vs_rfi_session_request(
+    *, matchup: str = "BB_vs_BTN", question_count: int = 5, seed: int = 7
+) -> dict[str, Any]:
+    return {
+        "drill_id": "vs_rfi",
+        "config": {
+            "table_format": "6max",
+            "matchups": [matchup],
+            "question_count": question_count,
+            "weighting": "borderline",
+        },
+        "seed": seed,
+    }
+
+
 async def create_session(client: AsyncClient, **kwargs: Any) -> dict[str, Any]:
     response = await client.post("/api/v1/sessions", json=session_request(**kwargs))
     assert response.status_code == 201
@@ -142,7 +153,13 @@ async def current_question(client: AsyncClient, session_id: str) -> dict[str, An
 
 async def charted_action(client: AsyncClient, question: dict[str, Any]) -> str:
     prompt = question["prompt"]
-    range_id = f"rfi_{prompt['table_format']}_{prompt['hero_position']}"
+    if prompt["kind"] == "rfi":
+        range_id = f"rfi_{prompt['table_format']}_{prompt['hero_position']}"
+    else:
+        range_id = (
+            f"vs_rfi_{prompt['table_format']}_{prompt['hero_position']}"
+            f"_vs_{prompt['raiser_position']}"
+        )
     response = await client.get(f"/api/v1/ranges/{range_id}")
     assert response.status_code == 200
     return next(iter(response.json()["grid"][prompt["hand"]["notation"]]), "fold")
@@ -169,7 +186,7 @@ async def answer_current(
 
 def test_conformance_manifest_names_every_canonical_fixture() -> None:
     actual = {path.stem for path in EXAMPLES.glob("*.json")}
-    assert actual == CONFORMED_FIXTURES | PENDING_V2_FIXTURES
+    assert actual == CONFORMED_FIXTURES
 
 
 async def test_success_responses_match_canonical_fixture_shapes(
@@ -286,6 +303,76 @@ async def test_mixed_answer_shape_uses_a_constructed_range(
     assert response.status_code == 200
     assert response.json()["mixed"] is True
     assert_fixture_shape(response.json(), fixture("answer_mixed"))
+
+
+async def test_vs_rfi_question_answer_and_range_match_v2_fixture_shapes(
+    client: AsyncClient,
+) -> None:
+    created = await client.post(
+        "/api/v1/sessions",
+        json=vs_rfi_session_request(question_count=25),
+    )
+    assert created.status_code == 201
+    session_id = created.json()["session_id"]
+    next_response = await client.get(f"/api/v1/sessions/{session_id}/next")
+    question = next_response.json()["question"]
+    action = await charted_action(client, question)
+    answer = await client.post(
+        f"/api/v1/sessions/{session_id}/answer",
+        json={"question_id": question["question_id"], "action_id": action},
+    )
+    range_detail = await client.get("/api/v1/ranges/vs_rfi_6max_BB_vs_BTN")
+
+    assert next_response.status_code == answer.status_code == 200
+    assert range_detail.status_code == 200
+    assert_fixture_shape(next_response.json(), fixture("next_question_vs_rfi"))
+    assert_fixture_shape(answer.json(), fixture("answer_vs_rfi"))
+    assert_fixture_shape(
+        range_detail.json(),
+        fixture("range_vs_rfi_6max_BB_vs_BTN"),
+    )
+
+
+async def test_two_action_vs_rfi_session_completes_end_to_end(
+    client: AsyncClient,
+) -> None:
+    created = await client.post(
+        "/api/v1/sessions",
+        json=vs_rfi_session_request(matchup="HJ_vs_UTG", seed=108),
+    )
+    assert created.status_code == 201
+    session_id = created.json()["session_id"]
+
+    for expected_index in range(1, 6):
+        next_response = await client.get(f"/api/v1/sessions/{session_id}/next")
+        question = next_response.json()["question"]
+        assert question["index"] == expected_index
+        assert [action["id"] for action in question["actions"]] == ["fold", "3bet"]
+        action = await charted_action(client, question)
+        answered = await client.post(
+            f"/api/v1/sessions/{session_id}/answer",
+            json={"question_id": question["question_id"], "action_id": action},
+        )
+        assert answered.status_code == 200
+        assert answered.json()["correct"] is True
+
+    done = await client.get(f"/api/v1/sessions/{session_id}/next")
+    summary = await client.get(f"/api/v1/sessions/{session_id}/summary")
+
+    assert done.json() == {"done": True, "question": None}
+    assert summary.status_code == 200
+    assert summary.json()["drill_id"] == "vs_rfi"
+    assert summary.json()["complete"] is True
+    assert summary.json()["answered"] == summary.json()["correct"] == 5
+    assert summary.json()["breakdown"] == [
+        {
+            "key": "HJ_vs_UTG",
+            "label": "HJ vs UTG",
+            "answered": 5,
+            "correct": 5,
+            "accuracy": 1.0,
+        }
+    ]
 
 
 async def test_complete_25_question_session_conforms_and_summarizes_arithmetic(
