@@ -25,8 +25,9 @@ EXPECTED_BY_ACTION = {
     "BB_vs_HJ": {"3bet": 98.0, "call": 320.0},
     "BB_vs_CO": {"3bet": 128.0, "call": 342.0},
     "BB_vs_BTN": {"3bet": 178.0, "call": 576.0},
+    "BB_vs_SB": {"3bet": 218.0, "call": 640.0},
 }
-RAISER_ORDER = ("UTG", "HJ", "CO", "BTN")
+RAISER_ORDER = ("UTG", "HJ", "CO", "BTN", "SB")
 PREMIUMS = ("AA", "KK", "QQ", "AKs")
 BOTTOM = ("72o", "82o", "92o", "32o", "42o")
 IN_POSITION_MATCHUPS = {

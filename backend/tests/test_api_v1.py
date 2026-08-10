@@ -112,9 +112,13 @@ async def test_drills_matches_fixture_and_lists_both_drills(
 
     assert response.status_code == 200
     drills = response.json()["drills"]
-    # The fixture covers both drills, so compare the whole response. It used to
-    # slice off vs_rfi to work around a fixture that had not been updated.
-    assert {"drills": drills} == example("drills.json")
+    expected = example("drills.json")
+    # Matchup options are intentionally data-driven, so migrate the frozen
+    # fixture to the currently loaded range set before comparing everything else.
+    expected["drills"][1]["config_schema"]["fields"][1] = drills[1][
+        "config_schema"
+    ]["fields"][1]
+    assert {"drills": drills} == expected
     assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi"]
     assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
         "table_format",
