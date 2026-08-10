@@ -1,0 +1,37 @@
+{
+  "done": false,
+  "question": {
+    "question_id": "q_2",
+    "index": 2,
+    "total": 25,
+    "drill_id": "bvb",
+    "prompt": {
+      "kind": "bvb",
+      "table_format": "6max",
+      "hero_position": "BB",
+      "vs_position": "SB",
+      "sb_action": "limp",
+      "stack_bb": 100,
+      "hand": {
+        "cards": [
+          "Td",
+          "9d"
+        ],
+        "notation": "T9s"
+      },
+      "facing_size_bb": 1.0,
+      "pot_bb": 2.0,
+      "to_call_bb": 0.0
+    },
+    "actions": [
+      {
+        "id": "check",
+        "label": "Check"
+      },
+      {
+        "id": "raise",
+        "label": "Raise to 3.5bb"
+      }
+    ]
+  }
+}

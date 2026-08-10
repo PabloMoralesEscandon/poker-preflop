@@ -22,25 +22,45 @@ pdftoppm -f 5 -l 5 -r 400 -png /tmp/chart.pdf /tmp/vsrfi_oop
 Both pages hold multiple grids; crop with `-x -y -W -H` to read one at a time.
 Grids are images — there is no text to parse.
 
-Sizing, from the chart's own instructions on page 2: **3.5x when 3-betting in
-position, 4x out of position.** The open being faced is 2.5bb (3bb from the SB).
+### 1.1 Sizing — read this carefully, it was wrong once
+
+Page 2 of the chart states: *"When 3-betting from in position a 3.5x raise size
+is used. When 3-betting from out of position a 4x raise sizing is used."*
+
+Those are **multipliers of the open, not absolute sizes in big blinds.** An
+earlier version of this document said "3-bet size 3.5bb / 4.0bb", which is a
+1.4x raise — not a 3-bet at all — and that error shipped into fourteen files and
+into the action labels users read.
+
+| Spot | Facing | Multiplier | `action_sizes_bb["3bet"]` |
+|---|---|---|---|
+| In position (page 4) | 2.5bb | 3.5x | **8.75** |
+| Out of position (page 5) | 2.5bb | 4x | **10.0** |
+| `BB_vs_SB` | 3bb | 3.5x — the BB is in position postflop heads-up | **10.5** |
+
+`action_sizes_bb["call"]` is simply the size being faced: 2.5, or 3.0 for
+`BB_vs_SB`.
 
 ## 2. The fourteen matchups
 
 The chart's "LJ" is our `UTG` at 6-max — RFI-CALIBRATION §2.1. Filenames use our
 names.
 
-**In position (page 4), 3-bet size 3.5bb — six files**
+**In position (page 4), 3-bet to 8.75bb — six files**
 
 `HJ_vs_UTG`, `CO_vs_UTG`, `CO_vs_HJ`, `BTN_vs_UTG`, `BTN_vs_HJ`, `BTN_vs_CO`
 
-**Out of position (page 5), 3-bet size 4.0bb — eight files**
+**Out of position (page 5), 3-bet to 10.0bb — eight files**
 
 `SB_vs_UTG`, `SB_vs_HJ`, `SB_vs_CO`, `SB_vs_BTN`,
 `BB_vs_UTG`, `BB_vs_HJ`, `BB_vs_CO`, `BB_vs_BTN`
 
-Blind-versus-blind (page 6) is **out of scope** — it is a different spot with a
-limp branch, and it gets its own directory when we do it.
+**Plus `BB_vs_SB` (page 6), added later** — see §7.
+
+Blind-versus-blind lives on page 6 and was originally scoped out wholesale. That
+was half right: the SB's *limp* branch is genuinely a different spot, but
+`BB vs SB raise` is an ordinary facing-an-RFI spot and its exclusion was
+arbitrary. See §7.
 
 ## 3. The acceptance criterion is the chart's own printed totals
 
@@ -101,3 +121,31 @@ back each time. Write only what holds against the tightest matchup.
 One matchup at a time: crop, read, write, validate, compare `by_action` to the
 printed totals, run the invariants. Do not transcribe fourteen and then test —
 that lesson cost us a full round-trip on the 6-max set.
+
+## 7. `BB_vs_SB` — the fifteenth matchup
+
+Page 6, "Big Blind vs SB raise". This is a `vs_rfi` spot in every respect and
+belongs in `vs_rfi/6max/BB_vs_SB.json`. It was missed because the matchup list
+was built from page 5, and this one grid sits on page 6 with the blind-versus-
+blind material.
+
+It matters more than its position in the list suggests: blind versus blind
+happens every orbit, so this is the matchup a player faces most often.
+
+| Field | Value |
+|---|---|
+| `facing_size_bb` | **3.0** — the SB opens 3bb, not 2.5 |
+| `action_sizes_bb` | `{"3bet": 10.5, "call": 3.0}` |
+| `actions` | `["3bet", "call"]` |
+
+**Printed totals, verified 2026-08-09:**
+
+```text
+3Bet  16.4%   218 / 858   (25.4% of played)
+Call  48.3%   640 / 858   (74.6%)
+Fold  35.3%   468 / 1326
+```
+
+218 + 640 = 858 played, + 468 = 1326. It is the **widest defending range in the
+set** — wider than `BB_vs_BTN`'s 754 — which is what you would expect against
+the widest opening range.

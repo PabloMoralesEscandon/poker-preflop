@@ -221,6 +221,7 @@ Action ids are a closed set per spot:
 |---|---|
 | `rfi` | `raise`, `limp` |
 | `vs_rfi` | `call`, `3bet` |
+| `vs_limp` | `raise`, `check` |
 
 A grid cell naming an id outside its spot's set is a load failure.
 
@@ -252,3 +253,27 @@ facing a raise) and `call`/`3bet` are invalid in `rfi`.
 fold, per-hand sum ≤ 1, combinatorics, the notation↔cards mapping, and the §6
 sampling weights all apply to matchup ranges exactly as written. The
 difficulty-factor scan uses the same 13×13 adjacency.
+
+## 9. The `vs_limp` spot, and actions that are not folds
+
+`vs_limp` — the big blind responding to a small-blind limp — breaks an
+assumption that held everywhere else: **fold is not always available.** You are
+already in the pot for free, so folding is irrational, and the source chart
+records fold at exactly 0.0% across all 1326 combos.
+
+That has two consequences for anything reading these files:
+
+1. **`check` is an action id with size `0.0`.** It is a real action that costs
+   no chips, not a null or a missing value. `action_sizes_bb` must contain it.
+2. **A `vs_limp` range has no folded cells.** Every one of the 169 keys is
+   non-empty and `stats.vpip` is exactly `1.0`. Code that treats "empty cell" as
+   the common case, or that assumes `fold` is always in the action list offered
+   to the user, is wrong for this spot.
+
+Grading needs no change: `correct = chosen frequency > 0` already handles it,
+because fold simply has frequency `0` here and choosing it is incorrect — which
+is the right answer.
+
+Drills built on this spot must take the action list from the range's `actions`
+and add `fold` **only when fold is a legal option**. For `vs_limp` it is not.
+See `docs/ranges/BVB-CALIBRATION.md`.

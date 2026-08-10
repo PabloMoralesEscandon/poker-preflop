@@ -1,0 +1,537 @@
+{
+  "range_id": "vs_limp_6max_BB_vs_SB",
+  "spot": "vs_limp",
+  "table_format": "6max",
+  "position": "BB",
+  "vs_position": "SB",
+  "stack_bb": 100,
+  "facing_size_bb": 1.0,
+  "actions": [
+    "raise",
+    "check"
+  ],
+  "action_sizes_bb": {
+    "raise": 3.5,
+    "check": 0.0
+  },
+  "source_id": "fixture-illustrative",
+  "notes": "ILLUSTRATIVE FIXTURE - not a shipped range. Exists so the UI has a no-fold spot to render before the real page-6 transcription lands. Shape is real: nothing folds, every cell is played. Cells are invented; the real chart is 536 raise / 790 check.",
+  "grid": {
+    "22": {
+      "check": 1.0
+    },
+    "32o": {
+      "check": 1.0
+    },
+    "32s": {
+      "check": 1.0
+    },
+    "33": {
+      "check": 1.0
+    },
+    "42o": {
+      "check": 1.0
+    },
+    "42s": {
+      "check": 1.0
+    },
+    "43o": {
+      "check": 1.0
+    },
+    "43s": {
+      "check": 1.0
+    },
+    "44": {
+      "check": 1.0
+    },
+    "52o": {
+      "check": 1.0
+    },
+    "52s": {
+      "check": 1.0
+    },
+    "53o": {
+      "check": 1.0
+    },
+    "53s": {
+      "check": 1.0
+    },
+    "54o": {
+      "check": 1.0
+    },
+    "54s": {
+      "check": 1.0
+    },
+    "55": {
+      "check": 1.0
+    },
+    "62o": {
+      "check": 1.0
+    },
+    "62s": {
+      "check": 1.0
+    },
+    "63o": {
+      "check": 1.0
+    },
+    "63s": {
+      "check": 1.0
+    },
+    "64o": {
+      "check": 1.0
+    },
+    "64s": {
+      "check": 1.0
+    },
+    "65o": {
+      "check": 1.0
+    },
+    "65s": {
+      "check": 1.0
+    },
+    "66": {
+      "check": 1.0
+    },
+    "72o": {
+      "check": 1.0
+    },
+    "72s": {
+      "check": 1.0
+    },
+    "73o": {
+      "check": 1.0
+    },
+    "73s": {
+      "check": 1.0
+    },
+    "74o": {
+      "check": 1.0
+    },
+    "74s": {
+      "check": 1.0
+    },
+    "75o": {
+      "check": 1.0
+    },
+    "75s": {
+      "check": 1.0
+    },
+    "76o": {
+      "check": 1.0
+    },
+    "76s": {
+      "check": 1.0
+    },
+    "77": {
+      "raise": 1.0
+    },
+    "82o": {
+      "check": 1.0
+    },
+    "82s": {
+      "check": 1.0
+    },
+    "83o": {
+      "check": 1.0
+    },
+    "83s": {
+      "check": 1.0
+    },
+    "84o": {
+      "check": 1.0
+    },
+    "84s": {
+      "check": 1.0
+    },
+    "85o": {
+      "check": 1.0
+    },
+    "85s": {
+      "check": 1.0
+    },
+    "86o": {
+      "check": 1.0
+    },
+    "86s": {
+      "check": 1.0
+    },
+    "87o": {
+      "check": 1.0
+    },
+    "87s": {
+      "check": 1.0
+    },
+    "88": {
+      "raise": 1.0
+    },
+    "92o": {
+      "check": 1.0
+    },
+    "92s": {
+      "check": 1.0
+    },
+    "93o": {
+      "check": 1.0
+    },
+    "93s": {
+      "check": 1.0
+    },
+    "94o": {
+      "check": 1.0
+    },
+    "94s": {
+      "check": 1.0
+    },
+    "95o": {
+      "check": 1.0
+    },
+    "95s": {
+      "check": 1.0
+    },
+    "96o": {
+      "check": 1.0
+    },
+    "96s": {
+      "check": 1.0
+    },
+    "97o": {
+      "check": 1.0
+    },
+    "97s": {
+      "check": 1.0
+    },
+    "98o": {
+      "check": 1.0
+    },
+    "98s": {
+      "check": 1.0
+    },
+    "99": {
+      "raise": 1.0
+    },
+    "A2o": {
+      "check": 1.0
+    },
+    "A2s": {
+      "raise": 1.0
+    },
+    "A3o": {
+      "check": 1.0
+    },
+    "A3s": {
+      "raise": 1.0
+    },
+    "A4o": {
+      "check": 1.0
+    },
+    "A4s": {
+      "raise": 1.0
+    },
+    "A5o": {
+      "check": 1.0
+    },
+    "A5s": {
+      "raise": 1.0
+    },
+    "A6o": {
+      "check": 1.0
+    },
+    "A6s": {
+      "raise": 1.0
+    },
+    "A7o": {
+      "check": 1.0
+    },
+    "A7s": {
+      "raise": 1.0
+    },
+    "A8o": {
+      "raise": 1.0
+    },
+    "A8s": {
+      "raise": 1.0
+    },
+    "A9o": {
+      "raise": 1.0
+    },
+    "A9s": {
+      "raise": 1.0
+    },
+    "AA": {
+      "raise": 1.0
+    },
+    "AJo": {
+      "raise": 1.0
+    },
+    "AJs": {
+      "raise": 1.0
+    },
+    "AKo": {
+      "raise": 1.0
+    },
+    "AKs": {
+      "raise": 1.0
+    },
+    "AQo": {
+      "raise": 1.0
+    },
+    "AQs": {
+      "raise": 1.0
+    },
+    "ATo": {
+      "raise": 1.0
+    },
+    "ATs": {
+      "raise": 1.0
+    },
+    "J2o": {
+      "check": 1.0
+    },
+    "J2s": {
+      "check": 1.0
+    },
+    "J3o": {
+      "check": 1.0
+    },
+    "J3s": {
+      "check": 1.0
+    },
+    "J4o": {
+      "check": 1.0
+    },
+    "J4s": {
+      "check": 1.0
+    },
+    "J5o": {
+      "check": 1.0
+    },
+    "J5s": {
+      "check": 1.0
+    },
+    "J6o": {
+      "check": 1.0
+    },
+    "J6s": {
+      "check": 1.0
+    },
+    "J7o": {
+      "check": 1.0
+    },
+    "J7s": {
+      "check": 1.0
+    },
+    "J8o": {
+      "check": 1.0
+    },
+    "J8s": {
+      "check": 1.0
+    },
+    "J9o": {
+      "check": 1.0
+    },
+    "J9s": {
+      "raise": 1.0
+    },
+    "JJ": {
+      "raise": 1.0
+    },
+    "JTo": {
+      "check": 1.0
+    },
+    "JTs": {
+      "raise": 1.0
+    },
+    "K2o": {
+      "check": 1.0
+    },
+    "K2s": {
+      "check": 1.0
+    },
+    "K3o": {
+      "check": 1.0
+    },
+    "K3s": {
+      "check": 1.0
+    },
+    "K4o": {
+      "check": 1.0
+    },
+    "K4s": {
+      "check": 1.0
+    },
+    "K5o": {
+      "check": 1.0
+    },
+    "K5s": {
+      "check": 1.0
+    },
+    "K6o": {
+      "check": 1.0
+    },
+    "K6s": {
+      "check": 1.0
+    },
+    "K7o": {
+      "check": 1.0
+    },
+    "K7s": {
+      "raise": 1.0
+    },
+    "K8o": {
+      "check": 1.0
+    },
+    "K8s": {
+      "raise": 1.0
+    },
+    "K9o": {
+      "check": 1.0
+    },
+    "K9s": {
+      "raise": 1.0
+    },
+    "KJo": {
+      "raise": 1.0
+    },
+    "KJs": {
+      "raise": 1.0
+    },
+    "KK": {
+      "raise": 1.0
+    },
+    "KQo": {
+      "raise": 1.0
+    },
+    "KQs": {
+      "raise": 1.0
+    },
+    "KTo": {
+      "raise": 1.0
+    },
+    "KTs": {
+      "raise": 1.0
+    },
+    "Q2o": {
+      "check": 1.0
+    },
+    "Q2s": {
+      "check": 1.0
+    },
+    "Q3o": {
+      "check": 1.0
+    },
+    "Q3s": {
+      "check": 1.0
+    },
+    "Q4o": {
+      "check": 1.0
+    },
+    "Q4s": {
+      "check": 1.0
+    },
+    "Q5o": {
+      "check": 1.0
+    },
+    "Q5s": {
+      "check": 1.0
+    },
+    "Q6o": {
+      "check": 1.0
+    },
+    "Q6s": {
+      "check": 1.0
+    },
+    "Q7o": {
+      "check": 1.0
+    },
+    "Q7s": {
+      "check": 1.0
+    },
+    "Q8o": {
+      "check": 1.0
+    },
+    "Q8s": {
+      "check": 1.0
+    },
+    "Q9o": {
+      "check": 1.0
+    },
+    "Q9s": {
+      "raise": 1.0
+    },
+    "QJo": {
+      "raise": 1.0
+    },
+    "QJs": {
+      "raise": 1.0
+    },
+    "QQ": {
+      "raise": 1.0
+    },
+    "QTo": {
+      "check": 1.0
+    },
+    "QTs": {
+      "raise": 1.0
+    },
+    "T2o": {
+      "check": 1.0
+    },
+    "T2s": {
+      "check": 1.0
+    },
+    "T3o": {
+      "check": 1.0
+    },
+    "T3s": {
+      "check": 1.0
+    },
+    "T4o": {
+      "check": 1.0
+    },
+    "T4s": {
+      "check": 1.0
+    },
+    "T5o": {
+      "check": 1.0
+    },
+    "T5s": {
+      "check": 1.0
+    },
+    "T6o": {
+      "check": 1.0
+    },
+    "T6s": {
+      "check": 1.0
+    },
+    "T7o": {
+      "check": 1.0
+    },
+    "T7s": {
+      "check": 1.0
+    },
+    "T8o": {
+      "check": 1.0
+    },
+    "T8s": {
+      "check": 1.0
+    },
+    "T9o": {
+      "check": 1.0
+    },
+    "T9s": {
+      "raise": 1.0
+    },
+    "TT": {
+      "raise": 1.0
+    }
+  },
+  "stats": {
+    "combos": 1326.0,
+    "vpip": 1.0,
+    "hands_played": 169,
+    "by_action": {
+      "raise": 264.0,
+      "check": 1062.0
+    }
+  }
+}
