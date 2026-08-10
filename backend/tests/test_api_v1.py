@@ -259,7 +259,7 @@ async def test_ranges_list_is_enriched_and_filters_matchups(
     item = response.json()["ranges"][0]
     assert set(item) == set(example("ranges_list_v2.json")["ranges"][1])
     assert item["actions"] == ["3bet", "call"]
-    assert item["action_sizes_bb"] == {"3bet": 4.0, "call": 2.5}
+    assert item["action_sizes_bb"] == {"3bet": 10.0, "call": 2.5}
     assert item["facing_size_bb"] == 2.5
     assert item["stats"]["by_action"] == {"3bet": 178.0, "call": 576.0}
 

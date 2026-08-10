@@ -180,12 +180,12 @@ def test_actions_cover_two_and_three_button_matchups(drill: VsRfiDrill) -> None:
 
     assert [(action.id, action.label) for action in two.actions] == [
         ("fold", "Fold"),
-        ("3bet", "3-Bet to 3.5bb"),
+        ("3bet", "3-Bet to 8.75bb"),
     ]
     assert [(action.id, action.label) for action in three.actions] == [
         ("fold", "Fold"),
         ("call", "Call 2.5bb"),
-        ("3bet", "3-Bet to 4bb"),
+        ("3bet", "3-Bet to 10bb"),
     ]
 
 

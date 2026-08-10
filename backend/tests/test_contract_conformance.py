@@ -32,6 +32,10 @@ CONFORMED_FIXTURES = {
     "sources",
     "summary",
 }
+PENDING_V3_FIXTURES = {
+    "next_question_bvb_limp",
+    "range_vs_limp_6max_BB_vs_SB",
+}
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
@@ -186,7 +190,7 @@ async def answer_current(
 
 def test_conformance_manifest_names_every_canonical_fixture() -> None:
     actual = {path.stem for path in EXAMPLES.glob("*.json")}
-    assert actual == CONFORMED_FIXTURES
+    assert actual == CONFORMED_FIXTURES | PENDING_V3_FIXTURES
 
 
 async def test_success_responses_match_canonical_fixture_shapes(

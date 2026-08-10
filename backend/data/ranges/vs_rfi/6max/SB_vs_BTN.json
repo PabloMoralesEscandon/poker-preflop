@@ -10,7 +10,7 @@
     "3bet"
   ],
   "action_sizes_bb": {
-    "3bet": 4
+    "3bet": 10.0
   },
   "source_id": "jl-6max-preflop-charts",
   "notes": "Chart p.5, top row fourth grid. Printed totals: 3Bet 15.1%, 200 / 200, 100.0%; Fold 84.9%, 1126 / 1326.",
