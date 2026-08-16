@@ -24,7 +24,7 @@ def test_bb_vs_sb_limp_never_folds(bb_vs_sb_limp: RangeData) -> None:
     )
 
 
-def test_bb_vs_sb_limp_premiums_are_pure_raise(bb_vs_sb_limp: RangeData) -> None:
+def test_chart_measured_premiums_are_pure_raise(bb_vs_sb_limp: RangeData) -> None:
     for hand in ("AA", "KK", "QQ", "AKs"):
         assert bb_vs_sb_limp.grid[hand] == {"raise": 1.0}
 

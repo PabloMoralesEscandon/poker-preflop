@@ -113,7 +113,7 @@ def test_3bet_sizes_are_derived_from_facing_size(
             assert range_data.action_sizes_bb["call"] == range_data.facing_size_bb
 
 
-def test_all_fourteen_matchups_equal_the_chart_printed_totals(
+def test_all_fifteen_matchups_equal_the_chart_printed_totals(
     matchup_ranges: list[RangeData],
 ) -> None:
     assert {matchup_id(item) for item in matchup_ranges} == set(EXPECTED_BY_ACTION)

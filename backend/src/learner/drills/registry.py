@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 
 from learner.drills.base import Drill
+from learner.drills.bvb import drill as bvb_drill
 from learner.drills.rfi import drill as rfi_drill
 from learner.drills.vs_rfi import drill as vs_rfi_drill
 from learner.errors import LearnerError
@@ -38,4 +39,4 @@ class DrillRegistry:
         return list(self._drills.values())
 
 
-registry = DrillRegistry([rfi_drill, vs_rfi_drill])
+registry = DrillRegistry([rfi_drill, vs_rfi_drill, bvb_drill])

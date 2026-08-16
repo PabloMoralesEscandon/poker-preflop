@@ -105,7 +105,7 @@ async def test_health_success(client: AsyncClient) -> None:
     assert response.json() == {"status": "ok", "version": "0.1.0"}
 
 
-async def test_drills_matches_fixture_and_lists_both_drills(
+async def test_drills_matches_fixture_and_lists_all_drills(
     client: AsyncClient,
 ) -> None:
     response = await client.get("/api/v1/drills")
@@ -118,11 +118,16 @@ async def test_drills_matches_fixture_and_lists_both_drills(
     expected["drills"][1]["config_schema"]["fields"][1] = drills[1][
         "config_schema"
     ]["fields"][1]
-    assert {"drills": drills} == expected
-    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi"]
+    assert {"drills": drills[:2]} == expected
+    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi", "bvb"]
     assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
         "table_format",
         "matchups",
+        "question_count",
+        "weighting",
+    ]
+    assert [field["key"] for field in drills[2]["config_schema"]["fields"]] == [
+        "situations",
         "question_count",
         "weighting",
     ]
