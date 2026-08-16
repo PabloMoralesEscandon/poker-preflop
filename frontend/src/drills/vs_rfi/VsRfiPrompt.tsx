@@ -4,6 +4,7 @@ import {
   type VsRfiPrompt as VsRfiPromptData,
 } from '../../api';
 import { HoleCards } from '../../components/Card';
+import { formatBb } from '../../lib/bb';
 import { cn } from '../../lib/cn';
 import type { DrillPromptProps } from '../registry';
 
@@ -27,9 +28,6 @@ const POSITION_NAMES: Record<Position, string> = {
   SB: 'Small blind',
   BB: 'Big blind',
 };
-
-const bb = (value: number) =>
-  Number.isInteger(value) ? `${value}bb` : `${value.toFixed(1)}bb`;
 
 function seatOrder(prompt: VsRfiPromptData): readonly Position[] {
   return (
@@ -92,7 +90,8 @@ export function VsRfiPrompt({
             ({prompt.raiser_position})
           </span>{' '}
           raised to{' '}
-          <span className="font-medium">{bb(prompt.facing_size_bb)}</span>.
+          <span className="font-medium">{formatBb(prompt.facing_size_bb)}</span>
+          .
         </p>
 
         {/* The seat strip: raiser, folds, and you. */}
@@ -149,11 +148,11 @@ export function VsRfiPrompt({
         <dl className="text-fg-muted flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs">
           <div className="flex gap-2">
             <dt>Pot</dt>
-            <dd className="text-fg">{bb(prompt.pot_bb)}</dd>
+            <dd className="text-fg">{formatBb(prompt.pot_bb)}</dd>
           </div>
           <div className="flex gap-2">
             <dt>To call</dt>
-            <dd className="text-fg">{bb(prompt.to_call_bb)}</dd>
+            <dd className="text-fg">{formatBb(prompt.to_call_bb)}</dd>
           </div>
         </dl>
       </div>

@@ -14,6 +14,7 @@ import { ErrorState, LoadingState } from '../components/states';
 const SPOT_LABELS: Record<string, string> = {
   rfi: 'Raise first in',
   vs_rfi: 'Facing a raise',
+  vs_limp: 'Facing a limp',
 };
 
 const spotLabel = (spot: string) => SPOT_LABELS[spot] ?? spot;
