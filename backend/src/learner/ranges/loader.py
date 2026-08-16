@@ -177,7 +177,7 @@ def load_range_file(
             f"{file_path}: range_id {item.range_id!r} does not match "
             f"path-derived id {expected_id!r}."
         )
-    if path_spot == "vs_rfi" and "_vs_" in path_matchup:
+    if path_spot in {"vs_rfi", "vs_limp"} and "_vs_" in path_matchup:
         path_position, path_vs_position = path_matchup.split("_vs_", maxsplit=1)
     else:
         path_position, path_vs_position = path_matchup, None
