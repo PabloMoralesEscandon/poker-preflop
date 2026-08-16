@@ -540,3 +540,70 @@ range payloads, replaced by `action_sizes_bb` — the only breaking change, and 
 is confined to the range endpoints. Bumping to `/api/v2` is not warranted for a
 field rename in a payload no external client consumes, but note it here so the
 decision is on the record.
+
+## 14. The `bvb` prompt
+
+The blind-versus-blind drill covers the big blind's response to **both** small-
+blind actions, which is how the source chart organises them and how the spot
+actually occurs. It reads two ranges: `vs_rfi_6max_BB_vs_SB` when the SB raises,
+`vs_limp_6max_BB_vs_SB` when the SB limps.
+
+Example: `docs/examples/next_question_bvb_limp.json`
+
+```json
+{
+  "done": false,
+  "question": {
+    "question_id": "q_2", "index": 2, "total": 25, "drill_id": "bvb",
+    "prompt": {
+      "kind": "bvb",
+      "table_format": "6max",
+      "hero_position": "BB",
+      "vs_position": "SB",
+      "sb_action": "limp",
+      "stack_bb": 100,
+      "hand": {"cards": ["Td", "9d"], "notation": "T9s"},
+      "facing_size_bb": 1.0,
+      "pot_bb": 2.0,
+      "to_call_bb": 0.0
+    },
+    "actions": [
+      {"id": "check", "label": "Check"},
+      {"id": "raise", "label": "Raise to 3.5bb"}
+    ]
+  }
+}
+```
+
+`sb_action` is `"limp"` or `"raise"` and is the discriminator the UI must make
+unmissable, because **it changes which actions are legal**.
+
+### 14.1 Fold is not always offered
+
+This is the first prompt where the action list may not contain `fold`.
+
+| `sb_action` | `to_call_bb` | Actions |
+|---|---|---|
+| `"limp"` | `0.0` | `check`, `raise` — **no fold** |
+| `"raise"` | `2.0` | `fold`, `call`, `3bet` |
+
+Facing a limp you are already in for free, so folding is irrational; the source
+chart records fold at 0.0% across all 1326 combos. The server builds the action
+list from the range's `actions` and adds `fold` only where folding is a legal
+option.
+
+Clients must render `question.actions` exactly as given. Do not synthesise a
+fold affordance, do not bind a keyboard shortcut to an action that is not in the
+list, and do not treat a two-action prompt as a truncated three-action one.
+
+`check` is an action that costs no chips. Its `action_sizes_bb` entry is `0.0`,
+which is a real value and not a missing one — render it as "Check", never as
+"Check 0bb".
+
+`bvb` has no `table_format` field in its config schema: the source publishes
+blind-versus-blind only for 6-max, so the drill is 6-max by construction. Its
+one selector is `situations`, a `multi_enum` over `limp` and `raise`.
+
+Grading, `mixed`, `expected` and the summary are unchanged — the rules are
+action-agnostic, which this third drill confirms. The `bvb` breakdown groups by
+situation.

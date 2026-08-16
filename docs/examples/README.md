@@ -24,6 +24,8 @@ If both sides match these files, integration is a config flip.
 | `ranges_list.json` | `GET /api/v1/ranges` |
 | `range_rfi_6max_CO.json` | `GET /api/v1/ranges/{range_id}` |
 | `errors.json` | every error envelope, keyed by error code |
+| `range_vs_limp_6max_BB_vs_SB.json` | `GET /api/v1/ranges/{id}` for a no-fold spot (v3) |
+| `next_question_bvb_limp.json` | a `bvb` question facing a limp — **no fold action** (v3) |
 | `sources.json` | `GET /api/v1/sources` — the provenance register (v2) |
 | `ranges_list_v2.json` | `GET /api/v1/ranges` enriched with `stats.by_action` (v2) |
 | `range_vs_rfi_6max_BB_vs_BTN.json` | `GET /api/v1/ranges/{id}` for a two-action matchup (v2) |
