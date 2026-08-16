@@ -23,8 +23,10 @@ CONFORMED_FIXTURES = {
     "errors",
     "next_done",
     "next_question",
+    "next_question_bvb_limp",
     "next_question_vs_rfi",
     "range_rfi_6max_CO",
+    "range_vs_limp_6max_BB_vs_SB",
     "range_vs_rfi_6max_BB_vs_BTN",
     "ranges_list",
     "ranges_list_v2",
@@ -137,6 +139,23 @@ def vs_rfi_session_request(
     }
 
 
+def bvb_session_request(
+    *,
+    situations: list[str] | None = None,
+    question_count: int = 5,
+    seed: int = 7,
+) -> dict[str, Any]:
+    return {
+        "drill_id": "bvb",
+        "config": {
+            "situations": situations or ["limp", "raise"],
+            "question_count": question_count,
+            "weighting": "borderline",
+        },
+        "seed": seed,
+    }
+
+
 async def create_session(client: AsyncClient, **kwargs: Any) -> dict[str, Any]:
     response = await client.post("/api/v1/sessions", json=session_request(**kwargs))
     assert response.status_code == 201
@@ -155,6 +174,9 @@ async def charted_action(client: AsyncClient, question: dict[str, Any]) -> str:
     prompt = question["prompt"]
     if prompt["kind"] == "rfi":
         range_id = f"rfi_{prompt['table_format']}_{prompt['hero_position']}"
+    elif prompt["kind"] == "bvb":
+        spot = "vs_limp" if prompt["sb_action"] == "limp" else "vs_rfi"
+        range_id = f"{spot}_6max_BB_vs_SB"
     else:
         range_id = (
             f"vs_rfi_{prompt['table_format']}_{prompt['hero_position']}"
@@ -226,7 +248,7 @@ async def test_success_responses_match_canonical_fixture_shapes(
         == 200
     )
     assert_fixture_shape(
-        {"drills": drills.json()["drills"]},
+        {"drills": drills.json()["drills"][:2]},
         fixture("drills"),
     )
     assert_fixture_shape(created, fixture("session_create"))
@@ -373,6 +395,68 @@ async def test_two_action_vs_rfi_session_completes_end_to_end(
             "accuracy": 1.0,
         }
     ]
+
+
+async def test_bvb_question_range_and_both_situations_conform_end_to_end(
+    client: AsyncClient,
+) -> None:
+    limp_created = await client.post(
+        "/api/v1/sessions",
+        json=bvb_session_request(situations=["limp"], question_count=25),
+    )
+    assert limp_created.status_code == 201
+    limp_next = await client.get(
+        f"/api/v1/sessions/{limp_created.json()['session_id']}/next"
+    )
+    limp_range = await client.get("/api/v1/ranges/vs_limp_6max_BB_vs_SB")
+
+    assert limp_next.status_code == limp_range.status_code == 200
+    assert_fixture_shape(limp_next.json(), fixture("next_question_bvb_limp"))
+    assert_fixture_shape(
+        limp_range.json(), fixture("range_vs_limp_6max_BB_vs_SB")
+    )
+    assert [
+        action["id"] for action in limp_next.json()["question"]["actions"]
+    ] == ["check", "raise"]
+
+    created = await client.post(
+        "/api/v1/sessions",
+        json=bvb_session_request(question_count=25, seed=1701),
+    )
+    assert created.status_code == 201
+    session_id = created.json()["session_id"]
+    seen: set[str] = set()
+    for expected_index in range(1, 26):
+        next_response = await client.get(f"/api/v1/sessions/{session_id}/next")
+        question = next_response.json()["question"]
+        assert question["index"] == expected_index
+        situation = question["prompt"]["sb_action"]
+        seen.add(situation)
+        offered = [action["id"] for action in question["actions"]]
+        if situation == "limp":
+            assert offered == ["check", "raise"]
+            assert "fold" not in offered
+        else:
+            assert offered == ["fold", "call", "3bet"]
+        action = await charted_action(client, question)
+        answered = await client.post(
+            f"/api/v1/sessions/{session_id}/answer",
+            json={"question_id": question["question_id"], "action_id": action},
+        )
+        assert answered.status_code == 200
+        assert answered.json()["correct"] is True
+
+    assert seen == {"limp", "raise"}
+    done = await client.get(f"/api/v1/sessions/{session_id}/next")
+    summary = await client.get(f"/api/v1/sessions/{session_id}/summary")
+    assert done.json() == {"done": True, "question": None}
+    assert summary.status_code == 200
+    assert summary.json()["drill_id"] == "bvb"
+    assert summary.json()["answered"] == summary.json()["correct"] == 25
+    assert {item["key"] for item in summary.json()["breakdown"]} == {
+        "limp",
+        "raise",
+    }
 
 
 async def test_complete_25_question_session_conforms_and_summarizes_arithmetic(

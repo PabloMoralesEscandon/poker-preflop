@@ -32,6 +32,7 @@ RFI_POSITIONS: dict[str, frozenset[str]] = {
 ALLOWED_ACTIONS_BY_SPOT: dict[str, frozenset[str]] = {
     "rfi": frozenset({"raise", "limp"}),
     "vs_rfi": frozenset({"call", "3bet"}),
+    "vs_limp": frozenset({"raise", "check"}),
 }
 
 
@@ -187,7 +188,7 @@ class RangeData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     range_id: str
-    spot: Literal["rfi", "vs_rfi"]
+    spot: Literal["rfi", "vs_rfi", "vs_limp"]
     table_format: Literal["6max", "8max"]
     position: str
     vs_position: str | None = None
@@ -250,7 +251,7 @@ class RangeData(BaseModel):
                 raise ValueError("vs_position must be absent for rfi ranges.")
             if self.facing_size_bb is not None:
                 raise ValueError("facing_size_bb must be absent for rfi ranges.")
-        else:
+        elif self.spot == "vs_rfi":
             if self.table_format != "6max":
                 raise ValueError("vs_rfi currently supports only 6max.")
             if self.vs_position is None:
@@ -264,6 +265,13 @@ class RangeData(BaseModel):
                 raise ValueError("vs_position must differ from position.")
             if self.facing_size_bb is None:
                 raise ValueError("facing_size_bb is required for vs_rfi ranges.")
+        else:
+            if self.table_format != "6max":
+                raise ValueError("vs_limp currently supports only 6max.")
+            if self.position != "BB" or self.vs_position != "SB":
+                raise ValueError("vs_limp currently supports only BB vs SB.")
+            if self.facing_size_bb is None:
+                raise ValueError("facing_size_bb is required for vs_limp ranges.")
         if self.facing_size_bb is not None and self.facing_size_bb <= 0.0:
             raise ValueError("facing_size_bb must be positive.")
         if not self.actions:
@@ -285,8 +293,14 @@ class RangeData(BaseModel):
                 f"missing={sorted(missing_sizes)}, "
                 f"unexpected={sorted(unexpected_sizes)}."
             )
-        if any(size <= 0.0 for size in self.action_sizes_bb.values()):
-            raise ValueError("action_sizes_bb values must be positive.")
+        for action, size in self.action_sizes_bb.items():
+            if self.spot == "vs_limp" and action == "check":
+                if size != 0.0:
+                    raise ValueError("vs_limp check size must be 0.0.")
+            elif size <= 0.0:
+                raise ValueError(
+                    "action_sizes_bb values must be positive except vs_limp check."
+                )
 
         if len(self.grid) != 169:
             raise ValueError(
@@ -316,6 +330,13 @@ class RangeData(BaseModel):
                     )
             if played_frequency(cell) > 1.0 + FREQUENCY_TOLERANCE:
                 raise ValueError(f"grid[{hand!r}] action frequencies sum above 1.0.")
+            if (
+                self.spot == "vs_limp"
+                and abs(played_frequency(cell) - 1.0) > FREQUENCY_TOLERANCE
+            ):
+                raise ValueError(
+                    f"grid[{hand!r}] must have played frequency 1.0 for vs_limp."
+                )
             used_actions.update(cell)
         unused = declared_actions - used_actions
         if unused:

@@ -1,6 +1,9 @@
+import hashlib
+import json
 import warnings
 from collections import defaultdict
 from itertools import pairwise
+from pathlib import Path
 
 import pytest
 
@@ -22,10 +25,54 @@ EXPECTED_BY_ACTION = {
     "BB_vs_HJ": {"3bet": 98.0, "call": 320.0},
     "BB_vs_CO": {"3bet": 128.0, "call": 342.0},
     "BB_vs_BTN": {"3bet": 178.0, "call": 576.0},
+    "BB_vs_SB": {"3bet": 218.0, "call": 640.0},
 }
-RAISER_ORDER = ("UTG", "HJ", "CO", "BTN")
+RAISER_ORDER = ("UTG", "HJ", "CO", "BTN", "SB")
 PREMIUMS = ("AA", "KK", "QQ", "AKs")
 BOTTOM = ("72o", "82o", "92o", "32o", "42o")
+IN_POSITION_MATCHUPS = {
+    "HJ_vs_UTG",
+    "CO_vs_UTG",
+    "CO_vs_HJ",
+    "BTN_vs_UTG",
+    "BTN_vs_HJ",
+    "BTN_vs_CO",
+    "BB_vs_SB",
+}
+VS_RFI_GRID_DIGESTS = {
+    "BB_vs_BTN.json": (
+        "0318cd5a087a72247139ec562045663f0d3e934b29826459f4891c0b2da023e8"
+    ),
+    "BB_vs_CO.json": "d54eeb5a3ba4aa481e4cf50e689f214f66a28682165dca8fe9a79e4a4448131c",
+    "BB_vs_HJ.json": "cfebe899746074deac5ac8cd62ad719d8c89e76391651921349ccdce09b7d28e",
+    "BB_vs_UTG.json": (
+        "02346f46f735acfecf9b7959453b4ab0bba62c8d361bb86875b97deaf2d8de1d"
+    ),
+    "BTN_vs_CO.json": (
+        "8cbd9d26d0adbc75f28e4800c3c04d1265e27dd8ec39a5e79cd1c53d090ae6d8"
+    ),
+    "BTN_vs_HJ.json": (
+        "1b18911cdcc19a6a546fd314722cd2e0987dcfccbd7eda91547774e13ef3c635"
+    ),
+    "BTN_vs_UTG.json": (
+        "0613bce6f7d0302851289b8781a9e45d71fd08390fb8972fa124263bb1c0238d"
+    ),
+    "CO_vs_HJ.json": "5dc34432a219efc6bb768e96a0f49a00f0f6f3805f556cc30f7e82849c325bf0",
+    "CO_vs_UTG.json": (
+        "ff96250af8fec4f693cdffe2be132c209fdc7e911e5388f893a6f170a2f5a927"
+    ),
+    "HJ_vs_UTG.json": (
+        "05da06395b9581153586b57b94b9e8e0bb96cf1fe85a13bbdda2b162817515b0"
+    ),
+    "SB_vs_BTN.json": (
+        "050496a9879103157ff519bfeca70a0b68d192bb4ab075617299a877ac56f698"
+    ),
+    "SB_vs_CO.json": "2306ffd17a6e183abda88cbf83bd159bde75e087076f2d1b327ca53d29340ab7",
+    "SB_vs_HJ.json": "99122baa27b89cdf45ad45cdc88e58de81ee6a783a28cad99b9c2b3317c7c0a8",
+    "SB_vs_UTG.json": (
+        "cda422707797ca54d3029cae7b90f79620deb6881c3058187be2d562ba7c850a"
+    ),
+}
 
 
 @pytest.fixture(scope="module")
@@ -37,7 +84,36 @@ def matchup_id(range_data: RangeData) -> str:
     return f"{range_data.position}_vs_{range_data.vs_position}"
 
 
-def test_all_fourteen_matchups_equal_the_chart_printed_totals(
+def test_corrected_sizing_did_not_change_any_matchup_grid() -> None:
+    data_root = (
+        Path(__file__).resolve().parents[1] / "data" / "ranges" / "vs_rfi" / "6max"
+    )
+    actual: dict[str, str] = {}
+    for filename in VS_RFI_GRID_DIGESTS:
+        payload = json.loads((data_root / filename).read_text(encoding="utf-8"))
+        encoded = json.dumps(
+            payload["grid"], sort_keys=True, separators=(",", ":")
+        ).encode()
+        actual[filename] = hashlib.sha256(encoded).hexdigest()
+
+    assert actual == VS_RFI_GRID_DIGESTS
+
+
+def test_3bet_sizes_are_derived_from_facing_size(
+    matchup_ranges: list[RangeData],
+) -> None:
+    for range_data in matchup_ranges:
+        matchup = matchup_id(range_data)
+        multiplier = 3.5 if matchup in IN_POSITION_MATCHUPS else 4.0
+        assert range_data.facing_size_bb is not None
+        assert range_data.action_sizes_bb["3bet"] == (
+            multiplier * range_data.facing_size_bb
+        )
+        if "call" in range_data.actions:
+            assert range_data.action_sizes_bb["call"] == range_data.facing_size_bb
+
+
+def test_all_fifteen_matchups_equal_the_chart_printed_totals(
     matchup_ranges: list[RangeData],
 ) -> None:
     assert {matchup_id(item) for item in matchup_ranges} == set(EXPECTED_BY_ACTION)
@@ -80,8 +156,7 @@ def test_suited_dominates_offsuit(matchup_ranges: list[RangeData]) -> None:
                 suited = played_frequency(range_data.grid[f"{high}{low}s"])
                 offsuit = played_frequency(range_data.grid[f"{high}{low}o"])
                 assert suited >= offsuit, (
-                    f"{range_data.range_id} plays {high}{low}o more than "
-                    f"{high}{low}s"
+                    f"{range_data.range_id} plays {high}{low}o more than {high}{low}s"
                 )
 
 

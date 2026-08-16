@@ -11,7 +11,7 @@
     "call"
   ],
   "action_sizes_bb": {
-    "3bet": 4,
+    "3bet": 10.0,
     "call": 2.5
   },
   "source_id": "jl-6max-preflop-charts",

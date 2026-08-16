@@ -87,6 +87,10 @@ def test_config_schema_derives_matchups_from_loaded_ranges(drill: VsRfiDrill) ->
     assert [(option.value, option.label) for option in options] == [
         (matchup, matchup.replace("_vs_", " vs ")) for matchup in expected
     ]
+    assert len(options) == 15
+    assert ("BB_vs_SB", "BB vs SB") in [
+        (option.value, option.label) for option in options
+    ]
     assert field.default == expected
 
 
@@ -107,7 +111,7 @@ def test_config_defaults_match_the_schema(drill: VsRfiDrill) -> None:
     [
         ({"table_format": "8max"}, "table_format"),
         ({"matchups": []}, "matchups"),
-        ({"matchups": ["BB_vs_SB"]}, "matchups"),
+        ({"matchups": ["BB_vs_BB"]}, "matchups"),
         ({"question_count": 4}, "question_count"),
         ({"question_count": 201}, "question_count"),
     ],
@@ -180,12 +184,12 @@ def test_actions_cover_two_and_three_button_matchups(drill: VsRfiDrill) -> None:
 
     assert [(action.id, action.label) for action in two.actions] == [
         ("fold", "Fold"),
-        ("3bet", "3-Bet to 3.5bb"),
+        ("3bet", "3-Bet to 8.75bb"),
     ]
     assert [(action.id, action.label) for action in three.actions] == [
         ("fold", "Fold"),
         ("call", "Call 2.5bb"),
-        ("3bet", "3-Bet to 4bb"),
+        ("3bet", "3-Bet to 10bb"),
     ]
 
 

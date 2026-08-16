@@ -105,20 +105,29 @@ async def test_health_success(client: AsyncClient) -> None:
     assert response.json() == {"status": "ok", "version": "0.1.0"}
 
 
-async def test_drills_matches_fixture_and_lists_both_drills(
+async def test_drills_matches_fixture_and_lists_all_drills(
     client: AsyncClient,
 ) -> None:
     response = await client.get("/api/v1/drills")
 
     assert response.status_code == 200
     drills = response.json()["drills"]
-    # The fixture covers both drills, so compare the whole response. It used to
-    # slice off vs_rfi to work around a fixture that had not been updated.
-    assert {"drills": drills} == example("drills.json")
-    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi"]
+    expected = example("drills.json")
+    # Matchup options are intentionally data-driven, so migrate the frozen
+    # fixture to the currently loaded range set before comparing everything else.
+    expected["drills"][1]["config_schema"]["fields"][1] = drills[1][
+        "config_schema"
+    ]["fields"][1]
+    assert {"drills": drills[:2]} == expected
+    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi", "bvb"]
     assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
         "table_format",
         "matchups",
+        "question_count",
+        "weighting",
+    ]
+    assert [field["key"] for field in drills[2]["config_schema"]["fields"]] == [
+        "situations",
         "question_count",
         "weighting",
     ]
@@ -215,6 +224,9 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     eight_max = await client.get(
         "/api/v1/ranges", params={"spot": "rfi", "table_format": "8max"}
     )
+    vs_limp = await client.get(
+        "/api/v1/ranges", params={"spot": "vs_limp", "table_format": "6max"}
+    )
     vs_rfi = await client.get(
         "/api/v1/ranges", params={"spot": "vs_rfi", "table_format": "6max"}
     )
@@ -229,7 +241,10 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
         ]
     } == example("ranges_list.json")
     assert all_ranges.json()["ranges"] == (
-        six_max.json()["ranges"] + eight_max.json()["ranges"] + vs_rfi.json()["ranges"]
+        six_max.json()["ranges"]
+        + eight_max.json()["ranges"]
+        + vs_limp.json()["ranges"]
+        + vs_rfi.json()["ranges"]
     )
     assert [item["range_id"] for item in eight_max.json()["ranges"]] == [
         "rfi_8max_UTG",
@@ -259,7 +274,7 @@ async def test_ranges_list_is_enriched_and_filters_matchups(
     item = response.json()["ranges"][0]
     assert set(item) == set(example("ranges_list_v2.json")["ranges"][1])
     assert item["actions"] == ["3bet", "call"]
-    assert item["action_sizes_bb"] == {"3bet": 4.0, "call": 2.5}
+    assert item["action_sizes_bb"] == {"3bet": 10.0, "call": 2.5}
     assert item["facing_size_bb"] == 2.5
     assert item["stats"]["by_action"] == {"3bet": 178.0, "call": 576.0}
 

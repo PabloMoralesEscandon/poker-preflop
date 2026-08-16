@@ -43,6 +43,23 @@ def test_loader_accepts_matchup_path_and_metadata(
     assert loaded.stats.by_action == {"3bet": 6.0, "call": 4.0}
 
 
+def test_loader_accepts_fully_played_vs_limp_fixture(
+    limp_range_payload, range_writer
+) -> None:
+    root, _ = range_writer(
+        limp_range_payload(), relative="vs_limp/6max/BB_vs_SB.json"
+    )
+
+    loaded = load_ranges(root).get("vs_limp_6max_BB_vs_SB")
+
+    assert loaded.actions == ["raise", "check"]
+    assert loaded.action_sizes_bb == {"raise": 3.5, "check": 0.0}
+    assert loaded.stats.vpip == 1.0
+    assert loaded.stats.hands_played == 169
+    assert loaded.stats.combos == 1326.0
+    assert loaded.stats.by_action == {"raise": 6.0, "check": 1320.0}
+
+
 def test_loader_accepts_fullring_source_and_8max_positions(
     range_payload, range_writer
 ) -> None:
@@ -161,6 +178,64 @@ def test_limp_is_rejected_inside_vs_rfi(matchup_range_payload, range_writer) -> 
     root, _ = range_writer(payload, relative="vs_rfi/6max/BB_vs_BTN.json")
 
     with pytest.raises(RangeLoadError, match="limp.*invalid for spot 'vs_rfi'"):
+        load_ranges(root)
+
+
+def test_explicit_fold_action_is_rejected_in_vs_limp(
+    limp_range_payload, range_writer
+) -> None:
+    payload = limp_range_payload(
+        actions=["raise", "check", "fold"],
+        action_sizes_bb={"raise": 3.5, "check": 0.0, "fold": 0.0},
+    )
+    root, _ = range_writer(payload, relative="vs_limp/6max/BB_vs_SB.json")
+
+    with pytest.raises(RangeLoadError, match="non-fold action ids"):
+        load_ranges(root)
+
+
+def test_folded_cell_is_rejected_in_vs_limp(limp_range_payload, range_writer) -> None:
+    payload = limp_range_payload()
+    payload["grid"]["72o"] = {}
+    root, _ = range_writer(payload, relative="vs_limp/6max/BB_vs_SB.json")
+
+    with pytest.raises(RangeLoadError, match="played frequency 1.0 for vs_limp"):
+        load_ranges(root)
+
+
+def test_check_is_rejected_inside_rfi(range_payload, range_writer) -> None:
+    payload = range_payload(
+        actions=["raise", "check"],
+        action_sizes_bb={"raise": 2.5, "check": 0.0},
+    )
+    payload["grid"]["KQs"] = {"check": 1.0}
+    root, _ = range_writer(payload)
+
+    with pytest.raises(RangeLoadError, match="check.*invalid for spot 'rfi'"):
+        load_ranges(root)
+
+
+def test_limp_is_rejected_inside_vs_limp(limp_range_payload, range_writer) -> None:
+    payload = limp_range_payload(
+        actions=["raise", "check", "limp"],
+        action_sizes_bb={"raise": 3.5, "check": 0.0, "limp": 1.0},
+    )
+    payload["grid"]["KQs"] = {"limp": 1.0}
+    root, _ = range_writer(payload, relative="vs_limp/6max/BB_vs_SB.json")
+
+    with pytest.raises(RangeLoadError, match="limp.*invalid for spot 'vs_limp'"):
+        load_ranges(root)
+
+
+def test_vs_limp_action_sizes_must_include_check(
+    limp_range_payload, range_writer
+) -> None:
+    root, _ = range_writer(
+        limp_range_payload(action_sizes_bb={"raise": 3.5}),
+        relative="vs_limp/6max/BB_vs_SB.json",
+    )
+
+    with pytest.raises(RangeLoadError, match=r"action_sizes_bb.*missing=\['check'\]"):
         load_ranges(root)
 
 

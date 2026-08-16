@@ -54,6 +54,28 @@ def matchup_range_payload(
 
 
 @pytest.fixture
+def limp_range_payload(
+    range_payload: Callable[..., dict[str, Any]],
+) -> Callable[..., dict[str, Any]]:
+    def factory(**overrides: Any) -> dict[str, Any]:
+        payload = range_payload(
+            range_id="vs_limp_6max_BB_vs_SB",
+            spot="vs_limp",
+            position="BB",
+            vs_position="SB",
+            facing_size_bb=1.0,
+            actions=["raise", "check"],
+            action_sizes_bb={"raise": 3.5, "check": 0.0},
+            grid={hand: {"check": 1.0} for hand in canonical_hands()},
+        )
+        payload["grid"]["AA"] = {"raise": 1.0}
+        payload.update(overrides)
+        return copy.deepcopy(payload)
+
+    return factory
+
+
+@pytest.fixture
 def range_writer(
     tmp_path: Path,
 ) -> Callable[[dict[str, Any], str], tuple[Path, Path]]:
