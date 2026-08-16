@@ -323,19 +323,32 @@ export function HandGrid({
         grid={grid}
         colors={colors}
         actionLabels={actionLabels ?? {}}
+        states={new Set(cells.map((cell) => cell.state))}
       />
     </figure>
   );
 }
 
+/**
+ * The key to the chart.
+ *
+ * `mixed` and `fold` are listed only when a cell is actually in that state. A
+ * `vs_limp` chart has neither — nothing folds and nothing is split — and a
+ * legend that swore otherwise would send a reader hunting the grid for swatches
+ * that are not there, in exactly the chart where a fully coloured 13×13 already
+ * looks surprising. Action swatches are already derived from the grid, so this
+ * only extends the rule that was there to the two hardcoded rows.
+ */
 function HandGridLegend({
   grid,
   colors,
   actionLabels,
+  states,
 }: {
   grid: HandGridData;
   colors: Record<string, string>;
   actionLabels: Record<string, string>;
+  states: ReadonlySet<CellState>;
 }) {
   const actionIds = useMemo(() => {
     const ids = new Set<string>();
@@ -360,29 +373,40 @@ function HandGridLegend({
         </li>
       ))}
 
-      <li className="flex items-center gap-1.5">
-        <span
-          aria-hidden="true"
-          className="border-line relative inline-block size-3 overflow-hidden rounded-[2px] border"
-          style={{
-            background: `linear-gradient(to top, ${primary} 0 50%, var(--surface-muted) 50% 100%)`,
-          }}
-        >
+      {states.has('mixed') ? (
+        <li className="flex items-center gap-1.5">
           <span
-            className="absolute inset-x-0 bottom-0 h-1/2"
-            style={{ background: HATCH }}
-          />
-        </span>
-        mixed
-      </li>
+            aria-hidden="true"
+            className="border-line relative inline-block size-3 overflow-hidden rounded-[2px] border"
+            style={{
+              background: `linear-gradient(to top, ${primary} 0 50%, var(--surface-muted) 50% 100%)`,
+            }}
+          >
+            <span
+              className="absolute inset-x-0 bottom-0 h-1/2"
+              style={{ background: HATCH }}
+            />
+          </span>
+          mixed
+        </li>
+      ) : null}
 
-      <li className="flex items-center gap-1.5">
-        <span
-          aria-hidden="true"
-          className="bg-surface-muted border-line inline-block size-3 rounded-[2px] border"
-        />
-        fold
-      </li>
+      {states.has('fold') ? (
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="bg-surface-muted border-line inline-block size-3 rounded-[2px] border"
+          />
+          fold
+        </li>
+      ) : (
+        // Said out loud, because "every cell is coloured" is the one thing a
+        // reader is most likely to mistake for a rendering fault.
+        <li className="flex items-center gap-1.5">
+          <span aria-hidden="true" className="inline-block size-3" />
+          nothing folds — all 169 hands are played
+        </li>
+      )}
     </ul>
   );
 }

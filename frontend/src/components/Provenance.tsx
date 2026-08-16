@@ -1,4 +1,5 @@
 import type { RangeDetail, SourceInfo } from '../api';
+import { formatBb, formatChips } from '../lib/bb';
 import { cn } from '../lib/cn';
 
 /**
@@ -24,9 +25,6 @@ const ROLE_COPY: Record<SourceInfo['role'], { label: string; tone: string }> = {
 
 const percent = (value: number, places = 1) =>
   `${(value * 100).toFixed(places)}%`;
-
-const bb = (value: number) =>
-  Number.isInteger(value) ? `${value}bb` : `${value.toFixed(1)}bb`;
 
 export function Provenance({
   range,
@@ -111,19 +109,26 @@ export function Provenance({
           <dt>Range id</dt>
           <dd className="text-fg font-mono">{range.range_id}</dd>
           <dt>Stack depth</dt>
-          <dd className="text-fg font-mono">{bb(range.stack_bb)}</dd>
+          <dd className="text-fg font-mono">{formatBb(range.stack_bb)}</dd>
           {range.facing_size_bb !== null ? (
             <>
               <dt>Facing</dt>
-              <dd className="text-fg font-mono">{bb(range.facing_size_bb)}</dd>
+              <dd className="text-fg font-mono">
+                {formatBb(range.facing_size_bb)}
+              </dd>
             </>
           ) : null}
           <dt>Sizes</dt>
           <dd className="text-fg font-mono">
+            {/*
+              `check` is a real action whose size is 0.0 (RANGE-DATA-FORMAT §9).
+              Rendering that as "0bb" would read as a value that failed to load,
+              in the one panel whose whole job is that numbers can be trusted.
+            */}
             {Object.entries(range.action_sizes_bb).length === 0
               ? '—'
               : Object.entries(range.action_sizes_bb)
-                  .map(([actionId, size]) => `${actionId} ${bb(size)}`)
+                  .map(([actionId, size]) => `${actionId} ${formatChips(size)}`)
                   .join(' · ')}
           </dd>
         </dl>
@@ -198,6 +203,13 @@ export function Provenance({
               </td>
               <td className="py-1 text-right tabular-nums">100.0%</td>
             </tr>
+            {/*
+              The fold row stays even when it is zero. A `vs_limp` chart folds
+              0.0% of 1326 combos and prints exactly that line under the grid
+              (BVB-CALIBRATION §3) — so a reader checking our totals against the
+              PDF has a row to check it against. Hiding it would remove the one
+              number that proves nothing folds.
+            */}
             <tr className="border-line text-fg-muted border-t">
               <th scope="row" className="py-1 text-left font-normal">
                 fold

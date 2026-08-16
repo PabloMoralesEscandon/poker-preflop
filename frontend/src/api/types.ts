@@ -153,8 +153,44 @@ export interface VsRfiPrompt {
   to_call_bb: number;
 }
 
+/**
+ * Prompt for drill #3: blind versus blind.
+ *
+ * Mirrored from `docs/examples/next_question_bvb_limp.json`, because
+ * API-CONTRACT.md stops at §13 and never describes this prompt — see the
+ * finding raised with FE-13. If the contract later documents a different shape,
+ * the contract wins.
+ *
+ * Two things here are unlike the other prompts:
+ *
+ *  - **`sb_action` changes which actions are legal.** On the limp branch fold
+ *    is not offered at all (RANGE-DATA-FORMAT §9); on the raise branch it is.
+ *    The component must never assume a fold button exists.
+ *  - **There is no `folded_before`.** Blind versus blind is heads-up by the
+ *    time hero acts, so the seat strip is derived from the two seats named
+ *    here rather than from a fold list.
+ */
+export interface BvbPrompt {
+  kind: 'bvb';
+  table_format: TableFormat;
+  /** Always the big blind in this spot, but read from the payload regardless. */
+  hero_position: Position;
+  /** The small blind. */
+  vs_position: Position;
+  /** What the small blind did. It decides the legal action set. */
+  sb_action: 'limp' | 'raise';
+  stack_bb: number;
+  hand: DealtHand;
+  /** What hero faces: `1.0` for a limp, the open size for a raise. */
+  facing_size_bb: number;
+  /** The pot before hero acts. Computed server-side; never derived here. */
+  pot_bb: number;
+  /** What hero must add to continue. `0` on the limp branch — hero is in free. */
+  to_call_bb: number;
+}
+
 /** Discriminated on `prompt.kind` — the key of the frontend drill registry. */
-export type QuestionPrompt = RfiPrompt | VsRfiPrompt;
+export type QuestionPrompt = RfiPrompt | VsRfiPrompt | BvbPrompt;
 
 export interface ActionOption {
   id: string;

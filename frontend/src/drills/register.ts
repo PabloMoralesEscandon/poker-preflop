@@ -7,9 +7,11 @@
  */
 
 import type {
+  BvbPrompt as BvbPromptData,
   RfiPrompt as RfiPromptData,
   VsRfiPrompt as VsRfiPromptData,
 } from '../api';
+import { BvbPrompt } from './bvb/BvbPrompt';
 import { RfiPrompt } from './rfi/RfiPrompt';
 import { registerDrill } from './registry';
 import { VsRfiPrompt } from './vs_rfi/VsRfiPrompt';
@@ -22,5 +24,10 @@ registerDrill<RfiPromptData>('rfi', {
 
 registerDrill<VsRfiPromptData>('vs_rfi', {
   Prompt: VsRfiPrompt,
+  gridHighlight: (prompt) => prompt.hand.notation,
+});
+
+registerDrill<BvbPromptData>('bvb', {
+  Prompt: BvbPrompt,
   gridHighlight: (prompt) => prompt.hand.notation,
 });

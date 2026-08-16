@@ -47,6 +47,28 @@ describe('app shell and routing', () => {
     ).toBeInTheDocument();
   });
 
+  /**
+   * The picker is generated from `GET /drills`, so a third drill should need no
+   * change to appear or to be reachable. FE-13 asks for that to be verified
+   * rather than assumed.
+   */
+  it('lists and routes to the third drill with no page changes', async () => {
+    renderAt('/');
+    expect(
+      await screen.findByRole('link', { name: /Blind vs Blind/ })
+    ).toHaveAttribute('href', '/drill/bvb');
+  });
+
+  it('renders the blind-versus-blind runner from the same route', async () => {
+    renderAt('/drill/bvb');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Blind vs Blind' })
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Start session' })
+    ).toBeInTheDocument();
+  });
+
   it('falls back to a not-found page', () => {
     renderAt('/nope');
     expect(

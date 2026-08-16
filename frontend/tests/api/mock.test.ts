@@ -95,21 +95,17 @@ describe('mock session lifecycle', () => {
     const question = await currentQuestion(client, session.session_id);
 
     expect(question.drill_id).toBe('rfi');
-    expect(question.prompt.kind).toBe('rfi');
-    expect(question.prompt.stack_bb).toBe(100);
-    expect(question.prompt.pot_bb).toBe(1.5);
-    expect(question.prompt.hand.cards).toHaveLength(2);
-    expect(question.prompt.hand.cards[0]).not.toBe(
-      question.prompt.hand.cards[1]
-    );
-    expect(['UTG', 'HJ', 'CO', 'BTN', 'SB']).toContain(
-      question.prompt.hero_position
-    );
-    expect(question.prompt.folded_before).not.toContain(
-      question.prompt.hero_position
-    );
-    // Fold is always offered and always first; the rest come from the range's
-    // own action list, which is three-wide at the small blind.
+    const prompt = question.prompt;
+    if (prompt.kind !== 'rfi') throw new Error('expected an rfi prompt');
+    expect(prompt.stack_bb).toBe(100);
+    expect(prompt.pot_bb).toBe(1.5);
+    expect(prompt.hand.cards).toHaveLength(2);
+    expect(prompt.hand.cards[0]).not.toBe(prompt.hand.cards[1]);
+    expect(['UTG', 'HJ', 'CO', 'BTN', 'SB']).toContain(prompt.hero_position);
+    expect(prompt.folded_before).not.toContain(prompt.hero_position);
+    // Fold is offered first wherever folding is legal, which is everywhere but
+    // the limp branch of `bvb`; the rest come from the range's own action list,
+    // which is three-wide at the small blind.
     expect(question.actions[0]?.id).toBe('fold');
     expect(question.actions.length).toBeGreaterThanOrEqual(2);
   });
@@ -431,7 +427,10 @@ describe('mock static endpoints', () => {
   it('serves the drills fixture', async () => {
     const client = new MockApiClient();
     const { drills } = await client.listDrills();
-    expect(drills.map((drill) => drill.id)).toEqual(['rfi', 'vs_rfi']);
+    // `bvb` is appended by the mock, not served: `drills.json` still lists only
+    // the first two. Raised as a finding with FE-13 — the entry should come
+    // from a regenerated fixture, as `vs_rfi`'s eventually did.
+    expect(drills.map((drill) => drill.id)).toEqual(['rfi', 'vs_rfi', 'bvb']);
     expect(drills[0]?.config_schema.fields.map((f) => f.key)).toEqual([
       'table_format',
       'positions',
@@ -459,11 +458,16 @@ describe('mock static endpoints', () => {
   it('filters by spot, position and vs_position', async () => {
     const client = new MockApiClient();
 
-    // All fourteen matchups the drills fixture offers.
+    // The fourteen matchups the drills fixture offers, plus BB vs SB — an
+    // ordinary facing-a-raise spot that the fixture's matchup list does not
+    // name, because it was added to `vs_rfi` later (VS-RFI-CALIBRATION §7).
     const vsRfi = await client.listRanges({ spot: 'vs_rfi' });
-    expect(vsRfi.ranges).toHaveLength(14);
+    expect(vsRfi.ranges).toHaveLength(15);
     expect(vsRfi.ranges.map((entry) => entry.range_id)).toContain(
       'vs_rfi_6max_BB_vs_BTN'
+    );
+    expect(vsRfi.ranges.map((entry) => entry.range_id)).toContain(
+      'vs_rfi_6max_BB_vs_SB'
     );
     expect(vsRfi.ranges.every((entry) => entry.spot === 'vs_rfi')).toBe(true);
 
@@ -476,10 +480,19 @@ describe('mock static endpoints', () => {
       'vs_rfi_6max_BB_vs_BTN',
     ]);
 
-    // BB is hero in four matchups, and is never the raiser.
+    // BB is hero in six charts now — four vs_rfi matchups, plus both blind
+    // versus blind branches — and is never the villain.
     expect((await client.listRanges({ position: 'BB' })).ranges).toHaveLength(
-      4
+      6
     );
+
+    // The SB is villain in exactly the two blind-versus-blind charts, one per
+    // branch, and they sit in two different spots.
+    const vsSb = await client.listRanges({ vs_position: 'SB' });
+    expect(vsSb.ranges.map((entry) => [entry.range_id, entry.spot])).toEqual([
+      ['vs_rfi_6max_BB_vs_SB', 'vs_rfi'],
+      ['vs_limp_6max_BB_vs_SB', 'vs_limp'],
+    ]);
     expect(
       (await client.listRanges({ vs_position: 'UTG' })).ranges.map(
         (entry) => entry.range_id
@@ -689,10 +702,25 @@ describe('every advertised matchup is serveable', () => {
     const sizeOf = async (matchup: string) =>
       (await client.getRange(`vs_rfi_6max_${matchup}`)).action_sizes_bb['3bet'];
 
-    // 3.5x in position, 4x out of position.
-    expect(await sizeOf('BTN_vs_CO')).toBe(3.5);
-    expect(await sizeOf('CO_vs_UTG')).toBe(3.5);
+    // VS-RFI-CALIBRATION §1.1: 3.5x in position, 4x out of position, and those
+    // are multipliers of the open rather than absolute big blinds. Facing
+    // 2.5bb that is 8.75bb and 10bb. The old reading — 3.5bb and 4bb — made a
+    // 3-bet smaller than the raise it answered, and the document now names
+    // that error explicitly.
+    expect(await sizeOf('BTN_vs_CO')).toBe(8.75);
+    expect(await sizeOf('CO_vs_UTG')).toBe(8.75);
+    expect(await sizeOf('SB_vs_UTG')).toBe(10);
+
+    // BB vs BTN is the exception, and deliberately so: it is the one matchup
+    // that exists as a fixture, `range_vs_rfi_6max_BB_vs_BTN.json` still
+    // carries the pre-correction 4.0, and the chart browser's job is to show
+    // the file rather than a reconstruction of it. The stale fixture is a
+    // finding raised with FE-13; this assertion is here so that regenerating it
+    // fails loudly instead of quietly.
     expect(await sizeOf('BB_vs_BTN')).toBe(4);
-    expect(await sizeOf('SB_vs_UTG')).toBe(4);
+
+    // BB vs SB faces a 3bb open, not 2.5bb, and the BB is in position postflop
+    // heads up — so 3.5x of 3bb.
+    expect(await sizeOf('BB_vs_SB')).toBe(10.5);
   });
 });

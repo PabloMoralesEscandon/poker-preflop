@@ -26,10 +26,15 @@
  *  3. `weighting: "borderline"` is approximated (combo weight × 6 on mixed
  *     hands) rather than implementing the neighbour scan in
  *     RANGE-DATA-FORMAT §6. The real sampler is the backend's.
+ *  4. `drills.json` lists `rfi` and `vs_rfi` but not `bvb`, so the `bvb` config
+ *     schema below is hand-authored here rather than served. That is the same
+ *     gap `vs_rfi` had before the fixture was regenerated from the live server;
+ *     delete {@link BVB_DRILL} once `bvb` appears in the fixture.
  */
 
 import drillsFixture from '@fixtures/drills.json';
 import rangeCoFixture from '@fixtures/range_rfi_6max_CO.json';
+import rangeVsLimpFixture from '@fixtures/range_vs_limp_6max_BB_vs_SB.json';
 import rangeVsRfiFixture from '@fixtures/range_vs_rfi_6max_BB_vs_BTN.json';
 import sourcesFixture from '@fixtures/sources.json';
 
@@ -64,6 +69,7 @@ import {
   type SessionSummary,
   type TableFormat,
 } from './types';
+import { bbAmount } from '../lib/bb';
 import {
   ALL_HANDS,
   cardsForNotation,
@@ -72,7 +78,64 @@ import {
   handTypeOf,
 } from '../lib/hands';
 
-const DRILLS = drillsFixture as DrillsResponse;
+/**
+ * The `bvb` drill, hand-authored because `drills.json` does not list it yet.
+ *
+ * `sb_actions` is the only field that is not a straight copy of the other two
+ * drills, and it is the one that matters: it selects which branch of the spot
+ * gets dealt, and the branch decides whether fold is a legal action at all.
+ * Both are on by default so a default session exercises both.
+ */
+const BVB_DRILL: DrillInfo = {
+  id: 'bvb',
+  name: 'Blind vs Blind',
+  description:
+    'Respond to the small blind in the big blind, after a limp or a raise.',
+  version: 1,
+  config_schema: {
+    fields: [
+      {
+        key: 'table_format',
+        label: 'Table format',
+        type: 'enum',
+        default: '6max',
+        options: [{ value: '6max', label: '6-max' }],
+      },
+      {
+        key: 'sb_actions',
+        label: 'Small blind action',
+        type: 'multi_enum',
+        default: ['limp', 'raise'],
+        options: [
+          { value: 'limp', label: 'SB limps' },
+          { value: 'raise', label: 'SB raises' },
+        ],
+      },
+      {
+        key: 'question_count',
+        label: 'Hands',
+        type: 'int',
+        default: 25,
+        min: 5,
+        max: 200,
+      },
+      {
+        key: 'weighting',
+        label: 'Hand weighting',
+        type: 'enum',
+        default: 'borderline',
+        options: [
+          { value: 'borderline', label: 'Borderline hands more often' },
+          { value: 'uniform', label: 'Uniform' },
+        ],
+      },
+    ],
+  },
+};
+
+const DRILLS: DrillsResponse = {
+  drills: [...(drillsFixture as DrillsResponse).drills, BVB_DRILL],
+};
 
 /**
  * The matchups the `vs_rfi` drill offers, taken from the drills fixture rather
@@ -129,6 +192,7 @@ function normaliseRange(raw: unknown): RangeDetail {
 
 const CO_RANGE = normaliseRange(rangeCoFixture);
 const VS_RFI_RANGE = normaliseRange(rangeVsRfiFixture);
+const VS_LIMP_RANGE = normaliseRange(rangeVsLimpFixture);
 const SOURCES = sourcesFixture as unknown as SourcesResponse;
 
 const THREE_BET_ONLY_MATCHUPS = new Set([
@@ -144,6 +208,7 @@ const THREE_BET_ONLY_MATCHUPS = new Set([
 /** Ranges served verbatim from a fixture, keyed by id. */
 const FIXTURE_RANGES: Record<string, RangeDetail> = {
   [VS_RFI_RANGE.range_id]: VS_RFI_RANGE,
+  [VS_LIMP_RANGE.range_id]: VS_LIMP_RANGE,
 };
 
 // ---------------------------------------------------------------------------
@@ -164,11 +229,31 @@ interface MockChart {
   actionSizesBb: Record<string, number>;
   /** Label for each non-fold action, including its sizing. */
   actionLabels: Record<string, string>;
+  /**
+   * Whether fold is a legal action in this spot.
+   *
+   * It is not a property of the grid — a grid stores non-fold frequencies and
+   * says nothing about legality — so it has to be declared. `vs_limp` is the
+   * spot that forced this: hero is already in for free, fold is 0.0% across all
+   * 1326 combos, and offering the button anyway would be offering a line the
+   * chart never takes (RANGE-DATA-FORMAT §9).
+   *
+   * Defaults to `true` because it is true everywhere else.
+   */
+  offersFold?: boolean;
+  /**
+   * The order the buttons are offered in, when it differs from `actions`.
+   *
+   * `actions` is the chart's own list and doubles as the grading tie-break
+   * order, so it follows the range file. What a player reads left to right is a
+   * separate decision — passive first, matching `Fold, Call, 3-Bet` in the
+   * fixtures — and conflating the two would let a UI choice change a grade.
+   */
+  offerOrder?: string[];
 }
 
-function formatBb(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
+/** The number that goes inside a server-authored label such as `Raise 2.5bb`. */
+const formatBb = bbAmount;
 
 /**
  * The SB opens for 3bb and can also limp (RFI-CALIBRATION §2.2). Offsuit opens
@@ -221,9 +306,12 @@ function seatsOf(matchup: string): { hero: Position; raiser: Position } {
 
 function vsRfiChartFor(matchup: string): MockChart {
   const outOfPosition = matchup.startsWith('SB') || matchup.startsWith('BB');
-  // VS-RFI-CALIBRATION §1: 3.5x in position, 4x out of position.
-  const threeBetSize = outOfPosition ? 4 : 3.5;
+  // VS-RFI-CALIBRATION §1.1: 3.5x in position, 4x out of position — and those
+  // are multipliers of the open, not absolute big blinds. Facing 2.5bb that is
+  // 8.75bb and 10bb. The earlier reading of "3.5bb / 4bb" made a 3-bet smaller
+  // than the raise it answered; the document now calls that error out by name.
   const facing = VS_RFI_RANGE.facing_size_bb ?? 2.5;
+  const threeBetSize = round(facing * (outOfPosition ? 4 : 3.5), 2);
 
   if (THREE_BET_ONLY_MATCHUPS.has(matchup)) {
     return {
@@ -246,11 +334,97 @@ function vsRfiChartFor(matchup: string): MockChart {
       [THREE_BET_ACTION_ID]: `3-Bet to ${formatBb(threeBetSize)}bb`,
       [CALL_ACTION_ID]: `Call ${formatBb(facing)}bb`,
     },
+    // `Fold, Call, 3-Bet` — cheapest first, as next_question_vs_rfi.json
+    // offers them. The range's own `actions` puts 3-bet first and stays the
+    // grading tie-break order.
+    offerOrder: [CALL_ACTION_ID, THREE_BET_ACTION_ID],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Blind versus blind
+// ---------------------------------------------------------------------------
+
+const CHECK_ACTION_ID = 'check';
+
+/** BVB-CALIBRATION §2: the SB's limp is 1bb and the BB raises 3.5x of it. */
+const SB_LIMP_SIZE_BB = VS_LIMP_RANGE.facing_size_bb ?? 1;
+/** RFI-CALIBRATION §2.2: the small blind opens for 3bb. */
+const SB_OPEN_SIZE_BB = 3;
+
+/**
+ * Facing the limp. Served straight from the fixture, cells included — it is the
+ * only chart in the mock that is not derived, and the only one with no folded
+ * cells at all.
+ *
+ * `offersFold: false` is the whole point of the spot. Hero is in for free, so
+ * fold is not a line the drill may offer.
+ */
+function vsLimpChart(): MockChart {
+  const raiseSize = VS_LIMP_RANGE.action_sizes_bb[RAISE_ACTION_ID] ?? 3.5;
+  return {
+    actions: [...VS_LIMP_RANGE.actions],
+    grid: VS_LIMP_RANGE.grid,
+    actionSizesBb: { ...VS_LIMP_RANGE.action_sizes_bb },
+    actionLabels: {
+      [RAISE_ACTION_ID]: `Raise to ${formatBb(raiseSize)}bb`,
+      // No sizing in the label, because there is no size. The fixture says
+      // `check: 0.0`, and "Check 0bb" would be a lie dressed as precision.
+      [CHECK_ACTION_ID]: 'Check',
+    },
+    offersFold: false,
+    // Passive first, as `next_question_bvb_limp.json` offers them.
+    offerOrder: [CHECK_ACTION_ID, RAISE_ACTION_ID],
+  };
+}
+
+/**
+ * Facing the SB's open. An ordinary facing-a-raise spot (VS-RFI-CALIBRATION §7),
+ * so fold is back and the cells are the vs-RFI fixture's — illustrative, as the
+ * limitation note at the top of this file says of every derived chart.
+ *
+ * The 3-bet is 3.5x of a 3bb open: the BB is in position postflop heads-up.
+ */
+function bvbRaiseChart(): MockChart {
+  const threeBetSize = round(SB_OPEN_SIZE_BB * 3.5, 2);
+  return {
+    actions: [THREE_BET_ACTION_ID, CALL_ACTION_ID],
+    grid: VS_RFI_RANGE.grid,
+    actionSizesBb: {
+      [THREE_BET_ACTION_ID]: threeBetSize,
+      [CALL_ACTION_ID]: SB_OPEN_SIZE_BB,
+    },
+    actionLabels: {
+      [THREE_BET_ACTION_ID]: `3-Bet to ${formatBb(threeBetSize)}bb`,
+      [CALL_ACTION_ID]: `Call ${formatBb(SB_OPEN_SIZE_BB)}bb`,
+    },
+    offerOrder: [CALL_ACTION_ID, THREE_BET_ACTION_ID],
+  };
+}
+
+function bvbChartFor(sbAction: 'limp' | 'raise'): MockChart {
+  return sbAction === 'limp' ? vsLimpChart() : bvbRaiseChart();
+}
+
+/**
+ * The chart behind a catalogue entry.
+ *
+ * One function so the list and the detail cannot disagree: `BB vs SB` is a
+ * `vs_rfi` matchup whose sizes come from a 3bb open rather than the 2.5bb the
+ * other thirteen face, and deriving it twice is exactly how that drifts.
+ */
+function chartForListed(entry: RangeListItem): MockChart {
+  if (entry.spot === 'vs_limp') return vsLimpChart();
+  if (entry.spot !== 'vs_rfi') return chartFor(entry.position);
+  const matchup = `${entry.position}_vs_${entry.vs_position ?? 'BTN'}`;
+  return matchup === 'BB_vs_SB' ? bvbRaiseChart() : vsRfiChartFor(matchup);
 }
 
 /** The chart a question was generated from, and is graded against. */
 function chartForPrompt(prompt: QuestionPrompt): MockChart {
+  if (prompt.kind === 'bvb') {
+    return bvbChartFor(prompt.sb_action);
+  }
   if (prompt.kind === 'vs_rfi') {
     return vsRfiChartFor(
       `${prompt.hero_position}_vs_${prompt.raiser_position}`
@@ -260,6 +434,12 @@ function chartForPrompt(prompt: QuestionPrompt): MockChart {
 }
 
 function rangeIdForPrompt(prompt: QuestionPrompt): string {
+  if (prompt.kind === 'bvb') {
+    // The two branches are two different spots, so they are two different
+    // charts — the limp branch is the only one that lives under `vs_limp`.
+    const spot = prompt.sb_action === 'limp' ? 'vs_limp' : 'vs_rfi';
+    return `${spot}_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.vs_position}`;
+  }
   return prompt.kind === 'vs_rfi'
     ? `vs_rfi_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.raiser_position}`
     : `rfi_${prompt.table_format}_${prompt.hero_position}`;
@@ -365,9 +545,46 @@ function catalogue(): RangeListItem[] {
     } satisfies RangeListItem;
   });
 
+  /**
+   * Blind versus blind adds two charts, one per branch, and they land in two
+   * different spots: the limp branch is `vs_limp`, the raise branch is an
+   * ordinary `vs_rfi` matchup that the drills fixture's list happens not to
+   * name (VS-RFI-CALIBRATION §7 — it was added to that spot later).
+   */
+  const bvbRaise = bvbRaiseChart();
+  const blindVsBlind: RangeListItem[] = [
+    {
+      range_id: 'vs_rfi_6max_BB_vs_SB',
+      spot: 'vs_rfi',
+      table_format: '6max',
+      position: 'BB',
+      vs_position: 'SB',
+      stack_bb: VS_RFI_RANGE.stack_bb,
+      actions: [...bvbRaise.actions],
+      action_sizes_bb: { ...bvbRaise.actionSizesBb },
+      facing_size_bb: SB_OPEN_SIZE_BB,
+      source_id: 'fixture-illustrative',
+      stats: statsFor(bvbRaise.grid),
+    },
+    {
+      range_id: VS_LIMP_RANGE.range_id,
+      spot: VS_LIMP_RANGE.spot,
+      table_format: VS_LIMP_RANGE.table_format,
+      position: VS_LIMP_RANGE.position,
+      vs_position: VS_LIMP_RANGE.vs_position,
+      stack_bb: VS_LIMP_RANGE.stack_bb,
+      actions: [...VS_LIMP_RANGE.actions],
+      action_sizes_bb: { ...VS_LIMP_RANGE.action_sizes_bb },
+      facing_size_bb: VS_LIMP_RANGE.facing_size_bb,
+      source_id: VS_LIMP_RANGE.source_id,
+      stats: VS_LIMP_RANGE.stats,
+    },
+  ];
+
   return [
     ...derived,
     ...matchups.filter((entry) => entry.range_id !== VS_RFI_RANGE.range_id),
+    ...blindVsBlind,
     {
       range_id: VS_RFI_RANGE.range_id,
       spot: VS_RFI_RANGE.spot,
@@ -626,10 +843,7 @@ export class MockApiClient implements ApiClient {
     // as a fixture. Serving exactly what `grade` used keeps the mock
     // self-consistent: the chart in the feedback panel is the chart the answer
     // was graded against. It is illustrative data, not a real chart.
-    const chart =
-      listed.spot === 'vs_rfi'
-        ? vsRfiChartFor(`${listed.position}_vs_${listed.vs_position ?? 'BTN'}`)
-        : chartFor(listed.position);
+    const chart = chartForListed(listed);
     return {
       ...clone(listed.spot === 'vs_rfi' ? VS_RFI_RANGE : CO_RANGE),
       range_id: listed.range_id,
@@ -768,24 +982,30 @@ function generateQuestion(session: MockSession, total: number): Question {
   const index = session.answered.length + 1;
 
   const prompt =
-    session.drillId === 'vs_rfi'
-      ? vsRfiPrompt(session, format, hand)
-      : rfiPrompt(session, format, hand);
+    session.drillId === 'bvb'
+      ? bvbPrompt(session, format, hand)
+      : session.drillId === 'vs_rfi'
+        ? vsRfiPrompt(session, format, hand)
+        : rfiPrompt(session, format, hand);
 
   const chart = chartForPrompt(prompt);
+  // Fold is prepended only where folding is legal. It is not on the limp branch
+  // of blind versus blind: hero is already in for free, the chart folds 0% of
+  // 1326 combos, and a button for a line that is never right is not a choice.
+  const offered = (chart.offerOrder ?? chart.actions).map((id) => ({
+    id,
+    label: chart.actionLabels[id] ?? id,
+  }));
   return {
     question_id: `q_${index}`,
     index,
     total,
     drill_id: session.drillId,
     prompt,
-    actions: [
-      { id: FOLD_ACTION_ID, label: 'Fold' },
-      ...chart.actions.map((id) => ({
-        id,
-        label: chart.actionLabels[id] ?? id,
-      })),
-    ],
+    actions:
+      chart.offersFold === false
+        ? offered
+        : [{ id: FOLD_ACTION_ID, label: 'Fold' }, ...offered],
   };
 }
 
@@ -842,6 +1062,45 @@ function vsRfiPrompt(
   };
 }
 
+/**
+ * Blind versus blind. Hero is always the big blind; the branch is what varies,
+ * and it is drawn per hand so a session mixes limps and raises.
+ *
+ * The arithmetic matches `next_question_bvb_limp.json`: after a 1bb limp the
+ * pot is 2bb and there is nothing to call, because hero's big blind is already
+ * in. After a 3bb open the pot is 4bb and hero owes 2bb, having posted one.
+ */
+function bvbPrompt(
+  session: MockSession,
+  format: TableFormat,
+  hand: DealtHand
+): QuestionPrompt {
+  const branches = configuredSbActions(session.config);
+  const sbAction = branches[session.rng.pick(branches.length)] ?? 'limp';
+  const facing = sbAction === 'limp' ? SB_LIMP_SIZE_BB : SB_OPEN_SIZE_BB;
+
+  return {
+    kind: 'bvb',
+    table_format: format,
+    hero_position: 'BB',
+    vs_position: 'SB',
+    sb_action: sbAction,
+    stack_bb: VS_LIMP_RANGE.stack_bb,
+    hand,
+    facing_size_bb: facing,
+    // The SB's chips plus hero's posted big blind.
+    pot_bb: round(facing + 1, 2),
+    // Hero has already posted 1bb, so a limp leaves nothing to call.
+    to_call_bb: round(facing - 1, 2),
+  };
+}
+
+function configuredSbActions(config: DrillConfig): ('limp' | 'raise')[] {
+  const value = config['sb_actions'];
+  const branches = Array.isArray(value) ? (value as ('limp' | 'raise')[]) : [];
+  return branches.length > 0 ? branches : ['limp'];
+}
+
 function configuredMatchups(config: DrillConfig): string[] {
   const value = config['matchups'];
   const matchups = Array.isArray(value) ? (value as string[]) : [];
@@ -866,7 +1125,7 @@ type GradedAnswer = Omit<AnswerResponse, 'progress'>;
  * fold otherwise. `expected.frequency` is the frequency of the expected action.
  */
 function grade(question: Question, chosenActionId: string): GradedAnswer {
-  const position = question.prompt.hero_position;
+  const spot = spotPhrase(question.prompt);
   const notation = question.prompt.hand.notation;
   const chart = chartForPrompt(question.prompt);
 
@@ -891,7 +1150,7 @@ function grade(question: Question, chosenActionId: string): GradedAnswer {
     explanation: {
       summary: explanationSummary(
         notation,
-        position,
+        spot,
         result.expectedActionId,
         label(result.expectedActionId),
         result.mixed
@@ -910,20 +1169,32 @@ function grade(question: Question, chosenActionId: string): GradedAnswer {
   return result.mixed ? { ...graded, mixed: true } : graded;
 }
 
+/**
+ * How the explanation names the spot. For `bvb` that has to include the branch:
+ * the same hand is a different decision after a limp than after a raise, and
+ * "from BB" alone would not say which one was asked.
+ */
+function spotPhrase(prompt: QuestionPrompt): string {
+  if (prompt.kind === 'bvb') {
+    return `${prompt.hero_position} against an ${prompt.vs_position} ${prompt.sb_action}`;
+  }
+  return prompt.hero_position;
+}
+
 function explanationSummary(
   notation: string,
-  position: Position,
+  spot: string,
   expectedActionId: string,
   expectedLabel: string,
   isMixed: boolean
 ): string {
   if (isMixed) {
-    return `${notation} is a mixed spot from ${position} — more than one line is acceptable.`;
+    return `${notation} is a mixed spot from ${spot} — more than one line is acceptable.`;
   }
   if (expectedActionId === FOLD_ACTION_ID) {
-    return `${notation} is a fold from ${position}.`;
+    return `${notation} is a fold from ${spot}.`;
   }
-  return `${notation} is a pure ${expectedLabel.toLowerCase()} from ${position}.`;
+  return `${notation} is a pure ${expectedLabel.toLowerCase()} from ${spot}.`;
 }
 
 function explanationDetail(
@@ -958,8 +1229,17 @@ function explanationDetail(
  * backend. A position you selected but have not reached yet still gets a row,
  * with `answered: 0`; the UI is responsible for not rendering that as 0%.
  */
-/** How a drill groups its results. v2 §10: `vs_rfi` groups by matchup. */
+/**
+ * How a drill groups its results. v2 §10: `vs_rfi` groups by matchup.
+ *
+ * `bvb` groups by branch, because hero is always the big blind and the villain
+ * always the small blind — the seats carry no information, and what the small
+ * blind did is the only thing that varies.
+ */
 function breakdownKeyOf(prompt: QuestionPrompt): string {
+  if (prompt.kind === 'bvb') {
+    return `${prompt.hero_position} vs ${prompt.vs_position} ${prompt.sb_action}`;
+  }
   return prompt.kind === 'vs_rfi'
     ? `${prompt.hero_position} vs ${prompt.raiser_position}`
     : prompt.hero_position;
@@ -973,11 +1253,15 @@ function breakdownKeyOf(prompt: QuestionPrompt): string {
 function buildBreakdown(session: MockSession): BreakdownRow[] {
   const labels = groupLabels(session);
   const configured =
-    session.drillId === 'vs_rfi'
-      ? configuredMatchups(session.config).map((matchup) =>
-          matchup.replace('_vs_', ' vs ')
+    session.drillId === 'bvb'
+      ? configuredSbActions(session.config).map(
+          (branch) => `BB vs SB ${branch}`
         )
-      : configuredPositions(session.config);
+      : session.drillId === 'vs_rfi'
+        ? configuredMatchups(session.config).map((matchup) =>
+            matchup.replace('_vs_', ' vs ')
+          )
+        : configuredPositions(session.config);
 
   const rows = new Map<string, BreakdownRow>();
   for (const key of configured) {
@@ -1020,18 +1304,26 @@ function buildBreakdown(session: MockSession): BreakdownRow[] {
 function groupLabels(session: MockSession): Map<string, string> {
   const drill = DRILLS.drills.find((entry) => entry.id === session.drillId);
   const field = drill?.config_schema.fields.find(
-    (entry) => entry.key === 'positions' || entry.key === 'matchups'
+    (entry) =>
+      entry.key === 'positions' ||
+      entry.key === 'matchups' ||
+      entry.key === 'sb_actions'
   );
   const options =
     field?.type === 'multi_enum'
       ? (field.options ?? field.options_by?.[tableFormat(session.config)] ?? [])
       : [];
-  // Matchup option values use the file-name form, breakdown keys the readable
-  // one, so key both.
+  // Option values use the config form (`BB_vs_BTN`, `limp`), breakdown keys the
+  // readable one (`BB vs BTN`, `BB vs SB limp`), so key both.
+  const asBreakdownKey =
+    session.drillId === 'bvb'
+      ? (value: string) => `BB vs SB ${value}`
+      : (value: string) => value.replace('_vs_', ' vs ');
+
   return new Map(
     options.flatMap((option) => [
       [option.value, option.label] as const,
-      [option.value.replace('_vs_', ' vs '), option.label] as const,
+      [asBreakdownKey(option.value), option.label] as const,
     ])
   );
 }
