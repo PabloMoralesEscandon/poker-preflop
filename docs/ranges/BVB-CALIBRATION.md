@@ -66,10 +66,48 @@ Assert only these:
 
 1. **Nothing folds.** Every one of the 169 cells has played frequency `1.0`.
    `stats.vpip` is exactly `1.0`. A single empty cell is a transcription error.
-2. **Premiums always raise.** `AA`, `KK`, `QQ`, `AKs` raise at frequency `1.0`.
-3. **Suited dominates offsuit** for the raise action:
-   `raise(XYs) >= raise(XYo)` everywhere.
-4. Every action id is in `{raise, check}`, and `action_sizes_bb` covers both.
+2. **Premiums raise on this chart.** `AA`, `KK`, `QQ` and `AKs` all raise at
+   frequency `1.0` — read off the grid directly on 2026-08-10. Assert it, but
+   label it as a **measured property of this chart, not a law**: slowplaying a
+   premium by checking behind is a legitimate strategy, and a future
+   blind-versus-blind source may well do it. If one does, that is a question
+   about the data, not a failed invariant. This is the same caveat as
+   RFI-CALIBRATION §4.6.
+3. Every action id is in `{raise, check}`, and `action_sizes_bb` covers both.
+
+### There is no suited-dominance invariant in this spot
+
+An earlier version of this document asserted `raise(XYs) >= raise(XYo)`. **That is
+wrong here**, and the chart breaks it in at least twelve pairs — `K4s` checks
+while `K4o` raises, `Q6s` checks while `Q6o` raises, `J7s` checks while `J7o`
+raises.
+
+That is not a transcription error and not a flaw in the chart. It follows from
+what the alternative to raising is:
+
+| Spot | Alternative to the aggressive action | Does suited dominate? |
+|---|---|---|
+| `rfi` | **fold** — give up the hand | yes, on played frequency |
+| `vs_rfi` | **fold** — give up the hand | yes, on played frequency |
+| `vs_limp` | **check** — see a free flop | **no** |
+
+Where the alternative is folding, taking the aggressive action more often really
+does mean "this hand is better", so suited dominance holds. Where the
+alternative is checking, it does not: checking is a perfectly good — often
+better — way to play a strong hand. A suited hand flops well and would rather
+see a cheap flop and realise its equity; its offsuit twin flops badly and
+prefers to raise, denying equity and winning the pot now. **Raising more often
+does not mean the hand is stronger.**
+
+The invariant conflated aggression with hand strength, which the other two spots
+let it get away with because folding was the only alternative there.
+
+Note that RFI-CALIBRATION §4.4 and VS-RFI-CALIBRATION §5.4 state suited
+dominance over **played** frequency, not over a specific action — so both remain
+correct. This document reached for the raise action instead, because played
+frequency is `1.0` everywhere here and therefore vacuous. The right conclusion
+was that no such invariant is available in this spot, not that a weaker proxy
+would do.
 
 Do **not** assert pair contiguity here — checking a small pair behind is
 perfectly normal and the chart does it.
