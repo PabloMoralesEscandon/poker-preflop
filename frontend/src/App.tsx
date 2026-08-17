@@ -8,6 +8,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { RangePage } from './pages/RangePage';
+import { TablePreviewPage } from './pages/TablePreviewPage';
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
         {/* The v1 path, kept because summaries already link to it. */}
         <Route path="/range/:rangeId" element={<RangePage />} />
         <Route path="/dev/grid" element={<GridPreviewPage />} />
+        <Route path="/dev/table" element={<TablePreviewPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AppShell>

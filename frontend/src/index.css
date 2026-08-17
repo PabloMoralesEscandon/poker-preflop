@@ -1,15 +1,22 @@
 @import 'tailwindcss';
 
+/* Self-hosted, OFL-licensed, installed from npm. No CDN, no webfont request
+   leaving the machine — the app stays usable with the network unplugged, which
+   is the same rule the range data follows. */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource/bebas-neue';
+
 /* Neutral palette, defined once as CSS variables so light and dark are the same
    set of tokens with different values. Components only ever use the semantic
    Tailwind classes below (bg-canvas, text-fg, border-line, ...). */
 :root {
-  --canvas: oklch(98.4% 0.002 250);
+  --canvas: oklch(97.5% 0.006 120);
   --surface: oklch(100% 0 0);
-  --surface-muted: oklch(96.2% 0.003 250);
-  --line: oklch(90.5% 0.005 250);
-  --fg: oklch(22% 0.01 250);
-  --fg-muted: oklch(50% 0.012 250);
+  --surface-muted: oklch(95.6% 0.008 120);
+  --line: oklch(89.5% 0.012 120);
+  --fg: oklch(21% 0.014 150);
+  --fg-muted: oklch(49% 0.016 150);
   --accent: oklch(55% 0.14 250);
   --accent-fg: oklch(99% 0 0);
 
@@ -34,16 +41,69 @@
      If a much darker step is ever added to the palette, dark ink stops winning
      and this needs to become a per-slot value. */
   --viz-ink: #101418;
+
+  /* ------------------------------------------------------------------
+     The card room.
+
+     A second, deliberately separate family of tokens for the felt, the rail,
+     the chips and the wordmark. They are kept apart from the semantic tokens
+     above for one reason: the felt is its own surface, so nothing drawn on it
+     is contrasted against `--surface`, and nothing here may ever be reused as
+     a chart colour. The four `--viz-series-*` slots are documented, measured
+     and load-bearing; the palette below never touches them.
+
+     The felt is the same colour in both modes. A green table lit from above
+     is what the app is depicting, and depicting it two different ways by time
+     of day would only make the two screenshots harder to compare.
+     ------------------------------------------------------------------ */
+  --felt: oklch(43% 0.075 158);
+  --felt-lit: oklch(50% 0.085 158);
+  --felt-deep: oklch(31% 0.055 158);
+  --felt-line: oklch(62% 0.07 158);
+  --felt-fg: oklch(97% 0.01 158);
+  --felt-fg-muted: oklch(83% 0.02 158);
+
+  /* The rail: the padded edge a real table is trimmed with. */
+  --rail: oklch(28% 0.035 40);
+  --rail-hi: oklch(38% 0.045 45);
+
+  /* Gold, for the wordmark, the dealer button's ring and the hero's seat.
+     Decorative only — never the sole carrier of meaning. */
+  --gold: oklch(78% 0.13 85);
+  --gold-deep: oklch(63% 0.12 75);
+
+  /* Chip denominations, in the usual casino order. Used as chip bodies with
+     white edge spots, so they read as chips rather than as data. */
+  --chip-white: oklch(96% 0.01 250);
+  --chip-red: oklch(55% 0.19 25);
+  --chip-green: oklch(52% 0.13 155);
+  --chip-blue: oklch(52% 0.15 255);
+  --chip-black: oklch(28% 0.02 265);
+
+  /* Verdict tones. Aliases of the validated series slots, so the drill and the
+     charts say "correct" with exactly the same green. */
+  --good: var(--viz-series-3);
+  --warn: var(--viz-series-1);
+  --bad: var(--viz-series-2);
+
+  --card-face: #fdfcfa;
+  --card-ink: #16181d;
+  --card-ink-red: #c0392b;
+
+  --shadow-raised:
+    0 1px 2px oklch(0% 0 0 / 0.06), 0 4px 12px oklch(0% 0 0 / 0.08);
+  --shadow-table:
+    0 2px 4px oklch(0% 0 0 / 0.12), 0 18px 40px -12px oklch(0% 0 0 / 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: oklch(19% 0.008 250);
-    --surface: oklch(23.5% 0.009 250);
-    --surface-muted: oklch(27.5% 0.01 250);
-    --line: oklch(33% 0.012 250);
-    --fg: oklch(94% 0.004 250);
-    --fg-muted: oklch(70% 0.012 250);
+    --canvas: oklch(18% 0.012 155);
+    --surface: oklch(22.5% 0.014 155);
+    --surface-muted: oklch(27% 0.016 155);
+    --line: oklch(33% 0.018 155);
+    --fg: oklch(94% 0.006 155);
+    --fg-muted: oklch(70% 0.014 155);
     --accent: oklch(70% 0.13 250);
     --accent-fg: oklch(18% 0.01 250);
 
@@ -52,6 +112,17 @@
     --viz-series-2: #d95926;
     --viz-series-3: #199e70;
     --viz-series-4: #c98500;
+
+    /* The felt keeps its colour; only the rail and the shadows follow the
+       room's lighting. */
+    --rail: oklch(23% 0.03 40);
+    --rail-hi: oklch(32% 0.04 45);
+    --gold: oklch(80% 0.13 85);
+
+    --shadow-raised:
+      0 1px 2px oklch(0% 0 0 / 0.4), 0 4px 14px oklch(0% 0 0 / 0.45);
+    --shadow-table:
+      0 2px 6px oklch(0% 0 0 / 0.5), 0 22px 48px -14px oklch(0% 0 0 / 0.7);
   }
 }
 
@@ -65,17 +136,203 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
 
+  --color-felt: var(--felt);
+  --color-felt-fg: var(--felt-fg);
+  --color-felt-fg-muted: var(--felt-fg-muted);
+  --color-felt-line: var(--felt-line);
+  --color-gold: var(--gold);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', monospace;
+    'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  /* Card-room lettering: the wordmark, section eyebrows and the big numbers
+     the eye is meant to land on first. Never body copy — it has no lowercase
+     worth reading at paragraph length. */
+  --font-display: 'Bebas Neue', 'Inter Variable', system-ui, sans-serif;
+
+  --shadow-raised: var(--shadow-raised);
+  --shadow-table: var(--shadow-table);
 }
 
 @layer base {
   body {
     @apply bg-canvas text-fg font-sans antialiased;
+    /* A very quiet suit motif on the page ground, so the app does not start on
+       a blank sheet. Two soft pools of light, as if over a table. */
+    background-image:
+      radial-gradient(
+        ellipse 80% 50% at 50% -10%,
+        color-mix(in srgb, var(--felt) 12%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 100% 100%,
+        color-mix(in srgb, var(--gold) 7%, transparent),
+        transparent 70%
+      );
+    background-attachment: fixed;
   }
 
   :focus-visible {
     @apply outline-accent outline-2 outline-offset-2;
+  }
+
+  /* Numerals line up in columns everywhere: stacks, pots, accuracies. */
+  .font-mono,
+  [class*='tabular'] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Motion.
+
+   Every animation below is decoration on top of something already stated in
+   text: the verdict banner names the outcome, the seat strip labels the seat,
+   the progress pips carry a title. Turning motion off must therefore lose
+   nothing, and the reduced-motion block at the bottom does exactly that.
+   ---------------------------------------------------------------------- */
+
+@keyframes deal-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--deal-from-x, 0), var(--deal-from-y, -140%))
+      rotate(var(--deal-from-rot, -18deg)) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) rotate(var(--card-tilt, 0deg)) scale(1);
+  }
+}
+
+@keyframes chip-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-60%) scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(6%) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes verdict-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.6) rotate(-8deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(3px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-5px);
+  }
+  40%,
+  60% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--pulse) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes sheen {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+/**
+ * The stage: everything the drill draws for one hand, wrapped so the verdict
+ * can be felt on the whole spot rather than only read in the panel below it.
+ *
+ * The runner sets `data-verdict` here and nowhere else, which is what keeps
+ * this drill-agnostic — no prompt component knows the answer was graded.
+ */
+.drill-stage {
+  border-radius: 1rem;
+  transition: box-shadow 200ms ease-out;
+}
+
+.drill-stage[data-verdict] {
+  animation: glow-pulse 900ms ease-out;
+}
+
+.drill-stage[data-verdict='correct'] {
+  --pulse: var(--good);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 55%, transparent);
+}
+
+.drill-stage[data-verdict='mixed'] {
+  --pulse: var(--warn);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.drill-stage[data-verdict='incorrect'] {
+  --pulse: var(--bad);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 55%, transparent);
+  animation:
+    glow-pulse 900ms ease-out,
+    shake 380ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }

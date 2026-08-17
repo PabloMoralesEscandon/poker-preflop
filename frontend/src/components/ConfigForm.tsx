@@ -94,7 +94,8 @@ export function ConfigForm({
       <button
         type="submit"
         disabled={disabled || emptyMultiEnum}
-        className="bg-accent text-accent-fg rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="bg-accent text-accent-fg rounded-lg px-5 py-2.5 text-sm font-semibold tracking-tight transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-50"
+        style={{ boxShadow: 'var(--shadow-raised)' }}
       >
         {submitLabel}
       </button>

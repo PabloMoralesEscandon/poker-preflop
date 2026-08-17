@@ -1,5 +1,23 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
+
+import { GridIcon, HistoryIcon, LogoMark } from './icons';
+import { cn } from '../lib/cn';
+
+/**
+ * The frame every page sits in.
+ *
+ * The wordmark is set in the display face and paired with the chip mark, so the
+ * app has an identity in the tab strip and at the top of a screenshot. The nav
+ * marks the current section rather than leaving every link looking equally
+ * unvisited — with three destinations, "where am I" should not require reading
+ * the URL.
+ */
+
+const NAV = [
+  { to: '/charts', label: 'Charts', Icon: GridIcon },
+  { to: '/history', label: 'History', Icon: HistoryIcon },
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -11,24 +29,39 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
 
-      <header className="border-line bg-surface/80 sticky top-0 z-10 border-b backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-baseline gap-3 px-4 py-3 sm:px-6">
+      <header className="border-line bg-surface/85 sticky top-0 z-10 border-b backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-2.5 sm:px-6">
           <Link
             to="/"
-            className="text-fg text-base font-semibold tracking-tight"
+            className="group flex items-baseline gap-2 tracking-tight"
           >
-            Poker Learner
+            <LogoMark className="translate-y-[3px] text-2xl" />
+            <span className="font-display text-fg text-2xl leading-none tracking-[0.06em]">
+              Poker Learner
+            </span>
           </Link>
-          <span className="text-fg-muted hidden text-sm sm:inline">
+          <span className="text-fg-muted hidden text-xs sm:inline">
             preflop and postflop drills
           </span>
-          <nav aria-label="Main" className="ml-auto flex gap-4">
-            <Link to="/charts" className="text-fg-muted hover:text-fg text-sm">
-              Charts
-            </Link>
-            <Link to="/history" className="text-fg-muted hover:text-fg text-sm">
-              History
-            </Link>
+
+          <nav aria-label="Main" className="ml-auto flex gap-1">
+            {NAV.map(({ to, label, Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors',
+                    isActive
+                      ? 'bg-surface-muted text-fg font-medium'
+                      : 'text-fg-muted hover:text-fg hover:bg-surface-muted/60'
+                  )
+                }
+              >
+                <Icon className="text-base" />
+                {label}
+              </NavLink>
+            ))}
           </nav>
         </div>
       </header>
@@ -41,7 +74,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <footer className="border-line text-fg-muted mt-auto border-t px-4 py-4 text-xs sm:px-6">
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-2">
+          <LogoMark className="text-sm" />
           Free and self-hosted. No accounts, no paid data.
         </div>
       </footer>

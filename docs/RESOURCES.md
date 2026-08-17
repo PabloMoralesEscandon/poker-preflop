@@ -72,6 +72,24 @@ adding any of these to `pyproject.toml`.
 **v1 explicitly needs none of these.** RFI grading is a dictionary lookup. Do
 not add a poker library to ship version 1.
 
+### Typefaces
+
+Same rules as everything else: free, permissively licensed, and **vendored, not
+fetched**. Web fonts are installed from npm and bundled by Vite, so the app
+renders identically with the network unplugged and no request for a font ever
+leaves the machine. A CDN link — Google Fonts included — is not acceptable here
+for the same reason a hosted range API would not be.
+
+| Font | Licence | Use |
+|---|---|---|
+| Inter (`@fontsource-variable/inter`) | SIL OFL 1.1 | Interface text. |
+| JetBrains Mono (`@fontsource-variable/jetbrains-mono`) | SIL OFL 1.1 | Hands, positions, sizes — anything that has to line up in a column. |
+| Bebas Neue (`@fontsource/bebas-neue`) | SIL OFL 1.1 | The wordmark, page titles, and the felt's lettering. Display only; it has no lowercase worth reading at paragraph length. |
+
+Icons and the chip mark are hand-written inline SVG in
+`frontend/src/components/icons.tsx` for the same reason — no icon font, no
+sprite sheet, nothing fetched.
+
 ## 3. What we deliberately do not use
 
 - **Anything requiring a subscription** — most of FreeBetRange's chart library,

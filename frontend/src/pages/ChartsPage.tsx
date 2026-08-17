@@ -110,7 +110,9 @@ export function ChartsPage() {
   return (
     <section className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Charts</h1>
+        <h1 className="font-display text-4xl leading-none tracking-[0.04em]">
+          Charts
+        </h1>
         <p className="text-fg-muted max-w-prose text-sm">
           Every range the server holds, with where it came from. Open one to
           compare our totals against the published chart.

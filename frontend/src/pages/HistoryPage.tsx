@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { AccuracyBars, AccuracyTrend } from '../components/charts';
+import { ChevronLeftIcon } from '../components/icons';
 import { aggregate, MIN_SAMPLE, type StoredSession } from '../lib/history';
 import { clearHistory, loadHistory } from '../lib/historyStorage';
 
@@ -20,15 +21,18 @@ export function HistoryPage() {
   if (sessions.length === 0) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">History</h1>
+        <h1 className="font-display text-4xl leading-none tracking-[0.04em]">
+          History
+        </h1>
         <p className="text-fg-muted max-w-prose text-sm">
           Nothing here yet. Finish a session and it will be recorded in this
           browser — never sent anywhere.
         </p>
         <Link
           to="/"
-          className="text-accent inline-block text-sm underline underline-offset-4"
+          className="text-accent inline-flex items-center gap-1 text-sm underline underline-offset-4"
         >
+          <ChevronLeftIcon className="text-sm no-underline" />
           Back to drills
         </Link>
       </section>
@@ -40,7 +44,9 @@ export function HistoryPage() {
   return (
     <section className="space-y-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">History</h1>
+        <h1 className="font-display text-4xl leading-none tracking-[0.04em]">
+          History
+        </h1>
         <p className="text-fg-muted text-sm">
           {summary.sessions} session{summary.sessions === 1 ? '' : 's'} ·{' '}
           {summary.correct} of {summary.answered} correct
@@ -50,7 +56,7 @@ export function HistoryPage() {
       <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
         <p
           aria-label={`Overall accuracy ${percent(summary.accuracy)}`}
-          className="font-mono text-4xl font-semibold tabular-nums"
+          className="font-display text-5xl leading-none tracking-wide tabular-nums"
         >
           {percent(summary.accuracy)}
         </p>
@@ -109,8 +115,9 @@ export function HistoryPage() {
       <div className="flex flex-wrap gap-3">
         <Link
           to="/"
-          className="border-line text-fg rounded-md border px-4 py-2 text-sm font-medium"
+          className="border-line text-fg hover:border-fg-muted inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium"
         >
+          <ChevronLeftIcon className="text-sm" />
           Back to drills
         </Link>
         <button
@@ -119,7 +126,7 @@ export function HistoryPage() {
             clearHistory();
             setSessions([]);
           }}
-          className="border-line text-fg-muted rounded-md border px-4 py-2 text-sm"
+          className="border-line text-fg-muted hover:text-fg rounded-lg border px-4 py-2 text-sm"
         >
           Clear history
         </button>

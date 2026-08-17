@@ -120,7 +120,9 @@ export function RangePage() {
   return (
     <section className="space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="font-display text-4xl leading-none tracking-[0.04em]">
+          {title}
+        </h1>
         <p className="text-fg-muted font-mono text-sm">{rangeId}</p>
         {highlighted ? (
           <p className="text-fg-muted text-sm">

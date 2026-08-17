@@ -68,7 +68,7 @@ learner/
       drills/
         registry.ts         # prompt.kind -> React component
         rfi/                # Drill #1 UI
-      components/           # HandGrid, Card, ActionBar, ... (drill-agnostic)
+      components/           # PokerTable, HandGrid, Card, Chip, ActionBar, ... (drill-agnostic)
       pages/
       lib/
     tests/

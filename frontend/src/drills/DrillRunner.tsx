@@ -17,7 +17,7 @@ import { toStoredSession } from '../lib/history';
 import { saveSession } from '../lib/historyStorage';
 import { assignShortcuts, shortcutMap, type Shortcut } from '../lib/shortcuts';
 import { useKeyboardShortcuts } from '../lib/useKeyboardShortcuts';
-import { verdictOf } from '../lib/verdict';
+import { verdictOf, type Verdict } from '../lib/verdict';
 import { getDrillEntry } from './registry';
 
 /**
@@ -51,6 +51,15 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
   const [question, setQuestion] = useState<Question | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [progress, setProgress] = useState({ answered: 0, correct: 0 });
+  /**
+   * One verdict per answered hand, in order.
+   *
+   * The contract's `progress` carries running totals but not the sequence, and
+   * the sequence is what a player wants back: which hands went wrong, and
+   * whether the last few went right. Kept here rather than in the progress bar
+   * so it is reset with the session that produced it.
+   */
+  const [results, setResults] = useState<Verdict[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -130,6 +139,7 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
         setSessionId(session.session_id);
         configRef.current = session.config;
         setProgress({ answered: 0, correct: 0 });
+        setResults([]);
         setSummary(null);
         await advance(session.session_id);
       } catch (caught) {
@@ -155,6 +165,7 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
           answered: response.progress.answered,
           correct: response.progress.correct,
         });
+        setResults((previous) => [...previous, verdictOf(response)]);
         setPhase({ name: 'feedback', answer: response, question });
       } catch (caught) {
         setError(caught);
@@ -213,9 +224,19 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
     setQuestion(null);
     setSummary(null);
     setProgress({ answered: 0, correct: 0 });
+    setResults([]);
     setError(null);
     setPhase({ name: 'config' });
   }, []);
+
+  /**
+   * How many hands in a row have not been missed, counting back from the last.
+   *
+   * A mixed spot continues a run rather than ending it: the chart splits the
+   * hand, the player took one of the lines it takes, and telling them they
+   * broke their streak for it would teach them to avoid mixed spots.
+   */
+  const streak = countTrailingKept(results);
 
   if (drillError) {
     return <ErrorState error={drillError} onRetry={loadDrill} />;
@@ -233,7 +254,9 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{drill.name}</h1>
+        <h1 className="font-display text-4xl leading-none tracking-[0.04em]">
+          {drill.name}
+        </h1>
         <p className="text-fg-muted max-w-prose text-sm">{drill.description}</p>
       </header>
 
@@ -242,6 +265,8 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
           answered={progress.answered}
           correct={progress.correct}
           total={total}
+          results={results}
+          streak={streak}
         />
       ) : null}
 
@@ -269,7 +294,7 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
             ref={questionRef}
             tabIndex={-1}
             aria-label={`Hand ${question.index} of ${question.total}`}
-            className="focus:outline-none"
+            className="drill-stage focus:outline-none"
           >
             <PromptSlot
               question={question}
@@ -289,13 +314,22 @@ export function DrillRunner({ drillId, client = apiClient }: DrillRunnerProps) {
             The prompt stays on screen, disabled, while the feedback appears
             below it. Nothing that was already visible moves, and the hand you
             were asked about is still there to compare against the chart.
+
+            The stage carries the verdict as a data attribute and the stylesheet
+            does the rest — a ring in the verdict's colour, a single pulse, and
+            a shake on a miss. Putting it here rather than in the prompts is
+            what keeps it drill-agnostic: no prompt component learns that its
+            question has been graded, and a new drill gets the same reaction
+            with no code at all.
           */}
-          <PromptSlot
-            question={phase.question}
-            disabled
-            onAction={() => {}}
-            shortcuts={assignShortcuts(phase.question.actions)}
-          />
+          <div className="drill-stage" data-verdict={verdictOf(phase.answer)}>
+            <PromptSlot
+              question={phase.question}
+              disabled
+              onAction={() => {}}
+              shortcuts={assignShortcuts(phase.question.actions)}
+            />
+          </div>
           <FeedbackPanel
             client={client}
             answer={phase.answer}
@@ -354,6 +388,16 @@ function PromptSlot({
       shortcuts={shortcuts}
     />
   );
+}
+
+/** Length of the run of non-missed hands ending at the most recent one. */
+function countTrailingKept(results: readonly Verdict[]): number {
+  let run = 0;
+  for (let index = results.length - 1; index >= 0; index -= 1) {
+    if (results[index] === 'incorrect') break;
+    run += 1;
+  }
+  return run;
 }
 
 function verdictLabel(verdict: 'correct' | 'mixed' | 'incorrect'): string {
