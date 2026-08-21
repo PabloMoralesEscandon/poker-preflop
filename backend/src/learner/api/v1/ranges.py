@@ -16,6 +16,7 @@ def list_ranges(
     response: Response,
     ranges: Ranges,
     spot: str | None = None,
+    game: str | None = None,
     table_format: str | None = None,
     position: str | None = None,
     vs_position: str | None = None,
@@ -26,6 +27,7 @@ def list_ranges(
             {
                 "range_id": item.range_id,
                 "spot": item.spot,
+                "game": item.game,
                 "table_format": item.table_format,
                 "position": item.position,
                 "vs_position": item.vs_position,
@@ -38,6 +40,7 @@ def list_ranges(
             }
             for item in ranges.list(
                 spot=spot,
+                game=game,
                 table_format=table_format,
                 position=position,
                 vs_position=vs_position,

@@ -277,3 +277,60 @@ is the right answer.
 Drills built on this spot must take the action list from the range's `actions`
 and add `fold` **only when fold is a legal option**. For `vs_limp` it is not.
 See `docs/ranges/BVB-CALIBRATION.md`.
+
+## 10. The omaha game, and class-key grids (added 2026-08-21)
+
+PLO deals four hole cards: C(52,4) = 270,725 concrete hands against
+Hold'em's 1,326. A 169-cell grid is impossible, so PLO ranges are defined
+over a **closed set of 47 class keys** instead of notations. Everything in
+§§1–9 survives unchanged; this section records what the game dimension adds.
+
+### 10.1 Path, id, and the `game` field
+
+```text
+backend/data/ranges/rfi/plo/6max/UTG.json   -> range_id "rfi_plo_6max_UTG"
+```
+
+Four-segment layout: `{spot}/{game}/{table_format}/{POSITION}.json`. The
+legacy three-segment layout keeps working and implies `game: "holdem"`;
+its ids are unchanged. `range_id` inserts the game segment only for non-
+holdem games. `game` values are `"holdem"` (default) and `"plo"`, declared
+in `learner.ranges.models.Game`.
+
+### 10.2 Class keys
+
+A PLO grid key names one **hand class**: `{SHAPE}.{TEXTURE}` — seven pair
+tiers (`AA`…`TT`, `99-66`, `55-22`) and eight non-pair shapes (`0G`, `1G`,
+`2G`, `A-KT`, `A-96`, `A-52`, `OA`, `Oth`) × three textures (`ds`, `ss`,
+`r`) — plus fold-only `Trips` and `Quads`. Tri-/quad-suited concrete hands
+are graded inside the `.ss` cell of their shape. The exact classification
+function is `learner/ranges/plo.py::classify`; its numeric boundaries were
+fitted against the primary source and are frozen there and in
+`docs/ranges/PLO-CALIBRATION.md`.
+
+Validation mirrors §3 with one substitution: `grid` must contain **exactly
+the 47 class keys**, no more and no fewer. Pure folds are still `{}`; all
+frequency rules carry over verbatim.
+
+### 10.3 Combinatorics and stats
+
+Per-class combo counts are frozen constants in `ranges/plo.py`
+(`CLASS_COMBOS`; sum = 270,725). Stats divide by 270,725 for PLO and weight
+tri-/quad-suited combos at `TSQS_ALPHA = 0.65 ×` their cell frequency —
+a stats-only discount justified in PLO-CALIBRATION §5; grading is never
+discounted.
+
+### 10.4 Borderline sampling without a grid
+
+§6's Chebyshev adjacency has no meaning over class keys. The PLO analogue:
+neighbours of a key are (a) same shape on the texture chain ds↔ss↔r and
+(b) same texture one step along its shape ladder. The difficulty table is
+otherwise §6 verbatim, implemented as `plo_difficulty_factor` /
+`plo_sampling_weight` with their own unit tests.
+
+### 10.5 Spots
+
+Only `rfi` ships PLO data; the model rejects other spots for `game: "plo"`
+until a citable source exists (see RESOURCES.md under `plocom-solver-data`
+for the candidate and its blocker). Lifting that guard is a data change,
+not an engine change.

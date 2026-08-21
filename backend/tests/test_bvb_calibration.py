@@ -19,9 +19,7 @@ def test_bb_vs_sb_limp_matches_the_chart_printed_totals(
 
 
 def test_bb_vs_sb_limp_never_folds(bb_vs_sb_limp: RangeData) -> None:
-    assert all(
-        played_frequency(cell) == 1.0 for cell in bb_vs_sb_limp.grid.values()
-    )
+    assert all(played_frequency(cell) == 1.0 for cell in bb_vs_sb_limp.grid.values())
 
 
 def test_chart_measured_premiums_are_pure_raise(bb_vs_sb_limp: RangeData) -> None:

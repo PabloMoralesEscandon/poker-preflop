@@ -238,15 +238,21 @@ export function HoleCards({
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <div className="flex items-end -space-x-2">
-        {cards.map((card, index) => (
-          <Card
-            key={`${card}-${index}`}
-            card={card}
-            size={size}
-            tilt={index === 0 ? -7 : 6}
-            className={index === 0 ? 'z-10' : ''}
-          />
-        ))}
+        {cards.map((card, index) => {
+          // Fan evenly whatever the count: two cards keep the original lean,
+          // four PLO cards spread across the same arc.
+          const middle = (cards.length - 1) / 2;
+          const tilt = cards.length === 2 ? (index === 0 ? -7 : 6) : (index - middle) * 4.5;
+          return (
+            <Card
+              key={`${card}-${index}`}
+              card={card}
+              size={size}
+              tilt={tilt}
+              className={index === 0 ? 'z-10' : ''}
+            />
+          );
+        })}
       </div>
       {notation ? (
         <span className="text-fg font-mono text-lg font-semibold tracking-tight">

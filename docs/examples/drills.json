@@ -8,6 +8,22 @@
       "config_schema": {
         "fields": [
           {
+            "key": "game",
+            "label": "Game",
+            "type": "enum",
+            "default": "holdem",
+            "options": [
+              {
+                "value": "holdem",
+                "label": "Hold'em"
+              },
+              {
+                "value": "plo",
+                "label": "PLO (Pot Limit Omaha)"
+              }
+            ]
+          },
+          {
             "key": "table_format",
             "label": "Table format",
             "type": "enum",
@@ -106,11 +122,11 @@
             "options": [
               {
                 "value": "uniform",
-                "label": "Uniform — any of the 169 hands"
+                "label": "Uniform \u2014 any dealt hand"
               },
               {
                 "value": "borderline",
-                "label": "Borderline — favour close decisions"
+                "label": "Borderline \u2014 favour close decisions"
               }
             ]
           }
@@ -234,11 +250,11 @@
             "options": [
               {
                 "value": "uniform",
-                "label": "Uniform — any of the 169 hands"
+                "label": "Uniform \u2014 any of the 169 hands"
               },
               {
                 "value": "borderline",
-                "label": "Borderline — favour close decisions"
+                "label": "Borderline \u2014 favour close decisions"
               }
             ]
           }

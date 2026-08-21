@@ -12,6 +12,12 @@
 
 export type TableFormat = '6max' | '8max';
 
+/**
+ * The poker variant a range or prompt belongs to (v2 §15). Hold'em ranges
+ * predate the field, so it is optional wherever legacy payloads lack it.
+ */
+export type Game = 'holdem' | 'plo';
+
 export type Position =
   'UTG' | 'UTG1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
 
@@ -121,13 +127,16 @@ export interface SessionResponse {
 }
 
 export interface DealtHand {
-  cards: [Card, Card];
+  /** Two cards for Hold'em; four for PLO (v2 §15). */
+  cards: Card[];
   notation: HandNotation;
 }
 
 /** Prompt for drill #1. Each drill adds a member to {@link QuestionPrompt}. */
 export interface RfiPrompt {
   kind: 'rfi';
+  /** Absent on legacy payloads; treat as `'holdem'`. */
+  game?: Game;
   table_format: TableFormat;
   hero_position: Position;
   stack_bb: number;
@@ -287,6 +296,8 @@ export interface SessionSummary {
 export interface RangeListItem {
   range_id: string;
   spot: string;
+  /** See {@link Game}; absent on legacy payloads means Hold'em. */
+  game?: Game;
   table_format: TableFormat;
   position: Position;
   /** The opponent's seat for a `vs_*` spot; `null` for spots without one. */
@@ -307,6 +318,7 @@ export interface RangesResponse {
 
 export interface RangeFilter {
   spot?: string;
+  game?: Game;
   table_format?: TableFormat;
   position?: Position;
   vs_position?: Position;
@@ -321,7 +333,7 @@ export interface RangeFilter {
  */
 export type ActionFrequencies = Record<string, number>;
 
-/** Exactly 169 keys. */
+/** Exactly 169 keys for Hold'em; exactly the 47 class keys for PLO (v2 §15). */
 export type RangeGrid = Record<HandNotation, ActionFrequencies>;
 
 export interface RangeStats {
@@ -338,6 +350,8 @@ export interface RangeStats {
 export interface RangeDetail {
   range_id: string;
   spot: string;
+  /** See {@link Game}; absent on legacy payloads means Hold'em. */
+  game?: Game;
   table_format: TableFormat;
   position: Position;
   vs_position: Position | null;

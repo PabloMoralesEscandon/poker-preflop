@@ -58,6 +58,7 @@ export function ChartsPage() {
   useEffect(() => load(), [load]);
 
   const spot = params.get('spot') ?? '';
+  const game = params.get('game') ?? '';
   const format = params.get('table_format') ?? '';
   const position = params.get('position') ?? '';
 
@@ -77,6 +78,7 @@ export function ChartsPage() {
     const all = ranges ?? [];
     return {
       spots: [...new Set(all.map((entry) => entry.spot))].sort(),
+      games: [...new Set(all.map((entry) => entry.game ?? 'holdem'))].sort(),
       formats: [...new Set(all.map((entry) => entry.table_format))].sort(),
       positions: [...new Set(all.map((entry) => entry.position))],
     };
@@ -87,22 +89,29 @@ export function ChartsPage() {
       (ranges ?? []).filter(
         (entry) =>
           (!spot || entry.spot === spot) &&
+          (!game || entry.game === game) &&
           (!format || entry.table_format === format) &&
           (!position || entry.position === position)
       ),
-    [format, position, ranges, spot]
+    [format, game, position, ranges, spot]
   );
 
-  /** Grouped by spot, then table format, in that order. */
+  /**
+   * Grouped by spot, then table format, in that order. A non-default game
+   * gets its own group label (`rfi · PLO`) so the two variants of one seat
+   * never blend into a single chart list.
+   */
   const groups = useMemo(() => {
     const map = new Map<string, Map<string, RangeListItem[]>>();
     for (const entry of visible) {
-      const byFormat = map.get(entry.spot) ?? new Map();
+      const groupKey =
+        entry.spot + (entry.game && entry.game !== 'holdem' ? ` · ${entry.game.toUpperCase()}` : '');
+      const byFormat = map.get(groupKey) ?? new Map();
       byFormat.set(entry.table_format, [
         ...(byFormat.get(entry.table_format) ?? []),
         entry,
       ]);
-      map.set(entry.spot, byFormat);
+      map.set(groupKey, byFormat);
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [visible]);
@@ -133,6 +142,15 @@ export function ChartsPage() {
                 label: spotLabel(value),
               }))}
               onChange={(value) => setFilter('spot', value)}
+            />
+            <Filter
+              label="Game"
+              value={game}
+              options={options.games.map((value) => ({
+                value,
+                label: value === 'holdem' ? "Hold'em" : 'PLO',
+              }))}
+              onChange={(value) => setFilter('game', value)}
             />
             <Filter
               label="Table format"

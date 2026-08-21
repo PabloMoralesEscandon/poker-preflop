@@ -13,8 +13,17 @@ import { cn } from '../lib/cn';
  * in their head is how mistakes get missed.
  */
 
-/** Total starting-hand combinations. */
-const TOTAL_COMBOS = 1326;
+/** Total starting-hand combinations, per game (RANGE-DATA-FORMAT §10). */
+const TOTAL_COMBOS_BY_GAME: Record<string, number> = {
+  holdem: 1326,
+  plo: 270_725,
+};
+
+/** Class-key count for the closing line; Hold'em keeps its famous 169. */
+const TOTAL_CLASSES_BY_GAME: Record<string, number> = {
+  holdem: 169,
+  plo: 47,
+};
 
 const ROLE_COPY: Record<SourceInfo['role'], { label: string; tone: string }> = {
   primary: { label: 'Primary source', tone: 'var(--viz-series-3)' },
@@ -37,6 +46,10 @@ export function Provenance({
 }) {
   const role = source ? ROLE_COPY[source.role] : null;
   const played = range.stats.combos;
+  const totalCombos =
+    TOTAL_COMBOS_BY_GAME[range.game ?? 'holdem'] ?? 1326;
+  const totalClasses =
+    TOTAL_CLASSES_BY_GAME[range.game ?? 'holdem'] ?? 169;
 
   return (
     <section
@@ -154,7 +167,7 @@ export function Provenance({
                 Combos
               </th>
               <th scope="col" className="py-1 text-right font-medium">
-                of 1326
+                of total
               </th>
               <th scope="col" className="py-1 text-right font-medium">
                 of played
@@ -182,7 +195,7 @@ export function Provenance({
                   <td className="py-1 text-right tabular-nums">
                     {combos === undefined
                       ? '—'
-                      : percent(combos / TOTAL_COMBOS)}
+                      : percent(combos / totalCombos)}
                   </td>
                   <td className="py-1 text-right tabular-nums">
                     {combos === undefined || played === 0
@@ -205,7 +218,7 @@ export function Provenance({
             </tr>
             {/*
               The fold row stays even when it is zero. A `vs_limp` chart folds
-              0.0% of 1326 combos and prints exactly that line under the grid
+              0.0% of total combos and prints exactly that line under the grid
               (BVB-CALIBRATION §3) — so a reader checking our totals against the
               PDF has a row to check it against. Hiding it would remove the one
               number that proves nothing folds.
@@ -215,10 +228,10 @@ export function Provenance({
                 fold
               </th>
               <td className="py-1 text-right tabular-nums">
-                {Math.round((TOTAL_COMBOS - played) * 100) / 100}
+                {Math.round((totalCombos - played) * 100) / 100}
               </td>
               <td className="py-1 text-right tabular-nums">
-                {percent((TOTAL_COMBOS - played) / TOTAL_COMBOS)}
+                {percent((totalCombos - played) / totalCombos)}
               </td>
               <td className="py-1 text-right tabular-nums">—</td>
             </tr>
@@ -226,8 +239,9 @@ export function Provenance({
         </table>
 
         <p className="text-fg-muted text-xs">
-          {range.stats.hands_played} of 169 hands are played at least some of
-          the time.
+          {range.stats.hands_played} of {totalClasses}{' '}
+            {range.game === 'plo' ? 'classes' : 'hands'} are played at least
+            some of the time.
           {Object.keys(range.stats.by_action).length === 0
             ? ' Per-action combos are missing from this payload.'
             : ''}

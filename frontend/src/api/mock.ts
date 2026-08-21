@@ -34,6 +34,7 @@
 
 import drillsFixture from '@fixtures/drills.json';
 import rangeCoFixture from '@fixtures/range_rfi_6max_CO.json';
+import rangePloBtnFixture from '@fixtures/range_rfi_plo_6max_BTN.json';
 import rangeVsLimpFixture from '@fixtures/range_vs_limp_6max_BB_vs_SB.json';
 import rangeVsRfiFixture from '@fixtures/range_vs_rfi_6max_BB_vs_BTN.json';
 import sourcesFixture from '@fixtures/sources.json';
@@ -77,6 +78,14 @@ import {
   gridIndexOf,
   handTypeOf,
 } from '../lib/hands';
+import {
+  PLO_CLASS_KEYS,
+  TOTAL_PLO_COMBOS,
+  classifyPloHand,
+  ploCombos,
+  ploDifficultyFactor,
+  ploEffectiveCombos,
+} from '../lib/hands-plo';
 
 /**
  * The `bvb` drill, hand-authored because `drills.json` does not list it yet.
@@ -191,6 +200,8 @@ function normaliseRange(raw: unknown): RangeDetail {
 }
 
 const CO_RANGE = normaliseRange(rangeCoFixture);
+const PLO_BTN_RANGE = normaliseRange(rangePloBtnFixture);
+const PLO_GAME = 'plo' as const;
 const VS_RFI_RANGE = normaliseRange(rangeVsRfiFixture);
 const VS_LIMP_RANGE = normaliseRange(rangeVsLimpFixture);
 const SOURCES = sourcesFixture as unknown as SourcesResponse;
@@ -209,7 +220,33 @@ const THREE_BET_ONLY_MATCHUPS = new Set([
 const FIXTURE_RANGES: Record<string, RangeDetail> = {
   [VS_RFI_RANGE.range_id]: VS_RFI_RANGE,
   [VS_LIMP_RANGE.range_id]: VS_LIMP_RANGE,
+  [PLO_BTN_RANGE.range_id]: PLO_BTN_RANGE,
 };
+
+/**
+ * The one real PLO chart the mock has, reused for every seat exactly the way
+ * the Hold'em side reuses the CO chart. Same caveat applies: shapes are real,
+ * per-position differences are not.
+ */
+const PLO_GRID = PLO_BTN_RANGE.grid;
+
+function ploChartFor(position: Position): MockChart {
+  void position;
+  const openSize = PLO_BTN_RANGE.action_sizes_bb[RAISE_ACTION_ID] ?? 3.5;
+  return {
+    actions: [RAISE_ACTION_ID],
+    grid: PLO_GRID,
+    actionSizesBb: { [RAISE_ACTION_ID]: openSize },
+    actionLabels: {
+      [RAISE_ACTION_ID]: `Raise ${formatBb(openSize)}bb`,
+    },
+  };
+}
+
+const PLO_UNIFORM_WEIGHTS = PLO_CLASS_KEYS.map((key) => ploCombos(key));
+const PLO_BORDERLINE_WEIGHTS = PLO_CLASS_KEYS.map((key) =>
+  ploCombos(key) * (ploDifficultyFactor(key, PLO_GRID) > 1 ? 6 : 1)
+);
 
 // ---------------------------------------------------------------------------
 // Per-position charts, derived from the one fixture chart
@@ -414,6 +451,7 @@ function bvbChartFor(sbAction: 'limp' | 'raise'): MockChart {
  * other thirteen face, and deriving it twice is exactly how that drifts.
  */
 function chartForListed(entry: RangeListItem): MockChart {
+  if (entry.game === 'plo') return ploChartFor(entry.position);
   if (entry.spot === 'vs_limp') return vsLimpChart();
   if (entry.spot !== 'vs_rfi') return chartFor(entry.position);
   const matchup = `${entry.position}_vs_${entry.vs_position ?? 'BTN'}`;
@@ -430,6 +468,7 @@ function chartForPrompt(prompt: QuestionPrompt): MockChart {
       `${prompt.hero_position}_vs_${prompt.raiser_position}`
     );
   }
+  if (prompt.game === 'plo') return ploChartFor(prompt.hero_position);
   return chartFor(prompt.hero_position);
 }
 
@@ -440,9 +479,13 @@ function rangeIdForPrompt(prompt: QuestionPrompt): string {
     const spot = prompt.sb_action === 'limp' ? 'vs_limp' : 'vs_rfi';
     return `${spot}_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.vs_position}`;
   }
-  return prompt.kind === 'vs_rfi'
-    ? `vs_rfi_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.raiser_position}`
-    : `rfi_${prompt.table_format}_${prompt.hero_position}`;
+  if (prompt.kind !== 'vs_rfi') {
+    const game = prompt.game === 'plo' ? 'plo' : undefined;
+    return game === undefined
+      ? `rfi_${prompt.table_format}_${prompt.hero_position}`
+      : `rfi_${game}_${prompt.table_format}_${prompt.hero_position}`;
+  }
+  return `vs_rfi_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.raiser_position}`;
 }
 
 function chartFor(position: Position): MockChart {
@@ -492,6 +535,36 @@ function statsFor(grid: RangeGrid): RangeStats {
   return {
     combos: Math.round(combos * 100) / 100,
     vpip: Math.round((combos / 1326) * 10000) / 10000,
+    hands_played: handsPlayed,
+    by_action: byAction,
+  };
+}
+
+/** Stats over class keys, weighted like the backend's effective combos. */
+function statsForPlo(grid: RangeGrid): RangeStats {
+  let combos = 0;
+  let handsPlayed = 0;
+  const byAction: Record<string, number> = {};
+  for (const key of PLO_CLASS_KEYS) {
+    const frequencies = grid[key] ?? {};
+    const played = Object.values(frequencies).reduce(
+      (sum, value) => sum + value,
+      0
+    );
+    if (played > 0) handsPlayed += 1;
+    const weight = ploEffectiveCombos(key);
+    combos += played * weight;
+    for (const [actionId, frequency] of Object.entries(frequencies)) {
+      byAction[actionId] =
+        (byAction[actionId] ?? 0) + frequency * weight;
+    }
+  }
+  for (const actionId of Object.keys(byAction)) {
+    byAction[actionId] = Math.round((byAction[actionId] ?? 0) * 100) / 100;
+  }
+  return {
+    combos: Math.round(combos * 100) / 100,
+    vpip: Math.round((combos / TOTAL_PLO_COMBOS) * 10000) / 10000,
     hands_played: handsPlayed,
     by_action: byAction,
   };
@@ -581,10 +654,37 @@ function catalogue(): RangeListItem[] {
     },
   ];
 
+  const ploEntries: RangeListItem[] = (
+    ['UTG', 'HJ', 'CO', 'BTN', 'SB'] as const
+  ).map((position) => {
+    const chart = ploChartFor(position);
+    return {
+      range_id: `rfi_plo_6max_${position}`,
+      spot: 'rfi',
+      game: PLO_GAME,
+      table_format: '6max' as const,
+      position,
+      vs_position: null,
+      stack_bb: PLO_BTN_RANGE.stack_bb,
+      actions: [...chart.actions],
+      action_sizes_bb: { ...chart.actionSizesBb },
+      facing_size_bb: null,
+      source_id:
+        position === 'BTN'
+          ? PLO_BTN_RANGE.source_id
+          : 'fixture-illustrative',
+      // BTN is served verbatim from the fixture, so its stats must be the
+      // fixture's own numbers rather than a recomputation of them.
+      stats:
+        position === 'BTN' ? PLO_BTN_RANGE.stats : statsForPlo(chart.grid),
+    } satisfies RangeListItem;
+  });
+
   return [
     ...derived,
     ...matchups.filter((entry) => entry.range_id !== VS_RFI_RANGE.range_id),
     ...blindVsBlind,
+    ...ploEntries,
     {
       range_id: VS_RFI_RANGE.range_id,
       spot: VS_RFI_RANGE.spot,
@@ -814,6 +914,7 @@ export class MockApiClient implements ApiClient {
     const ranges = catalogue().filter(
       (entry) =>
         (filter?.spot === undefined || entry.spot === filter.spot) &&
+        (filter?.game === undefined || entry.game === filter.game) &&
         (filter?.table_format === undefined ||
           entry.table_format === filter.table_format) &&
         (filter?.position === undefined ||
@@ -844,8 +945,14 @@ export class MockApiClient implements ApiClient {
     // self-consistent: the chart in the feedback panel is the chart the answer
     // was graded against. It is illustrative data, not a real chart.
     const chart = chartForListed(listed);
+    const base =
+      listed.game === 'plo'
+        ? PLO_BTN_RANGE
+        : listed.spot === 'vs_rfi'
+          ? VS_RFI_RANGE
+          : CO_RANGE;
     return {
-      ...clone(listed.spot === 'vs_rfi' ? VS_RFI_RANGE : CO_RANGE),
+      ...clone(base),
       range_id: listed.range_id,
       spot: listed.spot,
       position: listed.position,
@@ -856,7 +963,10 @@ export class MockApiClient implements ApiClient {
       facing_size_bb: listed.facing_size_bb,
       actions: [...chart.actions],
       grid: clone(chart.grid),
-      stats: statsFor(chart.grid),
+      stats:
+        listed.game === 'plo'
+          ? statsForPlo(chart.grid)
+          : statsFor(chart.grid),
     };
   }
 
@@ -972,17 +1082,26 @@ function playedFrequency(frequencies: ActionFrequencies): number {
 
 function generateQuestion(session: MockSession, total: number): Question {
   const format = tableFormat(session.config);
-  const weights =
-    session.config['weighting'] === 'uniform'
-      ? UNIFORM_WEIGHTS
-      : BORDERLINE_WEIGHTS;
-  const notation = ALL_HANDS[session.rng.weighted(weights)] ?? 'AA';
-  const cards = cardsForNotation(notation, (bound) => session.rng.pick(bound));
-  const hand = { cards, notation };
+  const isPlo =
+    session.drillId === 'rfi' && session.config['game'] === 'plo';
+  const hand = isPlo
+    ? dealPloHand(session)
+    : (() => {
+        const weights =
+          session.config['weighting'] === 'uniform'
+            ? UNIFORM_WEIGHTS
+            : BORDERLINE_WEIGHTS;
+        const notation = ALL_HANDS[session.rng.weighted(weights)] ?? 'AA';
+        const cards = cardsForNotation(notation, (bound) =>
+          session.rng.pick(bound)
+        );
+        return { cards, notation };
+      })();
   const index = session.answered.length + 1;
 
-  const prompt =
-    session.drillId === 'bvb'
+  const prompt = isPlo
+    ? rfiPrompt(session, format, hand)
+    : session.drillId === 'bvb'
       ? bvbPrompt(session, format, hand)
       : session.drillId === 'vs_rfi'
         ? vsRfiPrompt(session, format, hand)
@@ -1009,6 +1128,55 @@ function generateQuestion(session: MockSession, total: number): Question {
   };
 }
 
+/** Class-key weighted pick, then a uniform concrete deal inside it. */
+function dealPloHand(session: MockSession): DealtHand {
+  const weights =
+    session.config['weighting'] === 'uniform'
+      ? PLO_UNIFORM_WEIGHTS
+      : PLO_BORDERLINE_WEIGHTS;
+  const notation = PLO_CLASS_KEYS[session.rng.weighted(weights)] ?? 'AA.ds';
+  const hands = ploClassHands().get(notation) ?? [];
+  const picked = hands[session.rng.pick(hands.length)];
+  return {
+    cards: (picked ?? []).map(
+      (index) =>
+        'AKQJT98765432'.charAt(Math.floor(index / 4)) +
+        'shdc'.charAt(index % 4)
+    ),
+    notation,
+  };
+}
+
+/**
+ * Every concrete four-card hand grouped by class key, built at most once.
+ * Mirrors the backend's `_class_hands` cache so both sides deal identically.
+ */
+let PLO_CLASS_HANDS: Map<string, number[][]> | null = null;
+function ploClassHands(): Map<string, number[][]> {
+  if (PLO_CLASS_HANDS === null) {
+    const map = new Map<string, number[][]>(
+      PLO_CLASS_KEYS.map((key) => [key, []])
+    );
+    for (let a = 0; a < 49; a += 1) {
+      for (let b = a + 1; b < 50; b += 1) {
+        for (let c = b + 1; c < 51; c += 1) {
+          for (let d = c + 1; d < 52; d += 1) {
+            const indices: number[] = [a, b, c, d];
+            const cards = indices.map(
+              (index) =>
+                'AKQJT98765432'.charAt(Math.floor(index / 4)) +
+                'shdc'.charAt(index % 4)
+            );
+            map.get(classifyPloHand(cards))?.push(indices);
+          }
+        }
+      }
+    }
+    PLO_CLASS_HANDS = map;
+  }
+  return PLO_CLASS_HANDS;
+}
+
 function rfiPrompt(
   session: MockSession,
   format: TableFormat,
@@ -1017,8 +1185,10 @@ function rfiPrompt(
   const positions = configuredPositions(session.config);
   const heroPosition =
     positions[session.rng.pick(positions.length)] ?? ('CO' as Position);
+  const game = session.config['game'] === 'plo' ? 'plo' : 'holdem';
   return {
     kind: 'rfi',
+    ...(game === 'plo' ? { game: PLO_GAME } : {}),
     table_format: format,
     hero_position: heroPosition,
     stack_bb: CO_RANGE.stack_bb,

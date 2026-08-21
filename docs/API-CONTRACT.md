@@ -607,3 +607,29 @@ one selector is `situations`, a `multi_enum` over `limp` and `raise`.
 Grading, `mixed`, `expected` and the summary are unchanged — the rules are
 action-agnostic, which this third drill confirms. The `bvb` breakdown groups by
 situation.
+
+---
+
+# v2 additions (2026-08-21): PLO support
+
+Additive only; every v1/v2 payload above is unchanged for Hold'em clients.
+
+## 15. The `game` dimension
+
+Range payloads, list items, and RFI prompts gain a `game` string:
+`"holdem"` (default, and omitted nowhere it was previously served — new
+field) or `"plo"`. `GET /ranges` accepts an optional exact-match `game`
+query param. PLO ships 6-max only.
+
+**Hand notation** extends per game. Hold'em keeps §1's 169-hand shorthand.
+For PLO the notation is one of the **47 class keys** (`AA.ds`, `0G.ss`,
+`A-KT.r`, `Trips`, …) defined in RANGE-DATA-FORMAT §10; `hand.cards` then
+carries four card strings instead of two. Grading, mixed handling, expected
+actions, summaries and mistakes are game-agnostic and unchanged: PLO cells
+are looked up by class key exactly like Hold'em cells by notation.
+
+The `rfi` drill's `config_schema` gains a first `game` enum field
+(`holdem` / `plo`). Configurations combining `game=plo` with
+`table_format=8max` fail validation with `invalid_config` on
+`table_format`. Canonical fixtures: `docs/examples/range_rfi_plo_6max_BTN.json`,
+`docs/examples/next_question_plo.json`.

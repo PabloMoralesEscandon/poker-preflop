@@ -16,10 +16,21 @@ from pydantic import (
     model_validator,
 )
 
+from learner.ranges.plo import (
+    TOTAL_PLO_COMBOS,
+    plo_class_key_set,
+    plo_class_keys,
+    plo_effective_combos,
+)
+
 RANKS = "AKQJT98765432"
 SUITS = "shdc"
 TOTAL_COMBOS = 1326
 FREQUENCY_TOLERANCE = 1e-6
+
+# Game variants. Hold'em ranges predate the field, so "holdem" is the
+# default and legacy files never state it explicitly.
+Game = Literal["holdem", "plo"]
 
 TABLE_POSITIONS: dict[str, frozenset[str]] = {
     "6max": frozenset({"UTG", "HJ", "CO", "BTN", "SB", "BB"}),
@@ -176,9 +187,9 @@ class RangeStats(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    combos: float = Field(ge=0.0, le=TOTAL_COMBOS)
+    combos: float = Field(ge=0.0)
     vpip: float = Field(ge=0.0, le=1.0)
-    hands_played: int = Field(ge=0, le=169)
+    hands_played: int = Field(ge=0)
     by_action: dict[str, float]
 
 
@@ -189,6 +200,7 @@ class RangeData(BaseModel):
 
     range_id: str
     spot: Literal["rfi", "vs_rfi", "vs_limp"]
+    game: Game = "holdem"
     table_format: Literal["6max", "8max"]
     position: str
     vs_position: str | None = None
@@ -302,17 +314,32 @@ class RangeData(BaseModel):
                     "action_sizes_bb values must be positive except vs_limp check."
                 )
 
-        if len(self.grid) != 169:
+        if self.game == "plo":
+            if self.spot != "rfi":
+                raise ValueError(
+                    f"spot {self.spot!r} does not ship PLO data yet; "
+                    "only rfi is supported."
+                )
+            if self.table_format != "6max":
+                raise ValueError("PLO ranges currently support only 6max.")
+            grid_keys_expected = plo_class_key_set()
+            grid_key_count = len(plo_class_keys())
+        else:
+            grid_keys_expected = CANONICAL_HAND_SET
+            grid_key_count = 169
+
+        if len(self.grid) != grid_key_count:
             raise ValueError(
-                f"grid must contain exactly 169 keys; found {len(self.grid)}."
+                f"grid must contain exactly {grid_key_count} keys; "
+                f"found {len(self.grid)}."
             )
         grid_keys = set(self.grid)
-        if grid_keys != CANONICAL_HAND_SET:
-            missing = sorted(CANONICAL_HAND_SET - grid_keys)
-            unexpected = sorted(grid_keys - CANONICAL_HAND_SET)
+        if grid_keys != grid_keys_expected:
+            missing = sorted(grid_keys_expected - grid_keys)
+            unexpected = sorted(grid_keys - grid_keys_expected)[:8]
             raise ValueError(
                 "grid keys must be canonical; "
-                f"missing={missing}, unexpected={unexpected}."
+                f"missing={missing[:8]}, unexpected={unexpected}."
             )
 
         declared_actions = set(self.actions)
@@ -346,16 +373,23 @@ class RangeData(BaseModel):
     @computed_field
     @property
     def stats(self) -> RangeStats:
+        if self.game == "plo":
+            weight_for_hand = plo_effective_combos
+            total_combos = TOTAL_PLO_COMBOS
+        else:
+            weight_for_hand = combos
+            total_combos = TOTAL_COMBOS
         raw_by_action = {
             action: sum(
-                cell.get(action, 0.0) * combos(hand) for hand, cell in self.grid.items()
+                cell.get(action, 0.0) * weight_for_hand(hand)
+                for hand, cell in self.grid.items()
             )
             for action in self.actions
         }
         total = sum(raw_by_action.values())
         return RangeStats(
             combos=round(total, 4),
-            vpip=round(total / TOTAL_COMBOS, 4),
+            vpip=round(total / total_combos, 4),
             hands_played=sum(bool(cell) for cell in self.grid.values()),
             by_action={
                 action: round(action_combos, 4)

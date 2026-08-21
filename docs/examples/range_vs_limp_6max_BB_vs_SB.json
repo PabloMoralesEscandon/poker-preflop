@@ -1,6 +1,7 @@
 {
   "range_id": "vs_limp_6max_BB_vs_SB",
   "spot": "vs_limp",
+  "game": "holdem",
   "table_format": "6max",
   "position": "BB",
   "vs_position": "SB",

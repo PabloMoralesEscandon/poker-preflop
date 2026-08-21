@@ -13,6 +13,7 @@ import {
   type SourceInfo,
 } from '../api';
 import { HandGrid } from '../components/HandGrid';
+import { PloRangeView } from '../components/PloRangeView';
 import { Provenance } from '../components/Provenance';
 import { ErrorState, LoadingState } from '../components/states';
 import { formatBb } from '../lib/bb';
@@ -137,28 +138,48 @@ export function RangePage() {
 
       {range ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <HandGrid
-            grid={range.grid}
-            stats={range.stats}
-            label={range.range_id}
-            highlightedHand={highlighted}
-            /*
-              The size is appended only when there is one. `check` costs 0.0
-              (RANGE-DATA-FORMAT §9), and "check 0bb" would appear in the legend
-              and in all 169 cell descriptions — reading as a value that failed
-              to load, in the one screen built to be trusted. The Provenance
-              sizes row spells the zero out in words instead.
-            */
-            actionLabels={Object.fromEntries(
-              range.actions.map((actionId) => {
-                const size = range.action_sizes_bb[actionId];
-                return [
-                  actionId,
-                  size ? `${actionId} ${formatBb(size)}` : actionId,
-                ];
-              })
-            )}
-          />
+          {range.game === 'plo' ? (
+            <PloRangeView
+              grid={range.grid}
+              stats={range.stats}
+              label={range.range_id}
+              highlightedKey={
+                highlighted && highlighted.includes('.') ? highlighted : null
+              }
+              actionLabels={Object.fromEntries(
+                range.actions.map((actionId) => {
+                  const size = range.action_sizes_bb[actionId];
+                  return [
+                    actionId,
+                    size ? `${actionId} ${formatBb(size)}` : actionId,
+                  ];
+                })
+              )}
+            />
+          ) : (
+            <HandGrid
+              grid={range.grid}
+              stats={range.stats}
+              label={range.range_id}
+              highlightedHand={highlighted}
+              /*
+                The size is appended only when there is one. `check` costs 0.0
+                (RANGE-DATA-FORMAT §9), and "check 0bb" would appear in the legend
+                and in all 169 cell descriptions — reading as a value that failed
+                to load, in the one screen built to be trusted. The Provenance
+                sizes row spells the zero out in words instead.
+              */
+              actionLabels={Object.fromEntries(
+                range.actions.map((actionId) => {
+                  const size = range.action_sizes_bb[actionId];
+                  return [
+                    actionId,
+                    size ? `${actionId} ${formatBb(size)}` : actionId,
+                  ];
+                })
+              )}
+            />
+          )}
           <Provenance range={range} source={source} />
         </div>
       ) : null}

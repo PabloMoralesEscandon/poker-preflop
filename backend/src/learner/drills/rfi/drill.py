@@ -31,7 +31,7 @@ from learner.drills.rfi.models import (
     RfiMistake,
     RfiPrompt,
 )
-from learner.errors import LearnerError
+from learner.errors import LearnerError, invalid_config
 from learner.ranges.loader import RangeIndex, load_ranges
 from learner.ranges.models import (
     RangeData,
@@ -42,8 +42,41 @@ from learner.ranges.models import (
     played_frequency,
     sampling_weight,
 )
+from learner.ranges.plo import (
+    PAIR_TIERS,
+    plo_cards_for_class,
+    plo_class_keys,
+    plo_combos,
+    plo_neighbors,
+    plo_sampling_weight,
+)
 
 ACTION_ORDER = {"limp": 0, "raise": 1}
+
+_PLO_TIER_NAMES = {
+    "AA": "pair of aces",
+    "KK": "pair of kings",
+    "QQ": "pair of queens",
+    "JJ": "pair of jacks",
+    "TT": "pair of tens",
+    "99-66": "medium pair",
+    "55-22": "small pair",
+}
+_PLO_SHAPE_NAMES = {
+    "0G": "zero-gap rundown",
+    "1G": "one-gap rundown",
+    "2G": "two-gap rundown",
+    "A-KT": "ace with two broadway kickers",
+    "A-96": "ace with two mid kickers",
+    "A-52": "wheel-style ace",
+    "OA": "unmatched ace-high hand",
+    "Oth": "disconnected hand",
+}
+_PLO_TEXTURE_NAMES = {
+    "ds": "double-suited",
+    "ss": "single-suited",
+    "r": "rainbow",
+}
 
 
 class RfiDrill:
@@ -61,6 +94,16 @@ class RfiDrill:
         """Return the frozen v1 declarative configuration schema."""
         return ConfigSchema(
             fields=[
+                EnumField(
+                    key="game",
+                    label="Game",
+                    type="enum",
+                    default="holdem",
+                    options=[
+                        Option(value="holdem", label="Hold'em"),
+                        Option(value="plo", label="PLO (Pot Limit Omaha)"),
+                    ],
+                ),
                 EnumField(
                     key="table_format",
                     label="Table format",
@@ -108,7 +151,7 @@ class RfiDrill:
                     options=[
                         Option(
                             value="uniform",
-                            label="Uniform — any of the 169 hands",
+                            label="Uniform — any dealt hand",
                         ),
                         Option(
                             value="borderline",
@@ -122,17 +165,31 @@ class RfiDrill:
     def validate_config(self, config: dict[str, Any]) -> RfiConfig:
         """Validate raw RFI configuration with field-specific domain errors."""
         values = validate_config_values(self.config_schema(), config)
+        if values["game"] == "plo" and values["table_format"] == "8max":
+            raise invalid_config(
+                "PLO ranges are only available for 6-max tables.",
+                "table_format",
+            )
         return RfiConfig.model_validate(values)
 
     def generate(self, config: DrillConfig, index: int, rng: Random) -> Question:
         """Generate one reproducible question from configured positions."""
         rfi_config = _as_rfi_config(config)
         position = rng.choice(rfi_config.positions)
-        range_data = self._range(rfi_config.table_format, position)
-        hands = canonical_hands()
-        weights = self._weights(rfi_config, range_data)
-        notation = rng.choices(hands, weights=weights, k=1)[0]
-        cards = cards_for_notation(notation, rng)
+        range_data = self._range(rfi_config.game, rfi_config.table_format, position)
+
+        if rfi_config.game == "plo":
+            notation = rng.choices(
+                plo_class_keys(),
+                weights=self._plo_weights(rfi_config, range_data),
+                k=1,
+            )[0]
+            cards: tuple[str, ...] | list[str] = plo_cards_for_class(notation, rng)
+        else:
+            hands = canonical_hands()
+            weights = self._holdem_weights(rfi_config, range_data)
+            notation = rng.choices(hands, weights=weights, k=1)[0]
+            cards = cards_for_notation(notation, rng)
 
         return Question(
             question_id=f"q_{index}",
@@ -140,6 +197,7 @@ class RfiDrill:
             total=rfi_config.question_count,
             drill_id=self.id,
             prompt=RfiPrompt(
+                game=rfi_config.game,
                 table_format=rfi_config.table_format,
                 hero_position=position,
                 stack_bb=range_data.stack_bb,
@@ -159,7 +217,9 @@ class RfiDrill:
         """Grade one answer from the exact frequencies in its range cell."""
         rfi_config = _as_rfi_config(config)
         prompt = RfiPrompt.model_validate(question.prompt.model_dump())
-        range_data = self._range(rfi_config.table_format, prompt.hero_position)
+        range_data = self._range(
+            rfi_config.game, rfi_config.table_format, prompt.hero_position
+        )
         labels = {action.id: action.label for action in question.actions}
         if action_id not in labels:
             raise LearnerError(
@@ -242,14 +302,22 @@ class RfiDrill:
             mistakes=mistakes,
         )
 
-    def _range(self, table_format: str, position: str) -> RangeData:
+    def _range(self, game: str, table_format: str, position: str) -> RangeData:
+        if game == "plo":
+            return self.ranges.get(f"rfi_plo_{table_format}_{position}")
         return self.ranges.get(f"rfi_{table_format}_{position}")
 
     @staticmethod
-    def _weights(config: RfiConfig, range_data: RangeData) -> list[int]:
+    def _holdem_weights(config: RfiConfig, range_data: RangeData) -> list[int]:
         if config.weighting == "uniform":
             return [combos(hand) for hand in canonical_hands()]
         return [sampling_weight(hand, range_data.grid) for hand in canonical_hands()]
+
+    @staticmethod
+    def _plo_weights(config: RfiConfig, range_data: RangeData) -> list[int]:
+        if config.weighting == "uniform":
+            return [plo_combos(key) for key in plo_class_keys()]
+        return [plo_sampling_weight(key, range_data.grid) for key in plo_class_keys()]
 
 
 def actions_for_range(range_data: RangeData) -> list[Action]:
@@ -305,6 +373,38 @@ def _explanation(
         summary = f"{notation} is a mixed spot from {position.phrase}."
     else:
         summary = f"{notation} is a pure {expected_id} from {position.phrase}."
+    frequency_text = ", ".join(
+        f"{action} {frequency:.0%}"
+        for action, frequency in frequencies.items()
+        if frequency > 0.0
+    )
+
+    if range_data.game == "plo":
+        description = _plo_class_description(notation)
+        article = (
+            "an"
+            if description[0] in "aeiou" and not description.startswith("one")
+            else "a"
+        )
+        neighbours = plo_neighbors(notation)
+        played_neighbours = sum(
+            played_frequency(range_data.grid[hand]) > 0.0 for hand in neighbours
+        )
+        folded_neighbours = len(neighbours) - played_neighbours
+        played_verb = "is" if played_neighbours == 1 else "are"
+        fold_verb = "folds" if folded_neighbours == 1 else "fold"
+        detail = (
+            f"{notation} is {article} {description}. "
+            f"The {position.display} chart assigns "
+            f"{frequency_text}. Of its {len(neighbours)} adjacent classes, "
+            f"{played_neighbours} {played_verb} played and "
+            f"{folded_neighbours} {fold_verb}."
+        )
+        return RfiExplanation(
+            summary=summary,
+            detail=detail,
+            range_id=range_data.range_id,
+        )
 
     hand_class = (
         "pair"
@@ -314,11 +414,6 @@ def _explanation(
         else "offsuit hand"
     )
     article = "an" if hand_class[0] in "aeiou" else "a"
-    frequency_text = ", ".join(
-        f"{action} {frequency:.0%}"
-        for action, frequency in frequencies.items()
-        if frequency > 0.0
-    )
     neighbours = _adjacent_hands(notation)
     played_neighbours = sum(
         played_frequency(range_data.grid[hand]) > 0.0 for hand in neighbours
@@ -338,6 +433,18 @@ def _explanation(
         detail=detail,
         range_id=range_data.range_id,
     )
+
+
+def _plo_class_description(key: str) -> str:
+    if key == "Trips":
+        return "three of a kind"
+    if key == "Quads":
+        return "four of a kind"
+    shape, _, texture = key.partition(".")
+    texture_name = _PLO_TEXTURE_NAMES[texture]
+    if shape in PAIR_TIERS:
+        return f"{texture_name} {_PLO_TIER_NAMES[shape]}"
+    return f"{texture_name} {_PLO_SHAPE_NAMES[shape]}"
 
 
 def _adjacent_hands(notation: str) -> list[str]:

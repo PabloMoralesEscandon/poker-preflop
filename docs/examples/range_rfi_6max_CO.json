@@ -1,6 +1,7 @@
 {
   "range_id": "rfi_6max_CO",
   "spot": "rfi",
+  "game": "holdem",
   "table_format": "6max",
   "position": "CO",
   "stack_bb": 100,

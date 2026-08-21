@@ -1,26 +1,29 @@
 {
   "done": false,
   "question": {
-    "question_id": "q_3",
-    "index": 3,
+    "question_id": "q_1",
+    "index": 1,
     "total": 25,
     "drill_id": "rfi",
     "prompt": {
       "kind": "rfi",
-      "game": "holdem",
+      "game": "plo",
       "table_format": "6max",
-      "hero_position": "CO",
-      "stack_bb": 100,
+      "hero_position": "BTN",
+      "stack_bb": 100.0,
       "hand": {
         "cards": [
-          "Ah",
-          "Ks"
+          "8h",
+          "7c",
+          "6d",
+          "5h"
         ],
-        "notation": "AKo"
+        "notation": "0G.ss"
       },
       "folded_before": [
         "UTG",
-        "HJ"
+        "HJ",
+        "CO"
       ],
       "pot_bb": 1.5
     },
@@ -31,7 +34,7 @@
       },
       {
         "id": "raise",
-        "label": "Raise 2.5bb"
+        "label": "Raise 3.5bb"
       }
     ]
   }

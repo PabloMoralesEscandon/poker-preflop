@@ -3,6 +3,7 @@
     {
       "range_id": "rfi_6max_CO",
       "spot": "rfi",
+      "game": "holdem",
       "table_format": "6max",
       "position": "CO",
       "vs_position": null,
@@ -27,6 +28,7 @@
     {
       "range_id": "vs_rfi_6max_BB_vs_BTN",
       "spot": "vs_rfi",
+      "game": "holdem",
       "table_format": "6max",
       "position": "BB",
       "vs_position": "BTN",

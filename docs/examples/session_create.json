@@ -2,6 +2,7 @@
   "session_id": "s_01HZY8QK3M4N5P6R7S8T9V",
   "drill_id": "rfi",
   "config": {
+    "game": "holdem",
     "table_format": "6max",
     "positions": [
       "UTG",

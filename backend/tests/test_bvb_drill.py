@@ -36,9 +36,7 @@ def question_for(
     index: int,
 ) -> Question:
     range_id = (
-        "vs_limp_6max_BB_vs_SB"
-        if situation == "limp"
-        else "vs_rfi_6max_BB_vs_SB"
+        "vs_limp_6max_BB_vs_SB" if situation == "limp" else "vs_rfi_6max_BB_vs_SB"
     )
     range_data = drill.ranges.get(range_id)
     facing_size = range_data.facing_size_bb
@@ -167,9 +165,7 @@ def test_grading_reuses_the_shared_range_rule(
     question = question_for(drill, config, situation, notation, 1)
     grade = drill.grade(config, question, action_id)
     range_id = (
-        "vs_limp_6max_BB_vs_SB"
-        if situation == "limp"
-        else "vs_rfi_6max_BB_vs_SB"
+        "vs_limp_6max_BB_vs_SB" if situation == "limp" else "vs_rfi_6max_BB_vs_SB"
     )
     decision = grade_range_action(drill.ranges.get(range_id), notation, action_id)
 
