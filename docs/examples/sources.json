@@ -23,6 +23,17 @@
       "notes": "100bb, 2.5bb opens, 3bb from SB. Published as text hand ranges."
     },
     {
+      "source_id": "jl-ultimate-cash-preflop-guide",
+      "name": "Jonathan Little's The Ultimate Cash Game Preflop Guide (2026)",
+      "url": "https://poker-coaching.s3.amazonaws.com/tools/preflop-charts/The%20Ultimate%20Cash%20Game%20Preflop%20Guide.pdf",
+      "role": "primary",
+      "table_formats": [
+        "8max"
+      ],
+      "verified_on": "2026-08-27",
+      "notes": "Free 47-page PDF, no account. 8-max cash, 100bb and 200bb, RFI through 6-bet defence. We use the 100bb VS 3-BET pages 13-17 only: 28 grids, 3bb opens (4bb from SB), 3-bets to 10bb in position and 12bb from a blind, 4-bets to 24bb / 27bb. Unlike every earlier source these are genuinely mixed solver strategies drawn as part-filled cells, and each grid's printed percentages are of hero's own opening range rather than of all 1326 combos. Transcribed by measuring drawn segments; all 112 printed figures reproduce within 0.48pp. Its RFI pages disagree with jl-fullring-preflop-charts on open sizing (3bb vs 2.5bb) and are deliberately not used - see docs/ranges/VS-3BET-CALIBRATION.md."
+    },
+    {
       "source_id": "upswing-plo-rfi-guide",
       "name": "Upswing Poker Pot Limit Omaha Preflop Guide (RFI)",
       "url": "https://upswingpoker.com/wp-content/uploads/2020/04/PLO-Preflop-Guide-RFI-v4-UpswingPoker.pdf",

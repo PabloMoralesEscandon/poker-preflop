@@ -190,3 +190,123 @@ verified, three grids rather than fourteen, and it introduces a limp branch the
 `rfi` action set already supports. Cheap data, no new format, no new rules.
 
 Avoid postflop until there is a free data source. Nothing has changed there.
+
+---
+
+# What drill #4 cost — measured at 2026-08-27
+
+Facing a 3-bet. The prediction this document has been making since CP-04 —
+**plan around how many range files a drill needs, not how much code** — held for
+a third time, and the code side held even better than before. But this drill
+broke two things nothing had broken yet, and both are worth carrying forward.
+
+## The shared layers, again
+
+| Layer | Change |
+|---|---|
+| `backend/src/learner/api/` | **none** |
+| `backend/src/learner/sessions/` | **none** |
+| `backend/src/learner/drills/base.py` | **none** |
+| `backend/src/learner/drills/range_grading.py` | **none** — a fourth action set, same rule |
+| `backend/src/learner/main.py` | one import, one registry entry |
+| `frontend/src/drills/DrillRunner.tsx` | **unchanged** |
+| `frontend/src/drills/registry.ts` | **unchanged** |
+| `frontend/src/lib/history.ts` | **unchanged** |
+| `frontend/src/components/HandGrid.tsx` | **unchanged** |
+| `frontend/src/drills/register.ts` | one import, one call |
+
+`correct = chosen frequency > 0` has now survived `raise`/`limp`,
+`call`/`3bet`, `raise`/`check` and `call`/`4bet`/`allin` without a line moving.
+It can be treated as settled.
+
+## What it did change, and why that was not a failure
+
+Two shared things moved, and neither names a drill.
+
+**`ranges/models.py` gained two optional fields and one stat.** `reach` and
+`hero_committed_bb`. That is the `ranges/` layer learning a new piece of *data
+vocabulary*, which ARCHITECTURE §4.1 explicitly allows it to do — the same way
+it already knows the closed set of spots and formats.
+
+**`Provenance.tsx` learned to divide by something other than 1326.** This one
+is the interesting one, because it looks like drill knowledge leaking into a
+shared component and is not. The panel exists so a reader can hold the PDF next
+to the screen and compare two numbers. A `vs_3bet` chart prints its percentages
+*out of hero's opening range*, so dividing by the deal would have filled the
+audit table with numbers that appear nowhere in the source — the component
+would have been silently, confidently wrong at the one job it has. It now reads
+`stats.reach_combos`, which every range carries.
+
+The rule that generalises: **a shared component may not know which drill it is
+rendering, but it must know every shape of data it renders.** A denominator is
+data, not a drill.
+
+## The data cost, and the new kind of source
+
+28 grids, 8-max, from a source unlike every earlier one in two ways.
+
+**It states mixed strategies.** Every previous chart was "implementable GTO" — a
+pure strategy with the mixes rounded away, so a cell was one colour and one
+word. This one draws `AKs` as 42% 4-bet and 58% call, two bands in one
+rectangle. Two consequences:
+
+- The mixed-answer path this document listed as "live code covered only by
+  constructed fixtures, unproven, never seen by a user" is now exercised by 574
+  real cells. It worked unmodified.
+- The exact-match acceptance criterion the vs-RFI data used is unavailable.
+  A band width is recoverable to about a pixel, so the criterion became a
+  reported tolerance (0.48 pp worst case over 112 figures) rather than equality.
+  That is weaker, and VS-3BET-CALIBRATION §4 says so out loud rather than
+  quietly relaxing an assertion.
+
+**Reading it required measuring, which RESOURCES §3 forbade.** The ban on
+colour sampling was written when every chart was pure, and applied here it
+would not have protected accuracy — eyeballing 28 grids of split cells to two
+decimals is invention, not transcription. The rule was amended with four
+conditions rather than waived; the load-bearing one is that the source must
+print totals we can be checked against.
+
+This is the fourth time a rule in this repository was written from the data
+that happened to exist and had to be widened by data that arrived later. The
+pattern is now reliable enough to plan for: **when a new source arrives, expect
+one specification rule to be wrong, and expect it to be a rule that generalised
+from a property nobody realised was a property.**
+
+## The defect, and the check that found it
+
+One real transcription error: on page 15 the right-hand column of panels sits
+seven pixels higher than the left, so ordering panels by height interleaved the
+columns and two grids were paired with each other's titles.
+
+**Every printed percentage still matched**, because both grids were real. What
+caught it was an invariant about internal consistency rather than about the
+source: one hero has one opening range, so `reach` cannot depend on who 3-bet
+them.
+
+Add that to the process notes at the top of this document. Checks against the
+source find readings the source disagrees with. They cannot find two correct
+readings in the wrong places; only a check on the internal coherence of what
+was read can.
+
+## The seam we did not close
+
+The guide also publishes 8-max RFI ranges, and they disagree with the ones we
+ship — 3bb opens against 2.5bb, a different solve by the same author. So the
+`rfi` drill teaches an opening range that the `vs_3bet` drill does not quite
+assume you opened with.
+
+Closing it means re-transcribing eight charts and retiring a verified set, with
+a user-visible consequence. It is recorded in VS-3BET-CALIBRATION §1.1 and left
+open deliberately. **Recommendation for drill #5: if it touches 8-max at all,
+close this first.** Two solves of one game inside one app is the sort of thing
+that is cheap to leave and expensive to discover.
+
+## Recommendation for drill #5
+
+The remaining preflop branches — vs 4-bet and vs 5-bet — are in the same free
+guide, at pages 18–27, in exactly the shape `vs_3bet` now supports. `reach`
+generalises to them unchanged: facing a 4-bet, the hands that reach the spot
+are the ones you 3-bet. They would be the cheapest drills yet, because the
+engine work is already done and only the charts are left.
+
+Postflop remains blocked on a data source. Nothing has changed there.

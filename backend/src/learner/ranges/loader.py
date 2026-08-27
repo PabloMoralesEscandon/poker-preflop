@@ -11,7 +11,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from learner.errors import LearnerError
-from learner.ranges.models import RangeData
+from learner.ranges.models import MATCHUP_SPOTS, POSITION_ORDER, RangeData
 
 DEFAULT_RANGE_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "ranges"
 
@@ -21,6 +21,7 @@ KNOWN_SOURCE_IDS = frozenset(
     {
         "jl-6max-preflop-charts",
         "jl-fullring-preflop-charts",
+        "jl-ultimate-cash-preflop-guide",
         "upswing-plo-rfi-guide",
         "plocom-solver-data",
         "gtowizard-free-study",
@@ -33,11 +34,6 @@ KNOWN_SOURCE_IDS = frozenset(
         "equilab",
     }
 )
-
-POSITION_ORDER = {
-    "6max": ("UTG", "HJ", "CO", "BTN", "SB", "BB"),
-    "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"),
-}
 
 
 class RangeLoadError(ValueError):
@@ -191,7 +187,7 @@ def load_range_file(
             f"{file_path}: range_id {item.range_id!r} does not match "
             f"path-derived id {expected_id!r}."
         )
-    if path_spot in {"vs_rfi", "vs_limp"} and "_vs_" in path_matchup:
+    if path_spot in MATCHUP_SPOTS and "_vs_" in path_matchup:
         path_position, path_vs_position = path_matchup.split("_vs_", maxsplit=1)
     else:
         path_position, path_vs_position = path_matchup, None

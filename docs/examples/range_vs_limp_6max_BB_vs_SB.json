@@ -15,6 +15,8 @@
     "raise": 3.5,
     "check": 0.0
   },
+  "hero_committed_bb": null,
+  "reach": null,
   "source_id": "fixture-illustrative",
   "notes": "ILLUSTRATIVE FIXTURE - not a shipped range. Exists so the UI has a no-fold spot to render before the real page-6 transcription lands. Shape is real: nothing folds, every cell is played. Cells are invented; the real chart is 536 raise / 790 check.",
   "grid": {
@@ -533,6 +535,7 @@
     "by_action": {
       "raise": 264.0,
       "check": 1062.0
-    }
+    },
+    "reach_combos": 1326.0
   }
 }

@@ -15,6 +15,7 @@ const SPOT_LABELS: Record<string, string> = {
   rfi: 'Raise first in',
   vs_rfi: 'Facing a raise',
   vs_limp: 'Facing a limp',
+  vs_3bet: 'Facing a 3-bet',
 };
 
 const spotLabel = (spot: string) => SPOT_LABELS[spot] ?? spot;
@@ -105,7 +106,10 @@ export function ChartsPage() {
     const map = new Map<string, Map<string, RangeListItem[]>>();
     for (const entry of visible) {
       const groupKey =
-        entry.spot + (entry.game && entry.game !== 'holdem' ? ` · ${entry.game.toUpperCase()}` : '');
+        entry.spot +
+        (entry.game && entry.game !== 'holdem'
+          ? ` · ${entry.game.toUpperCase()}`
+          : '');
       const byFormat = map.get(groupKey) ?? new Map();
       byFormat.set(entry.table_format, [
         ...(byFormat.get(entry.table_format) ?? []),

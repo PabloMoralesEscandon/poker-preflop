@@ -1,0 +1,22 @@
+{
+  "correct": false,
+  "chosen": {
+    "action_id": "4bet",
+    "label": "4-Bet to 24bb"
+  },
+  "expected": {
+    "action_id": "call",
+    "label": "Call 10bb",
+    "frequency": 1.0
+  },
+  "explanation": {
+    "summary": "65s is a pure call after opening from UTG and being 3-bet by the Button.",
+    "detail": "Hero opened to 3bb and faces a 3-bet to 10bb. Calling costs 7bb into a 14.5bb pot, so it needs 33% equity to break even. The UTG versus Button 3-bet chart assigns call 100%.",
+    "range_id": "vs_3bet_8max_UTG_vs_BTN"
+  },
+  "progress": {
+    "answered": 1,
+    "correct": 0,
+    "total": 25
+  }
+}

@@ -116,11 +116,14 @@ async def test_drills_matches_fixture_and_lists_all_drills(
     expected = example("drills.json")
     # Matchup options are intentionally data-driven, so migrate the frozen
     # fixture to the currently loaded range set before comparing everything else.
-    expected["drills"][1]["config_schema"]["fields"][1] = drills[1]["config_schema"][
-        "fields"
-    ][1]
-    assert {"drills": drills[:2]} == expected
-    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi", "bvb"]
+    for served, frozen in zip(drills, expected["drills"], strict=True):
+        for index, field in enumerate(frozen["config_schema"]["fields"]):
+            if field.get("options_by") is not None:
+                frozen["config_schema"]["fields"][index] = served["config_schema"][
+                    "fields"
+                ][index]
+    assert {"drills": drills} == expected
+    assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi", "bvb", "vs_3bet"]
     assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
         "table_format",
         "matchups",
@@ -239,6 +242,9 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     vs_rfi = await client.get(
         "/api/v1/ranges", params={"spot": "vs_rfi", "table_format": "6max"}
     )
+    vs_3bet = await client.get(
+        "/api/v1/ranges", params={"spot": "vs_3bet", "table_format": "8max"}
+    )
     missing = await client.get("/api/v1/ranges", params={"spot": "missing"})
 
     assert all_ranges.status_code == 200
@@ -252,10 +258,12 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
             for item in mixed_six_max.json()["ranges"]
         ]
     } == example("ranges_list.json")
+    # Spots sort alphabetically, so vs_3bet lands between rfi and vs_limp.
     assert all_ranges.json()["ranges"] == (
         six_max.json()["ranges"]
         + eight_max.json()["ranges"]
         + plo_six_max.json()["ranges"]
+        + vs_3bet.json()["ranges"]
         + vs_limp.json()["ranges"]
         + vs_rfi.json()["ranges"]
     )
@@ -316,10 +324,15 @@ async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> N
         "vs_position",
         "facing_size_bb",
         "action_sizes_bb",
+        "hero_committed_bb",
+        "reach",
     }
     assert set(body) == expected_fields
     assert body["vs_position"] is None
     assert body["facing_size_bb"] is None
+    assert body["hero_committed_bb"] is None
+    # An rfi range has no narrower reach: every one of the 169 hands is dealt.
+    assert body["reach"] is None
     assert body["action_sizes_bb"] == {"raise": 2.5}
     assert set(body["grid"]) == set(fixture["grid"])
     assert all(
@@ -335,6 +348,7 @@ async def test_range_detail_has_stats_and_cache_header(client: AsyncClient) -> N
         "vpip": 0.2775,
         "hands_played": 62,
         "by_action": {"raise": 368.0},
+        "reach_combos": 1326.0,
     }
 
 

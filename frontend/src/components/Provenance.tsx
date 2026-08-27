@@ -46,10 +46,20 @@ export function Provenance({
 }) {
   const role = source ? ROLE_COPY[source.role] : null;
   const played = range.stats.combos;
-  const totalCombos =
-    TOTAL_COMBOS_BY_GAME[range.game ?? 'holdem'] ?? 1326;
-  const totalClasses =
-    TOTAL_CLASSES_BY_GAME[range.game ?? 'holdem'] ?? 169;
+  const dealtCombos = TOTAL_COMBOS_BY_GAME[range.game ?? 'holdem'] ?? 1326;
+  const totalClasses = TOTAL_CLASSES_BY_GAME[range.game ?? 'holdem'] ?? 169;
+  /*
+    What the chart's own percentages are out of.
+
+    For every spot up to `vs_rfi` that is the whole deal, and the two are the
+    same number. `vs_3bet` is the first chart whose grid only covers hands
+    hero opened: it prints `Call 34.45%` meaning 34.45% *of hero's opening
+    range*, not of 1326. Dividing by 1326 here would fill this table — the one
+    place whose entire job is that a reader can check us against the PDF — with
+    numbers that appear nowhere in the PDF.
+  */
+  const totalCombos = range.stats.reach_combos ?? dealtCombos;
+  const isNarrowed = totalCombos < dealtCombos;
 
   return (
     <section
@@ -167,7 +177,7 @@ export function Provenance({
                 Combos
               </th>
               <th scope="col" className="py-1 text-right font-medium">
-                of total
+                {isNarrowed ? 'of range' : 'of total'}
               </th>
               <th scope="col" className="py-1 text-right font-medium">
                 of played
@@ -193,9 +203,7 @@ export function Provenance({
                     {combos === undefined ? '—' : combos}
                   </td>
                   <td className="py-1 text-right tabular-nums">
-                    {combos === undefined
-                      ? '—'
-                      : percent(combos / totalCombos)}
+                    {combos === undefined ? '—' : percent(combos / totalCombos)}
                   </td>
                   <td className="py-1 text-right tabular-nums">
                     {combos === undefined || played === 0
@@ -212,7 +220,8 @@ export function Provenance({
               </th>
               <td className="py-1 text-right tabular-nums">{played}</td>
               <td className="py-1 text-right tabular-nums">
-                {percent(range.stats.vpip)}
+                {/* Equals `stats.vpip` wherever the deal is the denominator. */}
+                {percent(played / totalCombos)}
               </td>
               <td className="py-1 text-right tabular-nums">100.0%</td>
             </tr>
@@ -239,9 +248,17 @@ export function Provenance({
         </table>
 
         <p className="text-fg-muted text-xs">
-          {range.stats.hands_played} of {totalClasses}{' '}
-            {range.game === 'plo' ? 'classes' : 'hands'} are played at least
-            some of the time.
+          {isNarrowed ? (
+            <>
+              Percentages are of the {totalCombos} combos that reach this spot,
+              which is how the source normalises them — not of all {dealtCombos}
+              . <br />
+            </>
+          ) : null}
+          {range.stats.hands_played} of{' '}
+          {isNarrowed ? (range.reach?.length ?? totalClasses) : totalClasses}{' '}
+          {range.game === 'plo' ? 'classes' : 'hands'} are played at least some
+          of the time.
           {Object.keys(range.stats.by_action).length === 0
             ? ' Per-action combos are missing from this payload.'
             : ''}

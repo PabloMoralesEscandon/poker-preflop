@@ -16,6 +16,7 @@ from learner.api.v1 import router as v1_router
 from learner.drills.bvb import BvbDrill
 from learner.drills.registry import DrillRegistry
 from learner.drills.rfi import RfiDrill
+from learner.drills.vs_3bet import Vs3BetDrill
 from learner.drills.vs_rfi import VsRfiDrill
 from learner.errors import LearnerError
 from learner.ranges.loader import DEFAULT_RANGE_DATA_DIR, load_ranges
@@ -50,7 +51,14 @@ def create_app(
     """Create and configure a Poker Learner API application."""
     application = FastAPI(title="Poker Learner API", version=__version__)
     ranges = load_ranges(range_data_dir)
-    drills = DrillRegistry([RfiDrill(ranges), VsRfiDrill(ranges), BvbDrill(ranges)])
+    drills = DrillRegistry(
+        [
+            RfiDrill(ranges),
+            VsRfiDrill(ranges),
+            BvbDrill(ranges),
+            Vs3BetDrill(ranges),
+        ]
+    )
     store = MemorySessionStore() if session_store is None else session_store
     application.state.range_index = ranges
     application.state.drill_registry = drills

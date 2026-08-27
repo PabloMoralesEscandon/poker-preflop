@@ -198,8 +198,43 @@ export interface BvbPrompt {
   to_call_bb: number;
 }
 
+/**
+ * Prompt for drill #4: hero opened, and someone behind 3-bet.
+ *
+ * The first spot where hero is not entering the pot but defending one they
+ * built. Two consequences the other prompts do not have:
+ *
+ *  - **`open_size_bb` is hero's own money, already in.** `to_call_bb` is the
+ *    3-bet minus that open, not the 3-bet — the same server-side arithmetic
+ *    rule as every other prompt, with a bigger gap between the two numbers.
+ *  - **`folded` names every seat but two.** By the time the decision comes
+ *    back round, whoever was left to act behind the 3-bet has folded, so the
+ *    pot is heads-up. It is not `folded_before`: seats *after* the 3-bettor
+ *    are in the list too.
+ */
+export interface Vs3BetPrompt {
+  kind: 'vs_3bet';
+  table_format: TableFormat;
+  /** The opener. Never `BB`, which cannot open. */
+  hero_position: Position;
+  /** Who 3-bet. Always a seat that acts after hero. */
+  three_bettor_position: Position;
+  stack_bb: number;
+  hand: DealtHand;
+  /** Every seat that is not hero and not the 3-bettor. */
+  folded: Position[];
+  /** What hero opened to, and already has in the pot. */
+  open_size_bb: number;
+  /** The 3-bet hero faces. */
+  facing_size_bb: number;
+  /** The pot before hero acts. Computed server-side; never derived here. */
+  pot_bb: number;
+  /** What hero must add to call — the 3-bet less their own open. Server-side. */
+  to_call_bb: number;
+}
+
 /** Discriminated on `prompt.kind` — the key of the frontend drill registry. */
-export type QuestionPrompt = RfiPrompt | VsRfiPrompt | BvbPrompt;
+export type QuestionPrompt = RfiPrompt | VsRfiPrompt | BvbPrompt | Vs3BetPrompt;
 
 export interface ActionOption {
   id: string;
@@ -341,6 +376,16 @@ export interface RangeStats {
   vpip: number;
   hands_played: number;
   /**
+   * Combos that reach the spot at all — 1326 unless the range declares a
+   * narrower {@link RangeDetail.reach}.
+   *
+   * It is the denominator a `vs_3bet` chart's own printed percentages use, so
+   * the provenance panel must divide by it rather than by 1326. Dividing by
+   * the wrong one turns the audit table into a table of numbers that appear
+   * nowhere in the published PDF.
+   */
+  reach_combos: number;
+  /**
    * Combos per action. The number a human reads against the chart's own printed
    * totals, which is what makes the browser an audit tool rather than a gallery.
    */
@@ -359,6 +404,16 @@ export interface RangeDetail {
   /** Replaces v1's `open_size_bb`; carries a size per action (v2 §13). */
   action_sizes_bb: Record<string, number>;
   facing_size_bb: number | null;
+  /** What hero already has in the pot. `null` where the spot has no such bet. */
+  hero_committed_bb: number | null;
+  /**
+   * The hands that arrive at this spot at all; `null` means all 169.
+   *
+   * Only `vs_3bet` narrows it. A cell outside `reach` and a cell that folds
+   * are both stored as `{}`, and only this list tells them apart: one is a
+   * hand hero never opened, the other a hand hero opened and gave up.
+   */
+  reach: HandNotation[] | null;
   source_id: string;
   /** The range file's own notes. Shown verbatim; never paraphrased. */
   notes: string;

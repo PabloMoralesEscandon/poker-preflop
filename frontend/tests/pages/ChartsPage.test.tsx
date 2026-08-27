@@ -88,11 +88,11 @@ describe('the chart index', () => {
     renderAt('/charts');
     await screen.findByRole('link', { name: /\brfi_6max_CO\b/ });
 
-    // BTN is hero in the Hold'em RFI chart, in three vs_rfi matchups, and in
-    // the PLO RFI chart.
+    // BTN is hero in the Hold'em RFI chart, in three vs_rfi matchups, in the
+    // PLO RFI chart, and in the two vs_3bet matchups where it opened.
     await userEvent.selectOptions(screen.getByLabelText('Position'), 'BTN');
     await waitFor(() =>
-      expect(screen.getByText(/\d+ of \d+ charts/)).toHaveTextContent('5 of')
+      expect(screen.getByText(/\d+ of \d+ charts/)).toHaveTextContent('7 of')
     );
     expect(
       screen.getAllByRole('link', { name: /_6max_BTN/ }).length

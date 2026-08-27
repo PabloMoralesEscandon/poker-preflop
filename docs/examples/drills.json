@@ -50,7 +50,6 @@
               "BTN",
               "SB"
             ],
-            "depends_on": "table_format",
             "options_by": {
               "6max": [
                 {
@@ -104,7 +103,8 @@
                   "label": "Small blind"
                 }
               ]
-            }
+            },
+            "depends_on": "table_format"
           },
           {
             "key": "question_count",
@@ -170,7 +170,8 @@
               "BB_vs_UTG",
               "BB_vs_HJ",
               "BB_vs_CO",
-              "BB_vs_BTN"
+              "BB_vs_BTN",
+              "BB_vs_SB"
             ],
             "options_by": {
               "6max": [
@@ -229,6 +230,10 @@
                 {
                   "value": "BB_vs_BTN",
                   "label": "BB vs BTN"
+                },
+                {
+                  "value": "BB_vs_SB",
+                  "label": "BB vs SB"
                 }
               ]
             },
@@ -251,6 +256,257 @@
               {
                 "value": "uniform",
                 "label": "Uniform \u2014 any of the 169 hands"
+              },
+              {
+                "value": "borderline",
+                "label": "Borderline \u2014 favour close decisions"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "bvb",
+      "name": "Blind vs Blind",
+      "description": "Respond from the big blind when the small blind limps or raises.",
+      "version": 1,
+      "config_schema": {
+        "fields": [
+          {
+            "key": "situations",
+            "label": "Situations",
+            "type": "multi_enum",
+            "default": [
+              "limp",
+              "raise"
+            ],
+            "options": [
+              {
+                "value": "limp",
+                "label": "Facing a limp"
+              },
+              {
+                "value": "raise",
+                "label": "Facing a raise"
+              }
+            ]
+          },
+          {
+            "key": "question_count",
+            "label": "Hands",
+            "type": "int",
+            "default": 25,
+            "min": 5,
+            "max": 200
+          },
+          {
+            "key": "weighting",
+            "label": "Hand selection",
+            "type": "enum",
+            "default": "borderline",
+            "options": [
+              {
+                "value": "uniform",
+                "label": "Uniform \u2014 any of the 169 hands"
+              },
+              {
+                "value": "borderline",
+                "label": "Borderline \u2014 favour close decisions"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "vs_3bet",
+      "name": "Facing a 3-Bet",
+      "description": "Decide whether to fold, call, or 4-bet after your open is 3-bet.",
+      "version": 1,
+      "config_schema": {
+        "fields": [
+          {
+            "key": "table_format",
+            "label": "Table format",
+            "type": "enum",
+            "default": "8max",
+            "options": [
+              {
+                "value": "8max",
+                "label": "8-max full ring"
+              }
+            ]
+          },
+          {
+            "key": "matchups",
+            "label": "Matchups",
+            "type": "multi_enum",
+            "default": [
+              "UTG_vs_UTG1",
+              "UTG_vs_LJ",
+              "UTG_vs_HJ",
+              "UTG_vs_CO",
+              "UTG_vs_BTN",
+              "UTG_vs_SB",
+              "UTG_vs_BB",
+              "UTG1_vs_LJ",
+              "UTG1_vs_HJ",
+              "UTG1_vs_CO",
+              "UTG1_vs_BTN",
+              "UTG1_vs_SB",
+              "UTG1_vs_BB",
+              "LJ_vs_HJ",
+              "LJ_vs_CO",
+              "LJ_vs_BTN",
+              "LJ_vs_SB",
+              "LJ_vs_BB",
+              "HJ_vs_CO",
+              "HJ_vs_BTN",
+              "HJ_vs_SB",
+              "HJ_vs_BB",
+              "CO_vs_BTN",
+              "CO_vs_SB",
+              "CO_vs_BB",
+              "BTN_vs_SB",
+              "BTN_vs_BB",
+              "SB_vs_BB"
+            ],
+            "options_by": {
+              "8max": [
+                {
+                  "value": "UTG_vs_UTG1",
+                  "label": "UTG vs UTG+1 3-bet"
+                },
+                {
+                  "value": "UTG_vs_LJ",
+                  "label": "UTG vs Lojack 3-bet"
+                },
+                {
+                  "value": "UTG_vs_HJ",
+                  "label": "UTG vs Hijack 3-bet"
+                },
+                {
+                  "value": "UTG_vs_CO",
+                  "label": "UTG vs Cutoff 3-bet"
+                },
+                {
+                  "value": "UTG_vs_BTN",
+                  "label": "UTG vs Button 3-bet"
+                },
+                {
+                  "value": "UTG_vs_SB",
+                  "label": "UTG vs Small blind 3-bet"
+                },
+                {
+                  "value": "UTG_vs_BB",
+                  "label": "UTG vs Big blind 3-bet"
+                },
+                {
+                  "value": "UTG1_vs_LJ",
+                  "label": "UTG+1 vs Lojack 3-bet"
+                },
+                {
+                  "value": "UTG1_vs_HJ",
+                  "label": "UTG+1 vs Hijack 3-bet"
+                },
+                {
+                  "value": "UTG1_vs_CO",
+                  "label": "UTG+1 vs Cutoff 3-bet"
+                },
+                {
+                  "value": "UTG1_vs_BTN",
+                  "label": "UTG+1 vs Button 3-bet"
+                },
+                {
+                  "value": "UTG1_vs_SB",
+                  "label": "UTG+1 vs Small blind 3-bet"
+                },
+                {
+                  "value": "UTG1_vs_BB",
+                  "label": "UTG+1 vs Big blind 3-bet"
+                },
+                {
+                  "value": "LJ_vs_HJ",
+                  "label": "Lojack vs Hijack 3-bet"
+                },
+                {
+                  "value": "LJ_vs_CO",
+                  "label": "Lojack vs Cutoff 3-bet"
+                },
+                {
+                  "value": "LJ_vs_BTN",
+                  "label": "Lojack vs Button 3-bet"
+                },
+                {
+                  "value": "LJ_vs_SB",
+                  "label": "Lojack vs Small blind 3-bet"
+                },
+                {
+                  "value": "LJ_vs_BB",
+                  "label": "Lojack vs Big blind 3-bet"
+                },
+                {
+                  "value": "HJ_vs_CO",
+                  "label": "Hijack vs Cutoff 3-bet"
+                },
+                {
+                  "value": "HJ_vs_BTN",
+                  "label": "Hijack vs Button 3-bet"
+                },
+                {
+                  "value": "HJ_vs_SB",
+                  "label": "Hijack vs Small blind 3-bet"
+                },
+                {
+                  "value": "HJ_vs_BB",
+                  "label": "Hijack vs Big blind 3-bet"
+                },
+                {
+                  "value": "CO_vs_BTN",
+                  "label": "Cutoff vs Button 3-bet"
+                },
+                {
+                  "value": "CO_vs_SB",
+                  "label": "Cutoff vs Small blind 3-bet"
+                },
+                {
+                  "value": "CO_vs_BB",
+                  "label": "Cutoff vs Big blind 3-bet"
+                },
+                {
+                  "value": "BTN_vs_SB",
+                  "label": "Button vs Small blind 3-bet"
+                },
+                {
+                  "value": "BTN_vs_BB",
+                  "label": "Button vs Big blind 3-bet"
+                },
+                {
+                  "value": "SB_vs_BB",
+                  "label": "Small blind vs Big blind 3-bet"
+                }
+              ]
+            },
+            "depends_on": "table_format"
+          },
+          {
+            "key": "question_count",
+            "label": "Hands",
+            "type": "int",
+            "default": 25,
+            "min": 5,
+            "max": 200
+          },
+          {
+            "key": "weighting",
+            "label": "Hand selection",
+            "type": "enum",
+            "default": "borderline",
+            "options": [
+              {
+                "value": "uniform",
+                "label": "Uniform \u2014 any hand you opened"
               },
               {
                 "value": "borderline",

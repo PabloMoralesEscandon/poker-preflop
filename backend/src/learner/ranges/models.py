@@ -32,9 +32,12 @@ FREQUENCY_TOLERANCE = 1e-6
 # default and legacy files never state it explicitly.
 Game = Literal["holdem", "plo"]
 
+POSITION_ORDER: dict[str, tuple[str, ...]] = {
+    "6max": ("UTG", "HJ", "CO", "BTN", "SB", "BB"),
+    "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"),
+}
 TABLE_POSITIONS: dict[str, frozenset[str]] = {
-    "6max": frozenset({"UTG", "HJ", "CO", "BTN", "SB", "BB"}),
-    "8max": frozenset({"UTG", "UTG1", "LJ", "HJ", "CO", "BTN", "SB", "BB"}),
+    table_format: frozenset(order) for table_format, order in POSITION_ORDER.items()
 }
 RFI_POSITIONS: dict[str, frozenset[str]] = {
     "6max": frozenset({"UTG", "HJ", "CO", "BTN", "SB"}),
@@ -44,7 +47,10 @@ ALLOWED_ACTIONS_BY_SPOT: dict[str, frozenset[str]] = {
     "rfi": frozenset({"raise", "limp"}),
     "vs_rfi": frozenset({"call", "3bet"}),
     "vs_limp": frozenset({"raise", "check"}),
+    "vs_3bet": frozenset({"call", "4bet", "allin"}),
 }
+# Spots whose files are named {HERO}_vs_{VILLAIN} and carry a vs_position.
+MATCHUP_SPOTS = frozenset({"vs_rfi", "vs_limp", "vs_3bet"})
 
 
 def _build_canonical_hands() -> tuple[str, ...]:
@@ -191,6 +197,10 @@ class RangeStats(BaseModel):
     vpip: float = Field(ge=0.0, le=1.0)
     hands_played: int = Field(ge=0)
     by_action: dict[str, float]
+    # Combos that reach the spot at all. All 1326 unless the range declares a
+    # narrower `reach`; a vs_3bet chart's own percentages are of this figure,
+    # not of the full deal, so it is what a reader checks them against.
+    reach_combos: float = Field(ge=0.0)
 
 
 class RangeData(BaseModel):
@@ -199,17 +209,23 @@ class RangeData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     range_id: str
-    spot: Literal["rfi", "vs_rfi", "vs_limp"]
+    spot: Literal["rfi", "vs_rfi", "vs_limp", "vs_3bet"]
     game: Game = "holdem"
     table_format: Literal["6max", "8max"]
     position: str
     vs_position: str | None = None
     stack_bb: float
     facing_size_bb: float | None = None
+    # What hero already has in the pot when the decision is made. Absent
+    # wherever it is a blind the drill can infer; required for vs_3bet, where
+    # it is hero's own open and nothing else can supply it.
+    hero_committed_bb: float | None = None
     source_id: str
     notes: str
     actions: list[str]
     action_sizes_bb: dict[str, float]
+    # The hands that arrive at this spot at all. `None` means all 169.
+    reach: list[str] | None = None
     grid: dict[str, dict[str, float]]
 
     @field_validator("stack_bb", mode="before")
@@ -217,7 +233,7 @@ class RangeData(BaseModel):
     def validate_numbers(cls, value: Any, info: Any) -> float:
         return _number(value, info.field_name)
 
-    @field_validator("facing_size_bb", mode="before")
+    @field_validator("facing_size_bb", "hero_committed_bb", mode="before")
     @classmethod
     def validate_optional_number(cls, value: Any, info: Any) -> float | None:
         return None if value is None else _number(value, info.field_name)
@@ -277,6 +293,38 @@ class RangeData(BaseModel):
                 raise ValueError("vs_position must differ from position.")
             if self.facing_size_bb is None:
                 raise ValueError("facing_size_bb is required for vs_rfi ranges.")
+        elif self.spot == "vs_3bet":
+            if self.table_format != "8max":
+                raise ValueError("vs_3bet currently supports only 8max.")
+            if self.position not in RFI_POSITIONS[self.table_format]:
+                raise ValueError(
+                    f"position {self.position!r} cannot open, so it cannot face "
+                    "a 3-bet."
+                )
+            if self.vs_position is None:
+                raise ValueError("vs_position is required for vs_3bet ranges.")
+            if self.vs_position not in TABLE_POSITIONS[self.table_format]:
+                raise ValueError(
+                    f"vs_position {self.vs_position!r} is invalid for "
+                    f"{self.table_format} vs_3bet."
+                )
+            order = POSITION_ORDER[self.table_format]
+            if order.index(self.vs_position) <= order.index(self.position):
+                raise ValueError(
+                    "the 3-bettor must act after the opener; "
+                    f"{self.vs_position!r} does not act after {self.position!r}."
+                )
+            if self.facing_size_bb is None:
+                raise ValueError("facing_size_bb is required for vs_3bet ranges.")
+            if self.hero_committed_bb is None:
+                raise ValueError("hero_committed_bb is required for vs_3bet ranges.")
+            if not 0.0 < self.hero_committed_bb < self.facing_size_bb:
+                raise ValueError(
+                    "hero_committed_bb must be positive and smaller than the "
+                    "3-bet it faces."
+                )
+            if self.reach is None:
+                raise ValueError("reach is required for vs_3bet ranges.")
         else:
             if self.table_format != "6max":
                 raise ValueError("vs_limp currently supports only 6max.")
@@ -284,6 +332,13 @@ class RangeData(BaseModel):
                 raise ValueError("vs_limp currently supports only BB vs SB.")
             if self.facing_size_bb is None:
                 raise ValueError("facing_size_bb is required for vs_limp ranges.")
+        if self.spot != "vs_3bet":
+            if self.hero_committed_bb is not None:
+                raise ValueError(
+                    f"hero_committed_bb must be absent for {self.spot} ranges."
+                )
+            if self.reach is not None:
+                raise ValueError(f"reach must be absent for {self.spot} ranges.")
         if self.facing_size_bb is not None and self.facing_size_bb <= 0.0:
             raise ValueError("facing_size_bb must be positive.")
         if not self.actions:
@@ -342,6 +397,29 @@ class RangeData(BaseModel):
                 f"missing={missing[:8]}, unexpected={unexpected}."
             )
 
+        if self.reach is not None:
+            if not self.reach:
+                raise ValueError("reach must be non-empty.")
+            if len(self.reach) != len(set(self.reach)):
+                raise ValueError("reach must not contain duplicates.")
+            unknown_reach = sorted(set(self.reach) - CANONICAL_HAND_SET)
+            if unknown_reach:
+                raise ValueError(
+                    f"reach contains non-canonical hands {unknown_reach[:8]}."
+                )
+            reachable = set(self.reach)
+            # A hand hero never opened cannot then take an action, so a played
+            # cell outside reach is a transcription error rather than a spot.
+            unreachable_play = sorted(
+                hand
+                for hand, cell in self.grid.items()
+                if cell and hand not in reachable
+            )
+            if unreachable_play:
+                raise ValueError(
+                    f"grid plays hands outside reach: {unreachable_play[:8]}."
+                )
+
         declared_actions = set(self.actions)
         used_actions: set[str] = set()
         for hand, cell in self.grid.items():
@@ -387,6 +465,11 @@ class RangeData(BaseModel):
             for action in self.actions
         }
         total = sum(raw_by_action.values())
+        reach_combos = (
+            float(total_combos)
+            if self.reach is None
+            else float(sum(weight_for_hand(hand) for hand in self.reach))
+        )
         return RangeStats(
             combos=round(total, 4),
             vpip=round(total / total_combos, 4),
@@ -395,4 +478,5 @@ class RangeData(BaseModel):
                 action: round(action_combos, 4)
                 for action, action_combos in raw_by_action.items()
             },
+            reach_combos=round(reach_combos, 4),
         )

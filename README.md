@@ -2,12 +2,18 @@
 
 A free, self-hosted web app for drilling poker preflop decisions.
 
-Two drills ship today:
+Four drills ship today:
 
 - **Raise First In** — open-raise or fold when the pot is unopened, from every
   position that can open at 6-max and 8-max full ring.
-- **Facing an RFI** — fold, call or 3-bet after someone opens, across fourteen
+- **Facing an RFI** — fold, call or 3-bet after someone opens, across fifteen
   hero-versus-raiser matchups.
+- **Blind vs Blind** — respond from the big blind when the small blind limps or
+  raises. On the limp branch there is no fold button, because folding for free
+  is never right.
+- **Facing a 3-Bet** — fold, call or 4-bet after your own open gets raised,
+  across all twenty-eight 8-max matchups. It only ever deals hands you actually
+  open, and it prices the call net of the money you already put in.
 
 Raise First In also plays **Pot Limit Omaha** (6-max, UTG through SB): four-card
 hands are graded against solver-derived class charts, with the taxonomy and its
@@ -62,10 +68,14 @@ redistributed here — only our own encoding of it, with the provenance recorded
 
 | Data | Source |
 |---|---|
-| 6-max RFI and facing-RFI | Jonathan Little, *Online 6-max Cash Game Preflop Charts* (free PDF) |
+| 6-max RFI, facing-RFI and blind-vs-blind | Jonathan Little, *Online 6-max Cash Game Preflop Charts* (free PDF) |
 | 8-max full-ring RFI | PokerCoaching free preflop charts |
+| 8-max facing-a-3-bet | Jonathan Little, *The Ultimate Cash Game Preflop Guide* 2026 (free PDF) |
 
-Both assume 100bb, 2.5bb opens and 3bb from the small blind.
+The first two assume 100bb, 2.5bb opens and 3bb from the small blind. The
+facing-a-3-bet set is 100bb with 3bb opens — a different solve by the same
+author, and a seam we record rather than paper over. See
+[`docs/ranges/VS-3BET-CALIBRATION.md`](docs/ranges/VS-3BET-CALIBRATION.md) §1.1.
 
 **You do not have to take that on trust.** Each chart prints its own combo
 totals, and every range file records them verbatim in `notes` alongside our
@@ -87,6 +97,7 @@ If you check one and find a discrepancy, that is worth reporting — see
 | [`docs/RESOURCES.md`](docs/RESOURCES.md) | Where the poker knowledge comes from, and what we refuse to use |
 | [`docs/ranges/RFI-CALIBRATION.md`](docs/ranges/RFI-CALIBRATION.md) | Acceptance criteria for the opening ranges |
 | [`docs/ranges/VS-RFI-CALIBRATION.md`](docs/ranges/VS-RFI-CALIBRATION.md) | Acceptance criteria for the facing-an-RFI ranges |
+| [`docs/ranges/VS-3BET-CALIBRATION.md`](docs/ranges/VS-3BET-CALIBRATION.md) | Acceptance criteria for the facing-a-3-bet ranges, and the first mixed-strategy source |
 | [`docs/DRILL-2-SCOPING.md`](docs/DRILL-2-SCOPING.md) | What the platform made cheap, what it made expensive |
 | [`docs/examples/`](docs/examples/) | Canonical response fixtures shared by both services |
 

@@ -76,8 +76,8 @@ describe('the generic config form renders the bvb schema', () => {
     renderRunner();
     await screen.findByRole('button', { name: 'Start session' });
 
-    expect(screen.getByRole('checkbox', { name: 'SB limps' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'SB raises' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Facing a limp' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Facing a raise' })).toBeChecked();
     // No trace of the other drills' vocabulary.
     expect(
       screen.queryByRole('checkbox', { name: 'Cutoff' })
@@ -110,7 +110,7 @@ describe('the generic config form renders the bvb schema', () => {
 
 describe('a bvb session through the unmodified runner', () => {
   it('renders the bvb prompt, resolved by kind', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
     expect(document.querySelector('[data-sb-action]')).toHaveAttribute(
       'data-sb-action',
       'limp'
@@ -119,7 +119,7 @@ describe('a bvb session through the unmodified runner', () => {
   });
 
   it('drives config → question → feedback → summary', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
 
     for (let hand = 1; hand <= 5; hand += 1) {
       expect(screen.getByRole('progressbar')).toHaveAttribute(
@@ -138,7 +138,7 @@ describe('a bvb session through the unmodified runner', () => {
   });
 
   it('shows feedback against the vs_limp chart, with the hand highlighted', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
 
     const hand = screen.getByText(/^[AKQJT2-9]{2}[so]?$/).textContent?.trim();
     await userEvent.click(actionGroup().getAllByRole('button')[0]!);
@@ -158,7 +158,7 @@ describe('a bvb session through the unmodified runner', () => {
   });
 
   it('groups the summary by branch, through the same generic view', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
     for (let i = 0; i < 5; i += 1) {
       await userEvent.click(actionGroup().getAllByRole('button')[0]!);
       await userEvent.click(
@@ -171,11 +171,11 @@ describe('a bvb session through the unmodified runner', () => {
     const rows = within(table)
       .getAllByRole('rowheader')
       .map((row) => row.textContent);
-    expect(rows).toEqual(['SB limps']);
+    expect(rows).toEqual(['BB vs SB limp']);
   });
 
   it('records the session in the same history store', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
     for (let i = 0; i < 5; i += 1) {
       await userEvent.click(actionGroup().getAllByRole('button')[0]!);
       await userEvent.click(
@@ -198,12 +198,12 @@ describe('a bvb session through the unmodified runner', () => {
  */
 describe('no fold anywhere on the limp branch', () => {
   it('offers exactly check and raise, in that order', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
     expect(actionIds()).toEqual(['check', 'raise']);
   });
 
   it('binds no fold key, so pressing f does nothing', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
 
     expect(document.querySelectorAll('[data-shortcut="f"]')).toHaveLength(0);
 
@@ -219,7 +219,7 @@ describe('no fold anywhere on the limp branch', () => {
   });
 
   it('is playable with the derived bindings instead', async () => {
-    await startSession(5, 'SB limps');
+    await startSession(5, 'Facing a limp');
 
     for (let hand = 0; hand < 5; hand += 1) {
       await userEvent.keyboard('c');
@@ -239,7 +239,7 @@ describe('no fold anywhere on the limp branch', () => {
     const client = new MockApiClient();
     const session = await client.createSession({
       drill_id: 'bvb',
-      config: { sb_actions: ['limp'], question_count: 5 },
+      config: { situations: ['limp'], question_count: 5 },
       seed: 7,
     });
 
@@ -268,7 +268,7 @@ describe('the raise branch is an ordinary facing-a-raise spot', () => {
     const client = new MockApiClient();
     const session = await client.createSession({
       drill_id: 'bvb',
-      config: { sb_actions: ['raise'], question_count: 5 },
+      config: { situations: ['raise'], question_count: 5 },
       seed: 11,
     });
 
@@ -288,7 +288,7 @@ describe('the raise branch is an ordinary facing-a-raise spot', () => {
   });
 
   it('offers a fold key on the branch that has a fold', async () => {
-    await startSession(5, 'SB raises');
+    await startSession(5, 'Facing a raise');
     expect(actionIds()).toContain('fold');
     expect(document.querySelectorAll('[data-shortcut="f"]')).toHaveLength(1);
   });

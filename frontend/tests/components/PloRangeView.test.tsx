@@ -17,6 +17,7 @@ const STATS = {
   vpip: 0.4586,
   hands_played: 45,
   by_action: { raise: 124162.608 },
+  reach_combos: 270725,
 };
 
 import { PLO_PAIR_TIERS, PLO_NON_PAIR_SHAPES, PLO_TEXTURES } from '@/lib/hands-plo';

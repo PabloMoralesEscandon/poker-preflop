@@ -633,3 +633,87 @@ The `rfi` drill's `config_schema` gains a first `game` enum field
 `table_format=8max` fail validation with `invalid_config` on
 `table_format`. Canonical fixtures: `docs/examples/range_rfi_plo_6max_BTN.json`,
 `docs/examples/next_question_plo.json`.
+
+---
+
+# v2 additions (2026-08-27): facing a 3-bet
+
+Additive only; every payload above is unchanged.
+
+## 16. The `vs_3bet` prompt
+
+`kind: "vs_3bet"`. Hero opened and someone behind raised them.
+
+```json
+{
+  "kind": "vs_3bet",
+  "table_format": "8max",
+  "hero_position": "UTG",
+  "three_bettor_position": "BTN",
+  "stack_bb": 100.0,
+  "hand": { "cards": ["As", "Ts"], "notation": "ATs" },
+  "folded": ["UTG1", "LJ", "HJ", "CO", "SB", "BB"],
+  "open_size_bb": 3.0,
+  "facing_size_bb": 10.0,
+  "pot_bb": 14.5,
+  "to_call_bb": 7.0
+}
+```
+
+Three fields differ in kind from every earlier prompt, and a client that treats
+them as renames of the vs-RFI ones will be wrong:
+
+- **`open_size_bb`** is hero's own money, already in the pot. No earlier spot
+  has any: hero was always deciding whether to *enter*.
+- **`to_call_bb` is `facing_size_bb - open_size_bb`**, and the gap is large —
+  7bb against a 10bb raise. As everywhere, it arrives computed; §10's rule that
+  clients never do poker arithmetic matters more here than it did there.
+- **`folded` is not `folded_before`.** It names every seat that is neither
+  hero nor the 3-bettor, on both sides of hero, because the pot is heads-up by
+  the time the action returns. The name is different because the meaning is.
+
+Action ids are `fold`, `call`, `4bet` and — on the charts that have one —
+`allin`. Labels are server-authored as always (`Call 10bb`, `4-Bet to 24bb`,
+`All-in 100bb`). Offered order is cheapest first.
+
+Grading, `mixed`, `expected`, the summary and mistakes are unchanged; this is
+the fourth drill to confirm they are action-agnostic. The breakdown groups by
+matchup, keyed `{OPENER}_vs_{THREEBETTOR}`.
+
+Canonical fixtures: `docs/examples/next_question_vs_3bet.json`,
+`docs/examples/answer_vs_3bet.json`.
+
+## 17. `reach`, `hero_committed_bb` and `stats.reach_combos`
+
+`GET /ranges/{range_id}` gains two nullable fields, and `stats` gains one that
+is always present.
+
+```json
+{
+  "hero_committed_bb": 3.0,
+  "reach": ["AA", "AKs", "AQs", "..."],
+  "stats": {
+    "combos": 94.0,
+    "vpip": 0.0709,
+    "hands_played": 23,
+    "by_action": { "call": 64.98, "4bet": 29.02 },
+    "reach_combos": 188.0
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `hero_committed_bb` | what hero already has in the pot. `null` outside `vs_3bet`, where it is a blind the client can infer from the seat |
+| `reach` | the hands that arrive at this spot at all. `null` means all 169 |
+| `stats.reach_combos` | combo-weighted size of `reach`; `1326` (or `270725` for PLO) where there is none |
+
+`reach` distinguishes two cases the grid alone cannot: a cell is `{}` both when
+hero folds the hand here and when hero never opened it. Only `reach` says which,
+and a chart browser that divides by 1326 rather than by `reach_combos` will
+print percentages that appear nowhere in the published source.
+
+`GET /ranges` (the list) is unchanged apart from `stats.reach_combos`.
+
+`combos`, `vpip` and `by_action` keep counting against the full deal, so no
+existing client's arithmetic moves.

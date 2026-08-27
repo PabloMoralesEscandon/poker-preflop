@@ -22,7 +22,8 @@
         "hands_played": 68,
         "by_action": {
           "raise": 368.0
-        }
+        },
+        "reach_combos": 1326.0
       }
     },
     {
@@ -50,7 +51,37 @@
         "by_action": {
           "3bet": 50.0,
           "call": 536.0
-        }
+        },
+        "reach_combos": 1326.0
+      }
+    },
+    {
+      "range_id": "vs_3bet_8max_UTG_vs_BTN",
+      "spot": "vs_3bet",
+      "game": "holdem",
+      "table_format": "8max",
+      "position": "UTG",
+      "vs_position": "BTN",
+      "stack_bb": 100.0,
+      "actions": [
+        "call",
+        "4bet"
+      ],
+      "action_sizes_bb": {
+        "call": 10.0,
+        "4bet": 24.0
+      },
+      "facing_size_bb": 10.0,
+      "source_id": "jl-ultimate-cash-preflop-guide",
+      "stats": {
+        "combos": 94.0,
+        "vpip": 0.0709,
+        "hands_played": 23,
+        "by_action": {
+          "call": 64.98,
+          "4bet": 29.02
+        },
+        "reach_combos": 188.0
       }
     }
   ]

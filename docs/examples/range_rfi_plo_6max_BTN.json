@@ -7,6 +7,8 @@
   "vs_position": null,
   "stack_bb": 100.0,
   "facing_size_bb": null,
+  "hero_committed_bb": null,
+  "reach": null,
   "source_id": "upswing-plo-rfi-guide",
   "notes": "100bb PLO 6-max RFI, MonkerSolver-derived (guide states a $10/20 rake structure; ranges accurate down to $1/2 per its own note). Chart pp.11-12, rows transcribed as printed; range total 47.2%. Raise size approximates the solve's single pot-sized open (3.5bb). Taxonomy (docs/ranges/PLO-CALIBRATION.md): pair tiers by top paired rank, two-pair hands under their higher pair; ace hands cascade A[K-T] exact-2 -> A[9-6] -> A[5-2]; rundowns by internal gaps, 2G requires adjacent holes (guide example 9854); tri-/quad-suited hands are graded in the .ss cell ('play like ss, slightly tighter') and weighted 0.65x in stats only. Trips/Quads fold at every position per cross-check plocom-solver-data.",
   "actions": [
@@ -160,6 +162,7 @@
     "hands_played": 45,
     "by_action": {
       "raise": 124162.608
-    }
+    },
+    "reach_combos": 270725.0
   }
 }

@@ -91,7 +91,9 @@ describe('the generic config form renders the vs_rfi schema', () => {
   it('offers every matchup the fixture advertises', async () => {
     renderRunner();
     await screen.findByRole('button', { name: 'Start session' });
-    expect(screen.getAllByRole('checkbox')).toHaveLength(14);
+    // Fifteen since the fixture was regenerated: BB vs SB is a facing-a-raise
+    // matchup that the earlier fixture predated (VS-RFI-CALIBRATION §7).
+    expect(screen.getAllByRole('checkbox')).toHaveLength(15);
   });
 
   it('blocks starting with no matchup selected', async () => {

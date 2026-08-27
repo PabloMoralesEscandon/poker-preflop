@@ -334,3 +334,103 @@ Only `rfi` ships PLO data; the model rejects other spots for `game: "plo"`
 until a citable source exists (see RESOURCES.md under `plocom-solver-data`
 for the candidate and its blocker). Lifting that guard is a data change,
 not an engine change.
+
+## 11. The `vs_3bet` spot, hands that never reach a spot, and money already in
+
+Added 2026-08-27. §7 says a new spot must not change these rules and that
+changing them is a boss decision; this is the second such decision, after §8.
+It adds two optional fields and one new idea.
+
+The idea is that **not every hand reaches every spot.** Everywhere up to now,
+all 169 hands could turn up: you are dealt them and you decide. Facing a 3-bet,
+you are only there because you opened — so the hands you fold before the flop
+of your own accord never arrive at all, and a chart of this spot covers your
+opening range rather than the deck.
+
+### 11.1 Path, id and actions
+
+```text
+backend/data/ranges/vs_3bet/8max/UTG_vs_BTN.json  -> "vs_3bet_8max_UTG_vs_BTN"
+```
+
+`{OPENER}_vs_{THREEBETTOR}`, the §8.1 convention unchanged. The opener is
+`position` and the 3-bettor is `vs_position`, and **the 3-bettor must act after
+the opener** — the reverse pair is not a hand of poker and is rejected.
+
+| Spot | Allowed non-fold action ids |
+|---|---|
+| `vs_3bet` | `4bet`, `call`, `allin` |
+
+`allin` is a shove for the remaining stack. It is rare — under 3% of any
+charted range — and genuinely absent from most files, which is a fact about the
+source, not a gap (VS-3BET-CALIBRATION §4.1).
+
+### 11.2 `reach`
+
+| Field | Rule |
+|---|---|
+| `reach` | array of canonical notations that arrive at the spot. Required for `vs_3bet`, forbidden elsewhere. Absent means all 169. |
+
+Validation: non-empty, no duplicates, canonical notations only, and **every
+non-empty grid cell's hand must be in it**. A hand cannot act in a spot it never
+reached.
+
+This is the field that separates two things `{}` used to conflate:
+
+| Cell | `reach` | Means |
+|---|---|---|
+| `{}` | in | hero opened this hand and folds to the 3-bet |
+| `{}` | out | hero never opened it; the spot does not arise |
+
+The source draws those as two different colours. A format that could not tell
+them apart would deal `72o` to a player and ask what they do now their UTG open
+has been 3-bet, which is not a question about poker.
+
+Three things consume it:
+
+- **Sampling.** A drill on this spot draws from `reach`, not from
+  `canonical_hands()`.
+- **`stats.reach_combos`.** Combo-weighted size of `reach`, or the full deal
+  where there is none. It is the denominator the source's own percentages use,
+  so it is what a reader checks them against.
+- **Validation**, as above.
+
+`stats.combos`, `stats.vpip` and `stats.by_action` are unchanged and still
+count against the full deal. Only the new field is relative to `reach`.
+
+### 11.3 `hero_committed_bb`
+
+| Field | Rule |
+|---|---|
+| `hero_committed_bb` | what hero already has in the pot, in bb. Required for `vs_3bet`, forbidden elsewhere. Must be positive and smaller than `facing_size_bb`. |
+
+Every earlier spot could infer this: hero's money in the pot was a blind, and
+the seat says which. Here it is hero's own open, and nothing else in the file
+implies it — a 3bb open and a 4bb open produce different pot odds against the
+same 3-bet.
+
+It is what makes the price right. Facing a 10bb 3-bet having opened 3bb, calling
+costs **7bb**, not 10bb. A drill that showed the 3-bet as the price would be out
+by 43% on the number the whole decision turns on.
+
+### 11.4 What is unchanged
+
+169 keys, canonical notation, frequencies in `(0, 1]` rounded to two decimals,
+`{}` for a fold, per-hand sums ≤ 1, combinatorics, the notation↔cards mapping,
+and the §6 sampling weights all apply exactly as written. The difficulty scan
+runs over the full 13×13 grid, so a hand at the edge of the opening range sees
+its unreached neighbours as folds — which is right, because those are the hands
+it is genuinely close to.
+
+### 11.5 Mixed frequencies are no longer hypothetical
+
+DRILL-2-SCOPING listed "mixed frequencies are unexercisable by shipped data" as
+a live code path never seen by a user. `vs_3bet` ships 574 mixed cells across
+its 28 charts, so §3's note that finer granularity than quarters "is a sign we
+are over-fitting a source" needs qualifying rather than following:
+
+Those quarters describe *implementable* charts, which round mixes away by
+design. This source does not — it is solver output published as drawn bands,
+and `0.42` there is the chart's own claim, not our over-fitting of it. Two
+decimals is the format's limit and this data uses all of it. A chart that
+states pure strategies should still be stored in quarters.

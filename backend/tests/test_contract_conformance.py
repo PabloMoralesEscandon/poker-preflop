@@ -18,6 +18,7 @@ CONFORMED_FIXTURES = {
     "answer_correct",
     "answer_incorrect",
     "answer_mixed",
+    "answer_vs_3bet",
     "answer_vs_rfi",
     "drills",
     "errors",
@@ -25,9 +26,11 @@ CONFORMED_FIXTURES = {
     "next_question",
     "next_question_bvb_limp",
     "next_question_plo",
+    "next_question_vs_3bet",
     "next_question_vs_rfi",
     "range_rfi_6max_CO",
     "range_rfi_plo_6max_BTN",
+    "range_vs_3bet_8max_UTG_vs_BTN",
     "range_vs_limp_6max_BB_vs_SB",
     "range_vs_rfi_6max_BB_vs_BTN",
     "ranges_list",
@@ -66,7 +69,10 @@ def migrated_rfi_range_fixture() -> dict[str, Any]:
     expected["vs_position"] = None
     expected["facing_size_bb"] = None
     expected["action_sizes_bb"] = {"raise": open_size}
+    expected["hero_committed_bb"] = None
+    expected["reach"] = None
     expected["stats"]["by_action"] = {"raise": expected["stats"]["combos"]}
+    expected["stats"]["reach_combos"] = 1326.0
     return expected
 
 
@@ -143,6 +149,21 @@ def vs_rfi_session_request(
     }
 
 
+def vs_3bet_session_request(
+    *, matchup: str = "UTG_vs_BTN", question_count: int = 5, seed: int = 7
+) -> dict[str, Any]:
+    return {
+        "drill_id": "vs_3bet",
+        "config": {
+            "table_format": "8max",
+            "matchups": [matchup],
+            "question_count": question_count,
+            "weighting": "borderline",
+        },
+        "seed": seed,
+    }
+
+
 def bvb_session_request(
     *,
     situations: list[str] | None = None,
@@ -178,6 +199,11 @@ async def charted_action(client: AsyncClient, question: dict[str, Any]) -> str:
     prompt = question["prompt"]
     if prompt["kind"] == "rfi":
         range_id = f"rfi_{prompt['table_format']}_{prompt['hero_position']}"
+    elif prompt["kind"] == "vs_3bet":
+        range_id = (
+            f"vs_3bet_{prompt['table_format']}_{prompt['hero_position']}"
+            f"_vs_{prompt['three_bettor_position']}"
+        )
     elif prompt["kind"] == "bvb":
         spot = "vs_limp" if prompt["sb_action"] == "limp" else "vs_rfi"
         range_id = f"{spot}_6max_BB_vs_SB"
@@ -251,10 +277,9 @@ async def test_success_responses_match_canonical_fixture_shapes(
         == sources.status_code
         == 200
     )
-    assert_fixture_shape(
-        {"drills": drills.json()["drills"][:2]},
-        fixture("drills"),
-    )
+    # drills.json is regenerated from the live server, so it names every
+    # registered drill rather than a frozen prefix of them.
+    assert_fixture_shape(drills.json(), fixture("drills"))
     assert_fixture_shape(created, fixture("session_create"))
     assert_fixture_shape(
         {"done": False, "question": question}, fixture("next_question")
@@ -278,6 +303,7 @@ async def test_success_responses_match_canonical_fixture_shapes(
     fixture_range_ids = {
         "rfi_6max_CO",
         "vs_rfi_6max_BB_vs_BTN",
+        "vs_3bet_8max_UTG_vs_BTN",
     }
     assert_fixture_shape(
         {
@@ -356,6 +382,34 @@ async def test_vs_rfi_question_answer_and_range_match_v2_fixture_shapes(
     assert_fixture_shape(
         range_detail.json(),
         fixture("range_vs_rfi_6max_BB_vs_BTN"),
+    )
+
+
+async def test_vs_3bet_question_answer_and_range_match_fixture_shapes(
+    client: AsyncClient,
+) -> None:
+    created = await client.post(
+        "/api/v1/sessions",
+        json=vs_3bet_session_request(question_count=25),
+    )
+    assert created.status_code == 201
+    session_id = created.json()["session_id"]
+    next_response = await client.get(f"/api/v1/sessions/{session_id}/next")
+    question = next_response.json()["question"]
+    action = await charted_action(client, question)
+    answer = await client.post(
+        f"/api/v1/sessions/{session_id}/answer",
+        json={"question_id": question["question_id"], "action_id": action},
+    )
+    range_detail = await client.get("/api/v1/ranges/vs_3bet_8max_UTG_vs_BTN")
+
+    assert next_response.status_code == answer.status_code == 200
+    assert range_detail.status_code == 200
+    assert_fixture_shape(next_response.json(), fixture("next_question_vs_3bet"))
+    assert_fixture_shape(answer.json(), fixture("answer_vs_3bet"))
+    assert_fixture_shape(
+        range_detail.json(),
+        fixture("range_vs_3bet_8max_UTG_vs_BTN"),
     )
 
 

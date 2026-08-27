@@ -9,11 +9,13 @@
 import type {
   BvbPrompt as BvbPromptData,
   RfiPrompt as RfiPromptData,
+  Vs3BetPrompt as Vs3BetPromptData,
   VsRfiPrompt as VsRfiPromptData,
 } from '../api';
 import { BvbPrompt } from './bvb/BvbPrompt';
 import { RfiPrompt } from './rfi/RfiPrompt';
 import { registerDrill } from './registry';
+import { Vs3BetPrompt } from './vs_3bet/Vs3BetPrompt';
 import { VsRfiPrompt } from './vs_rfi/VsRfiPrompt';
 
 registerDrill<RfiPromptData>('rfi', {
@@ -29,5 +31,10 @@ registerDrill<VsRfiPromptData>('vs_rfi', {
 
 registerDrill<BvbPromptData>('bvb', {
   Prompt: BvbPrompt,
+  gridHighlight: (prompt) => prompt.hand.notation,
+});
+
+registerDrill<Vs3BetPromptData>('vs_3bet', {
+  Prompt: Vs3BetPrompt,
   gridHighlight: (prompt) => prompt.hand.notation,
 });

@@ -1,0 +1,49 @@
+{
+  "done": false,
+  "question": {
+    "question_id": "q_5",
+    "index": 5,
+    "total": 25,
+    "drill_id": "vs_3bet",
+    "prompt": {
+      "kind": "vs_3bet",
+      "table_format": "8max",
+      "hero_position": "UTG",
+      "three_bettor_position": "BTN",
+      "stack_bb": 100.0,
+      "hand": {
+        "cards": [
+          "As",
+          "Ts"
+        ],
+        "notation": "ATs"
+      },
+      "folded": [
+        "UTG1",
+        "LJ",
+        "HJ",
+        "CO",
+        "SB",
+        "BB"
+      ],
+      "open_size_bb": 3.0,
+      "facing_size_bb": 10.0,
+      "pot_bb": 14.5,
+      "to_call_bb": 7.0
+    },
+    "actions": [
+      {
+        "id": "fold",
+        "label": "Fold"
+      },
+      {
+        "id": "call",
+        "label": "Call 10bb"
+      },
+      {
+        "id": "4bet",
+        "label": "4-Bet to 24bb"
+      }
+    ]
+  }
+}

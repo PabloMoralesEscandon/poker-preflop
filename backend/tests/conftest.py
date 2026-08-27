@@ -76,6 +76,37 @@ def limp_range_payload(
 
 
 @pytest.fixture
+def three_bet_range_payload(
+    range_payload: Callable[..., dict[str, Any]],
+) -> Callable[..., dict[str, Any]]:
+    """A minimal `vs_3bet` file: hero opened four hands and now decides."""
+
+    def factory(**overrides: Any) -> dict[str, Any]:
+        payload = range_payload(
+            range_id="vs_3bet_8max_UTG_vs_BTN",
+            spot="vs_3bet",
+            table_format="8max",
+            position="UTG",
+            vs_position="BTN",
+            facing_size_bb=10.0,
+            hero_committed_bb=3.0,
+            actions=["call", "4bet"],
+            action_sizes_bb={"call": 10.0, "4bet": 24.0},
+            reach=["AA", "KK", "AKs", "72s"],
+            grid={hand: {} for hand in canonical_hands()},
+        )
+        payload["grid"]["AA"] = {"4bet": 1.0}
+        payload["grid"]["KK"] = {"4bet": 0.6, "call": 0.4}
+        payload["grid"]["AKs"] = {"call": 1.0}
+        # In reach and folded outright: opened, then given up to the 3-bet.
+        payload["grid"]["72s"] = {}
+        payload.update(overrides)
+        return copy.deepcopy(payload)
+
+    return factory
+
+
+@pytest.fixture
 def range_writer(
     tmp_path: Path,
 ) -> Callable[[dict[str, Any], str], tuple[Path, Path]]:

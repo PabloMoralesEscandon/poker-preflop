@@ -26,16 +26,17 @@
  *  3. `weighting: "borderline"` is approximated (combo weight × 6 on mixed
  *     hands) rather than implementing the neighbour scan in
  *     RANGE-DATA-FORMAT §6. The real sampler is the backend's.
- *  4. `drills.json` lists `rfi` and `vs_rfi` but not `bvb`, so the `bvb` config
- *     schema below is hand-authored here rather than served. That is the same
- *     gap `vs_rfi` had before the fixture was regenerated from the live server;
- *     delete {@link BVB_DRILL} once `bvb` appears in the fixture.
+ *  4. `vs_3bet` deals only from the one chart that exists as a fixture, so its
+ *     28 matchups all show `UTG vs BTN`'s cells and its opening range. The
+ *     sizes do vary by matchup, because they are printed per grid rather than
+ *     derived from the cells.
  */
 
 import drillsFixture from '@fixtures/drills.json';
 import rangeCoFixture from '@fixtures/range_rfi_6max_CO.json';
 import rangePloBtnFixture from '@fixtures/range_rfi_plo_6max_BTN.json';
 import rangeVsLimpFixture from '@fixtures/range_vs_limp_6max_BB_vs_SB.json';
+import rangeVs3BetFixture from '@fixtures/range_vs_3bet_8max_UTG_vs_BTN.json';
 import rangeVsRfiFixture from '@fixtures/range_vs_rfi_6max_BB_vs_BTN.json';
 import sourcesFixture from '@fixtures/sources.json';
 
@@ -87,64 +88,7 @@ import {
   ploEffectiveCombos,
 } from '../lib/hands-plo';
 
-/**
- * The `bvb` drill, hand-authored because `drills.json` does not list it yet.
- *
- * `sb_actions` is the only field that is not a straight copy of the other two
- * drills, and it is the one that matters: it selects which branch of the spot
- * gets dealt, and the branch decides whether fold is a legal action at all.
- * Both are on by default so a default session exercises both.
- */
-const BVB_DRILL: DrillInfo = {
-  id: 'bvb',
-  name: 'Blind vs Blind',
-  description:
-    'Respond to the small blind in the big blind, after a limp or a raise.',
-  version: 1,
-  config_schema: {
-    fields: [
-      {
-        key: 'table_format',
-        label: 'Table format',
-        type: 'enum',
-        default: '6max',
-        options: [{ value: '6max', label: '6-max' }],
-      },
-      {
-        key: 'sb_actions',
-        label: 'Small blind action',
-        type: 'multi_enum',
-        default: ['limp', 'raise'],
-        options: [
-          { value: 'limp', label: 'SB limps' },
-          { value: 'raise', label: 'SB raises' },
-        ],
-      },
-      {
-        key: 'question_count',
-        label: 'Hands',
-        type: 'int',
-        default: 25,
-        min: 5,
-        max: 200,
-      },
-      {
-        key: 'weighting',
-        label: 'Hand weighting',
-        type: 'enum',
-        default: 'borderline',
-        options: [
-          { value: 'borderline', label: 'Borderline hands more often' },
-          { value: 'uniform', label: 'Uniform' },
-        ],
-      },
-    ],
-  },
-};
-
-const DRILLS: DrillsResponse = {
-  drills: [...(drillsFixture as DrillsResponse).drills, BVB_DRILL],
-};
+const DRILLS: DrillsResponse = drillsFixture as DrillsResponse;
 
 /**
  * The matchups the `vs_rfi` drill offers, taken from the drills fixture rather
@@ -204,6 +148,7 @@ const PLO_BTN_RANGE = normaliseRange(rangePloBtnFixture);
 const PLO_GAME = 'plo' as const;
 const VS_RFI_RANGE = normaliseRange(rangeVsRfiFixture);
 const VS_LIMP_RANGE = normaliseRange(rangeVsLimpFixture);
+const VS_3BET_RANGE = normaliseRange(rangeVs3BetFixture);
 const SOURCES = sourcesFixture as unknown as SourcesResponse;
 
 const THREE_BET_ONLY_MATCHUPS = new Set([
@@ -221,6 +166,7 @@ const FIXTURE_RANGES: Record<string, RangeDetail> = {
   [VS_RFI_RANGE.range_id]: VS_RFI_RANGE,
   [VS_LIMP_RANGE.range_id]: VS_LIMP_RANGE,
   [PLO_BTN_RANGE.range_id]: PLO_BTN_RANGE,
+  [VS_3BET_RANGE.range_id]: VS_3BET_RANGE,
 };
 
 /**
@@ -244,8 +190,8 @@ function ploChartFor(position: Position): MockChart {
 }
 
 const PLO_UNIFORM_WEIGHTS = PLO_CLASS_KEYS.map((key) => ploCombos(key));
-const PLO_BORDERLINE_WEIGHTS = PLO_CLASS_KEYS.map((key) =>
-  ploCombos(key) * (ploDifficultyFactor(key, PLO_GRID) > 1 ? 6 : 1)
+const PLO_BORDERLINE_WEIGHTS = PLO_CLASS_KEYS.map(
+  (key) => ploCombos(key) * (ploDifficultyFactor(key, PLO_GRID) > 1 ? 6 : 1)
 );
 
 // ---------------------------------------------------------------------------
@@ -439,6 +385,85 @@ function bvbRaiseChart(): MockChart {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Facing a 3-bet
+// ---------------------------------------------------------------------------
+
+const FOUR_BET_ACTION_ID = '4bet';
+const ALL_IN_ACTION_ID = 'allin';
+
+/**
+ * Sizes are read off the guide rather than derived: it opens 3bb, 3-bets to
+ * 10bb in position and 12bb from a blind, and 4-bets to 24bb and 27bb
+ * respectively (VS-3BET-CALIBRATION §3). Every one is printed on its own grid,
+ * so there is no multiplier to get wrong here — the mistake VS-RFI-CALIBRATION
+ * §1.1 records is not available in this spot.
+ */
+function vs3BetSizes(villain: Position): {
+  open: number;
+  facing: number;
+  fourBet: number;
+} {
+  const fromBlind = villain === 'SB' || villain === 'BB';
+  return {
+    open: VS_3BET_RANGE.hero_committed_bb ?? 3,
+    facing: fromBlind ? 12 : 10,
+    fourBet: fromBlind ? 27 : 24,
+  };
+}
+
+/**
+ * Every matchup renders the one real vs-3bet fixture, the same way every RFI
+ * seat renders the CO chart — shapes are real, per-matchup differences are not.
+ * Its cells and its `reach` are the published `UTG vs BTN` chart, so the mock
+ * deals only hands hero actually opens, which is the property that makes this
+ * spot make sense at all.
+ */
+function vs3BetChartFor(matchup: string): MockChart {
+  const { hero, raiser } = seatsOf(matchup);
+  void hero;
+  const sizes = vs3BetSizes(raiser);
+  return {
+    actions: [...VS_3BET_RANGE.actions],
+    grid: VS_3BET_RANGE.grid,
+    // Only the actions the chart actually declares: the fixture matchup has no
+    // shove cell, and a size for an action nobody is offered is a size that
+    // cannot be checked against anything.
+    actionSizesBb: Object.fromEntries(
+      (
+        [
+          [CALL_ACTION_ID, sizes.facing],
+          [FOUR_BET_ACTION_ID, sizes.fourBet],
+          [ALL_IN_ACTION_ID, VS_3BET_RANGE.stack_bb],
+        ] as const
+      ).filter(([id]) => VS_3BET_RANGE.actions.includes(id))
+    ),
+    actionLabels: {
+      [CALL_ACTION_ID]: `Call ${formatBb(sizes.facing)}bb`,
+      [FOUR_BET_ACTION_ID]: `4-Bet to ${formatBb(sizes.fourBet)}bb`,
+      [ALL_IN_ACTION_ID]: `All-in ${formatBb(VS_3BET_RANGE.stack_bb)}bb`,
+    },
+    // Cheapest first, matching next_question_vs_3bet.json.
+    offerOrder: [CALL_ACTION_ID, FOUR_BET_ACTION_ID, ALL_IN_ACTION_ID].filter(
+      (id) => VS_3BET_RANGE.actions.includes(id)
+    ),
+  };
+}
+
+/**
+ * The matchups the `vs_3bet` drill offers, taken from the drills fixture for
+ * the same reason {@link VS_RFI_MATCHUPS} is.
+ */
+const VS_3BET_MATCHUPS: string[] = (() => {
+  const drill = DRILLS.drills.find((entry) => entry.id === 'vs_3bet');
+  const field = drill?.config_schema.fields.find(
+    (entry) => entry.key === 'matchups'
+  );
+  if (field?.type !== 'multi_enum') return [];
+  const options = field.options ?? field.options_by?.['8max'] ?? [];
+  return options.map((option) => option.value);
+})();
+
 function bvbChartFor(sbAction: 'limp' | 'raise'): MockChart {
   return sbAction === 'limp' ? vsLimpChart() : bvbRaiseChart();
 }
@@ -453,6 +478,9 @@ function bvbChartFor(sbAction: 'limp' | 'raise'): MockChart {
 function chartForListed(entry: RangeListItem): MockChart {
   if (entry.game === 'plo') return ploChartFor(entry.position);
   if (entry.spot === 'vs_limp') return vsLimpChart();
+  if (entry.spot === 'vs_3bet') {
+    return vs3BetChartFor(`${entry.position}_vs_${entry.vs_position ?? 'BTN'}`);
+  }
   if (entry.spot !== 'vs_rfi') return chartFor(entry.position);
   const matchup = `${entry.position}_vs_${entry.vs_position ?? 'BTN'}`;
   return matchup === 'BB_vs_SB' ? bvbRaiseChart() : vsRfiChartFor(matchup);
@@ -468,6 +496,11 @@ function chartForPrompt(prompt: QuestionPrompt): MockChart {
       `${prompt.hero_position}_vs_${prompt.raiser_position}`
     );
   }
+  if (prompt.kind === 'vs_3bet') {
+    return vs3BetChartFor(
+      `${prompt.hero_position}_vs_${prompt.three_bettor_position}`
+    );
+  }
   if (prompt.game === 'plo') return ploChartFor(prompt.hero_position);
   return chartFor(prompt.hero_position);
 }
@@ -478,6 +511,9 @@ function rangeIdForPrompt(prompt: QuestionPrompt): string {
     // charts — the limp branch is the only one that lives under `vs_limp`.
     const spot = prompt.sb_action === 'limp' ? 'vs_limp' : 'vs_rfi';
     return `${spot}_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.vs_position}`;
+  }
+  if (prompt.kind === 'vs_3bet') {
+    return `vs_3bet_${prompt.table_format}_${prompt.hero_position}_vs_${prompt.three_bettor_position}`;
   }
   if (prompt.kind !== 'vs_rfi') {
     const game = prompt.game === 'plo' ? 'plo' : undefined;
@@ -511,8 +547,16 @@ function chartFor(position: Position): MockChart {
   };
 }
 
-/** RANGE-DATA-FORMAT §4: combo-weighted stats over the 1326 starting combos. */
-function statsFor(grid: RangeGrid): RangeStats {
+/**
+ * RANGE-DATA-FORMAT §4: combo-weighted stats over the 1326 starting combos.
+ *
+ * `reach` narrows the denominator, and only `vs_3bet` passes one: its charts
+ * are of hero's opening range, not of the deal.
+ */
+function statsFor(
+  grid: RangeGrid,
+  reach?: readonly string[] | null
+): RangeStats {
   let combos = 0;
   let handsPlayed = 0;
   const byAction: Record<string, number> = {};
@@ -537,6 +581,10 @@ function statsFor(grid: RangeGrid): RangeStats {
     vpip: Math.round((combos / 1326) * 10000) / 10000,
     hands_played: handsPlayed,
     by_action: byAction,
+    reach_combos:
+      reach == null
+        ? 1326
+        : reach.reduce((sum, hand) => sum + combosOf(hand), 0),
   };
 }
 
@@ -555,8 +603,7 @@ function statsForPlo(grid: RangeGrid): RangeStats {
     const weight = ploEffectiveCombos(key);
     combos += played * weight;
     for (const [actionId, frequency] of Object.entries(frequencies)) {
-      byAction[actionId] =
-        (byAction[actionId] ?? 0) + frequency * weight;
+      byAction[actionId] = (byAction[actionId] ?? 0) + frequency * weight;
     }
   }
   for (const actionId of Object.keys(byAction)) {
@@ -567,6 +614,7 @@ function statsForPlo(grid: RangeGrid): RangeStats {
     vpip: Math.round((combos / TOTAL_PLO_COMBOS) * 10000) / 10000,
     hands_played: handsPlayed,
     by_action: byAction,
+    reach_combos: TOTAL_PLO_COMBOS,
   };
 }
 
@@ -597,7 +645,12 @@ function catalogue(): RangeListItem[] {
     }
   );
 
-  const matchups = VS_RFI_MATCHUPS.map((matchup) => {
+  const matchups = VS_RFI_MATCHUPS.filter(
+    // Supplied by `blindVsBlind` below, whose sizes come from a 3bb open. The
+    // drills fixture started naming it once it was regenerated; listing it
+    // from both places would put the same chart in the catalogue twice.
+    (matchup) => matchup !== 'BB_vs_SB'
+  ).map((matchup) => {
     const chart = vsRfiChartFor(matchup);
     const { hero, raiser } = seatsOf(matchup);
     return {
@@ -624,6 +677,27 @@ function catalogue(): RangeListItem[] {
    * ordinary `vs_rfi` matchup that the drills fixture's list happens not to
    * name (VS-RFI-CALIBRATION §7 — it was added to that spot later).
    */
+  const threeBet = VS_3BET_MATCHUPS.map((matchup) => {
+    const chart = vs3BetChartFor(matchup);
+    const { hero, raiser } = seatsOf(matchup);
+    return {
+      range_id: `vs_3bet_8max_${matchup}`,
+      spot: 'vs_3bet',
+      table_format: '8max' as const,
+      position: hero,
+      vs_position: raiser,
+      stack_bb: VS_3BET_RANGE.stack_bb,
+      actions: [...chart.actions],
+      action_sizes_bb: { ...chart.actionSizesBb },
+      facing_size_bb: vs3BetSizes(raiser).facing,
+      source_id:
+        matchup === 'UTG_vs_BTN'
+          ? VS_3BET_RANGE.source_id
+          : 'fixture-illustrative',
+      stats: statsFor(chart.grid, VS_3BET_RANGE.reach),
+    } satisfies RangeListItem;
+  });
+
   const bvbRaise = bvbRaiseChart();
   const blindVsBlind: RangeListItem[] = [
     {
@@ -670,13 +744,10 @@ function catalogue(): RangeListItem[] {
       action_sizes_bb: { ...chart.actionSizesBb },
       facing_size_bb: null,
       source_id:
-        position === 'BTN'
-          ? PLO_BTN_RANGE.source_id
-          : 'fixture-illustrative',
+        position === 'BTN' ? PLO_BTN_RANGE.source_id : 'fixture-illustrative',
       // BTN is served verbatim from the fixture, so its stats must be the
       // fixture's own numbers rather than a recomputation of them.
-      stats:
-        position === 'BTN' ? PLO_BTN_RANGE.stats : statsForPlo(chart.grid),
+      stats: position === 'BTN' ? PLO_BTN_RANGE.stats : statsForPlo(chart.grid),
     } satisfies RangeListItem;
   });
 
@@ -685,6 +756,13 @@ function catalogue(): RangeListItem[] {
     ...matchups.filter((entry) => entry.range_id !== VS_RFI_RANGE.range_id),
     ...blindVsBlind,
     ...ploEntries,
+    // The fixture-backed matchup keeps the fixture's own stats, exactly as the
+    // PLO button and the vs-RFI matchup do.
+    ...threeBet.map((entry) =>
+      entry.range_id === VS_3BET_RANGE.range_id
+        ? { ...entry, stats: VS_3BET_RANGE.stats }
+        : entry
+    ),
     {
       range_id: VS_RFI_RANGE.range_id,
       spot: VS_RFI_RANGE.spot,
@@ -964,9 +1042,7 @@ export class MockApiClient implements ApiClient {
       actions: [...chart.actions],
       grid: clone(chart.grid),
       stats:
-        listed.game === 'plo'
-          ? statsForPlo(chart.grid)
-          : statsFor(chart.grid),
+        listed.game === 'plo' ? statsForPlo(chart.grid) : statsFor(chart.grid),
     };
   }
 
@@ -1075,6 +1151,18 @@ const BORDERLINE_WEIGHTS = ALL_HANDS.map((hand) => {
   return combosOf(hand) * (played > 0 && played < 1 ? 6 : 1);
 });
 
+/**
+ * Facing a 3-bet deals only from the chart's `reach` — the hands hero actually
+ * opened. Anything else is not a hard question in this spot, it is not a
+ * question at all: hero folded it before the 3-bet existed.
+ */
+const VS_3BET_HANDS: string[] = VS_3BET_RANGE.reach ?? [...ALL_HANDS];
+const VS_3BET_UNIFORM_WEIGHTS = VS_3BET_HANDS.map((hand) => combosOf(hand));
+const VS_3BET_BORDERLINE_WEIGHTS = VS_3BET_HANDS.map((hand) => {
+  const played = playedFrequency(VS_3BET_RANGE.grid[hand] ?? {});
+  return combosOf(hand) * (played > 0 && played < 1 ? 6 : 1);
+});
+
 /** Total non-fold frequency. Fold frequency is `1 - played` and never stored. */
 function playedFrequency(frequencies: ActionFrequencies): number {
   return Object.values(frequencies).reduce((sum, value) => sum + value, 0);
@@ -1082,16 +1170,21 @@ function playedFrequency(frequencies: ActionFrequencies): number {
 
 function generateQuestion(session: MockSession, total: number): Question {
   const format = tableFormat(session.config);
-  const isPlo =
-    session.drillId === 'rfi' && session.config['game'] === 'plo';
+  const isPlo = session.drillId === 'rfi' && session.config['game'] === 'plo';
+  const isVs3Bet = session.drillId === 'vs_3bet';
+  const uniform = session.config['weighting'] === 'uniform';
   const hand = isPlo
     ? dealPloHand(session)
     : (() => {
-        const weights =
-          session.config['weighting'] === 'uniform'
+        const pool = isVs3Bet ? VS_3BET_HANDS : ALL_HANDS;
+        const weights = isVs3Bet
+          ? uniform
+            ? VS_3BET_UNIFORM_WEIGHTS
+            : VS_3BET_BORDERLINE_WEIGHTS
+          : uniform
             ? UNIFORM_WEIGHTS
             : BORDERLINE_WEIGHTS;
-        const notation = ALL_HANDS[session.rng.weighted(weights)] ?? 'AA';
+        const notation = pool[session.rng.weighted(weights)] ?? 'AA';
         const cards = cardsForNotation(notation, (bound) =>
           session.rng.pick(bound)
         );
@@ -1101,11 +1194,13 @@ function generateQuestion(session: MockSession, total: number): Question {
 
   const prompt = isPlo
     ? rfiPrompt(session, format, hand)
-    : session.drillId === 'bvb'
-      ? bvbPrompt(session, format, hand)
-      : session.drillId === 'vs_rfi'
-        ? vsRfiPrompt(session, format, hand)
-        : rfiPrompt(session, format, hand);
+    : isVs3Bet
+      ? vs3BetPrompt(session, hand)
+      : session.drillId === 'bvb'
+        ? bvbPrompt(session, format, hand)
+        : session.drillId === 'vs_rfi'
+          ? vsRfiPrompt(session, format, hand)
+          : rfiPrompt(session, format, hand);
 
   const chart = chartForPrompt(prompt);
   // Fold is prepended only where folding is legal. It is not on the limp branch
@@ -1140,8 +1235,7 @@ function dealPloHand(session: MockSession): DealtHand {
   return {
     cards: (picked ?? []).map(
       (index) =>
-        'AKQJT98765432'.charAt(Math.floor(index / 4)) +
-        'shdc'.charAt(index % 4)
+        'AKQJT98765432'.charAt(Math.floor(index / 4)) + 'shdc'.charAt(index % 4)
     ),
     notation,
   };
@@ -1245,7 +1339,7 @@ function bvbPrompt(
   format: TableFormat,
   hand: DealtHand
 ): QuestionPrompt {
-  const branches = configuredSbActions(session.config);
+  const branches = configuredSituations(session.config);
   const sbAction = branches[session.rng.pick(branches.length)] ?? 'limp';
   const facing = sbAction === 'limp' ? SB_LIMP_SIZE_BB : SB_OPEN_SIZE_BB;
 
@@ -1265,16 +1359,58 @@ function bvbPrompt(
   };
 }
 
-function configuredSbActions(config: DrillConfig): ('limp' | 'raise')[] {
-  const value = config['sb_actions'];
+/**
+ * Facing a 3-bet. Hero already has their open in, so the pot carries three
+ * contributions — hero's open, the 3-bet, and whichever blinds neither of them
+ * posted — and the price is the difference between the first two.
+ */
+function vs3BetPrompt(session: MockSession, hand: DealtHand): QuestionPrompt {
+  const matchups = configuredMatchups(session.config, VS_3BET_MATCHUPS);
+  const matchup = matchups[session.rng.pick(matchups.length)] ?? 'UTG_vs_BTN';
+  const { hero, raiser } = seatsOf(matchup);
+  const sizes = vs3BetSizes(raiser);
+  const deadBlinds =
+    (hero === 'SB' || raiser === 'SB' ? 0 : 0.5) +
+    (hero === 'BB' || raiser === 'BB' ? 0 : 1);
+
+  return {
+    kind: 'vs_3bet',
+    table_format: '8max',
+    hero_position: hero,
+    three_bettor_position: raiser,
+    stack_bb: VS_3BET_RANGE.stack_bb,
+    hand,
+    // Everyone else is out: the seats behind the 3-bettor folded before the
+    // action came back to hero.
+    folded: POSITIONS_BY_FORMAT['8max'].filter(
+      (seat) => seat !== hero && seat !== raiser
+    ),
+    open_size_bb: sizes.open,
+    facing_size_bb: sizes.facing,
+    pot_bb: round(sizes.open + sizes.facing + deadBlinds, 2),
+    to_call_bb: round(sizes.facing - sizes.open, 2),
+  };
+}
+
+/**
+ * The served `bvb` schema names this field `situations`. It was `sb_actions`
+ * here for as long as the mock hand-authored that drill, and the mismatch only
+ * surfaced when `drills.json` was regenerated and started carrying `bvb` — the
+ * same class of drift the fixture/contract pair exists to catch.
+ */
+function configuredSituations(config: DrillConfig): ('limp' | 'raise')[] {
+  const value = config['situations'];
   const branches = Array.isArray(value) ? (value as ('limp' | 'raise')[]) : [];
   return branches.length > 0 ? branches : ['limp'];
 }
 
-function configuredMatchups(config: DrillConfig): string[] {
+function configuredMatchups(
+  config: DrillConfig,
+  fallback: readonly string[] = ['BB_vs_BTN']
+): string[] {
   const value = config['matchups'];
   const matchups = Array.isArray(value) ? (value as string[]) : [];
-  return matchups.length > 0 ? matchups : ['BB_vs_BTN'];
+  return matchups.length > 0 ? matchups : [...fallback];
 }
 
 function seatsBefore(format: TableFormat, hero: Position): Position[] {
@@ -1410,6 +1546,9 @@ function breakdownKeyOf(prompt: QuestionPrompt): string {
   if (prompt.kind === 'bvb') {
     return `${prompt.hero_position} vs ${prompt.vs_position} ${prompt.sb_action}`;
   }
+  if (prompt.kind === 'vs_3bet') {
+    return `${prompt.hero_position} vs ${prompt.three_bettor_position} 3-bet`;
+  }
   return prompt.kind === 'vs_rfi'
     ? `${prompt.hero_position} vs ${prompt.raiser_position}`
     : prompt.hero_position;
@@ -1424,14 +1563,18 @@ function buildBreakdown(session: MockSession): BreakdownRow[] {
   const labels = groupLabels(session);
   const configured =
     session.drillId === 'bvb'
-      ? configuredSbActions(session.config).map(
+      ? configuredSituations(session.config).map(
           (branch) => `BB vs SB ${branch}`
         )
       : session.drillId === 'vs_rfi'
         ? configuredMatchups(session.config).map((matchup) =>
             matchup.replace('_vs_', ' vs ')
           )
-        : configuredPositions(session.config);
+        : session.drillId === 'vs_3bet'
+          ? configuredMatchups(session.config, VS_3BET_MATCHUPS).map(
+              (matchup) => `${matchup.replace('_vs_', ' vs ')} 3-bet`
+            )
+          : configuredPositions(session.config);
 
   const rows = new Map<string, BreakdownRow>();
   for (const key of configured) {

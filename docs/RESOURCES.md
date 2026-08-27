@@ -33,6 +33,7 @@ listed in §2.
 |---|---|---|---|---|
 | `jl-6max-preflop-charts` | Visual 6-max cash preflop chart set, 6 pages. Page 3 is RFI (five 13×13 grids: Lojack, Hijack, Cutoff, Button, Small Blind); pages 4–6 cover facing an RFI in and out of position, and blind vs blind. "Implementable GTO" — a pure strategy with mixed frequencies rounded away. 100bb, 2.5bb opens, 3bb from SB. Free, no account. **Grids are images**; see RFI-CALIBRATION §5.0 for how to read them. | `https://jlsecrets.s3.amazonaws.com/advancedclasses/6maxcashgames/pdf/Online%206-max%20Cash%20Game%20Preflop%20Charts.pdf` | **PRIMARY for `rfi_6max_*`** | **2026-08-06** — HTTP 200, 1.9 MB; page 3 rendered and read, then independently reopened and transcribed |
 | `jl-fullring-preflop-charts` | Full-ring (8-max) cash RFI ranges for all seven opening positions, published as **text hand ranges** rather than images — no transcription from pixels required. 100bb, 2.5bb opens, 3bb from SB. Same author as `jl-6max-preflop-charts`, so the methodology matches our 6-max data. Free, no account needed to read the ranges on the page. | `https://pokercoaching.com/preflop-charts/` | **PRIMARY for `rfi_8max_*`** | **2026-08-07** — read directly; all seven ranges captured in RFI-CALIBRATION §3 |
+| `jl-ultimate-cash-preflop-guide` | Jonathan Little's *The Ultimate Cash Game Preflop Guide*, 2026 edition. Free 47-page PDF, no account, no email. 8-max cash — UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB, exactly our `8max` seats — at 100bb and 200bb, covering RFI, vs RFI, vs 3-bet, vs 4-bet, vs 5-bet and vs 6-bet. We use **pages 13–17 only**: the 100bb VS 3-BET set, 28 grids. Opens are 3bb (4bb from the SB), 3-bets are 10bb in position and 12bb from a blind, 4-bets 24bb / 27bb — every size printed on the grid it belongs to. Unlike every other source here these are **genuinely mixed** solver strategies, drawn as part-filled cells, and each grid's printed percentages are **of hero's own opening range**, not of all 1326 combos. **Its RFI and vs-RFI pages are deliberately not used** — they disagree with `jl-fullring-preflop-charts` on open sizing (3bb vs 2.5bb), and mixing two chart families inside one spot is exactly what §1.3 forbids. See VS-3BET-CALIBRATION §2 for why that is a recorded seam rather than a fixed problem. | `https://poker-coaching.s3.amazonaws.com/tools/preflop-charts/The%20Ultimate%20Cash%20Game%20Preflop%20Guide.pdf` | **PRIMARY for `vs_3bet_8max_*`** | **2026-08-27** — downloaded (HTTP 200, 9.7 MB); all 28 VS 3-BET grids read, plus the RFI and vs-RFI pages for the sizings; every one of the 112 printed figures reproduced within 0.48 pp |
 | `upswing-plo-rfi-guide` | Free PDF: PLO Raise-First-In guide (100bb, 6-max seats UTG–SB). Pair and non-pair class tables per position with ds/ss/r raise frequencies plus printed `% Dealt` / `% of RFI`, derived from a MonkerSolver simulation at a $10/20 rake structure. Tri- and quad-suited hands are deliberately excluded by the publisher ("play similarly to single suited hands, but slightly tighter") — we grade them in the `.ss` cell and weight them at 0.65× in stats only. The SB pairs page prints an anomalous AA row (33/84/93); transcribed as printed and flagged in the file notes and PLO-CALIBRATION §4. | `https://upswingpoker.com/wp-content/uploads/2020/04/PLO-Preflop-Guide-RFI-v4-UpswingPoker.pdf` | **PRIMARY for `rfi_plo_6max_*`** | **2026-08-21** — downloaded (HTTP 200), all five position tables transcribed from pages 5–14; taxonomy fitted so printed % Dealt reproduce within rounding (mean \|Δ\| 0.12 pp over 74 rows) |
 | `plocom-solver-data` | Decoded MonkerSolver preflop dataset for PLO 6-max 100bb with 5%, 1bb-cap rake, published as HTML tables (RFI open % by position and coarse hand-class buckets; SB-vs-BTN / BB-vs-BTN / BTN-vs-CO / BB-vs-UTG defence tables). Explicitly free to cite with a link. Used as the cross-check that our reconstructed position totals track a second independent solve, and as the evidence that trips fold ~everywhere (grounds our fold-only Trips/Quads classes). | `https://plo.com/plo-6-max-opening-ranges` | cross-check for `rfi_plo_6max_*`; candidate future primary for PLO `vs_rfi` if its bucket boundaries can be pinned | **2026-08-21** — both data pages opened directly; totals recorded in PLO-CALIBRATION §5 |
 | `gtowizard-free-study` | Configurable Study matrix. **Rejected as a source on 2026-08-07.** The free tier is still advertised (100 preflop solutions daily, 2.5x opens) but every route to a matrix now redirects to Google/Facebook/Apple OAuth, so nothing is reachable without an account. Kept in the register only to record the finding. | `https://app.gtowizard.com/` | **NOT USABLE** — login-gated | 2026-08-07 — gated, verified directly |
@@ -109,6 +110,36 @@ sprite sheet, nothing fetched.
   combo counts. The rendered image is a working file and never enters the repo.
   This paragraph corrects an earlier version of this rule that forbade reading
   image-based charts at all, which made the primary source unusable.
+
+  **Measuring a drawn cell is reading it, under the four conditions below.**
+  Amended 2026-08-27, when `jl-ultimate-cash-preflop-guide` landed. Every
+  earlier source states a pure strategy: a cell is one colour and a human reads
+  it as one word. That guide's cells are *split* — `AKs` is 42% 4-bet and 58%
+  call, drawn as two bands inside one rounded rectangle. There is no reading of
+  such a cell that does not come down to how wide the bands are, and eyeballing
+  28 grids of them to two decimal places is not transcription, it is invention.
+  The ban on colour sampling was written when every chart was pure. Applied
+  here it would not have protected accuracy; it would have destroyed it.
+
+  Measurement is permitted only when all four hold:
+
+  1. **The chart states its own totals**, and our computed figures are compared
+     against every one of them. This guide prints four percentages per grid;
+     all 112 are recorded in `ranges/VS-3BET-CALIBRATION.md` §4 beside ours.
+  2. **The agreement is reported, not asserted.** The worst case is published
+     with the tolerance, and a band that widens later is a finding.
+  3. **Every grid is also looked at.** That is what caught the one real defect:
+     on page 15 the right-hand column of panels is drawn seven pixels above the
+     left, so ordering panels by height alone paired two grids with each
+     other's titles. No pixel flagged it — the per-hero combo totals did,
+     because one hero cannot have two opening ranges.
+  4. **The measuring code is a working file**, exactly like the rendered image.
+     It ships with nothing and lives in no repository.
+
+  What stays banned is unchanged, and is what this rule was always aimed at:
+  running an extractor and committing whatever it emits. Condition 1 is the
+  whole difference — the output must be checkable against something the
+  publisher printed, or it is a guess with extra steps.
 - **LLM-invented ranges.** A range that cannot cite a chart does not ship.
   Filling gaps by interpolating between charted neighbours is allowed, but must
   be recorded in the file's `notes`.

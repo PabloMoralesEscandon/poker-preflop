@@ -31,6 +31,9 @@ If both sides match these files, integration is a config flip.
 | `range_vs_rfi_6max_BB_vs_BTN.json` | `GET /api/v1/ranges/{id}` for a two-action matchup (v2) |
 | `next_question_vs_rfi.json` | a `vs_rfi` question (v2) |
 | `answer_vs_rfi.json` | a `vs_rfi` answer (v2) |
+| `range_vs_3bet_8max_UTG_vs_BTN.json` | `GET /api/v1/ranges/{id}` for a chart with a narrowed `reach` — **a real transcription, not a fixture** (v4) |
+| `next_question_vs_3bet.json` | a `vs_3bet` question (v4) |
+| `answer_vs_3bet.json` | a `vs_3bet` answer (v4) |
 
 ## About `range_rfi_6max_CO.json`
 
@@ -116,12 +119,36 @@ numbers, read `backend/data/ranges/vs_rfi/6max/` or
 about values.** These fixtures survive only so the frontend keeps running with
 the backend switched off.
 
-## `drills.json` covers both drills
+## About `range_vs_3bet_8max_UTG_vs_BTN.json`
 
-It was regenerated from the running server on 2026-08-08 and is byte-identical
-to a live `GET /drills`, so the `vs_rfi` config schema in it — field key
-`matchups`, option values like `BB_vs_BTN`, labels like `BB vs BTN` — is the
-contract, not a guess. It was missing while the drill UI was being built, so a
-schema was authored in the mock to have something to render — and it happened to
-match what the server implemented. That they converged was luck, not design, and
-this fixture is what makes it neither.
+**Unlike the other two range fixtures, this one is real.** It is the shipped
+`backend/data/ranges/vs_3bet/8max/UTG_vs_BTN.json`, served verbatim, exactly as
+`range_rfi_plo_6max_BTN.json` is. Its `source_id` is a cited primary source and
+its cells are the published chart's.
+
+It is here because it is the only fixture carrying a **narrowed `reach`**: 36 of
+the 169 hands, 188 combos, the range UTG actually opens. Any client that divides
+`stats.by_action` by 1326 rather than by `stats.reach_combos` will disagree with
+the source's own printed percentages, and this fixture is where that shows up.
+
+Being real, it also means the mock's `vs_3bet` drill deals from a genuine
+opening range rather than an invented one — so `72o` never arrives in a spot
+that only exists because hero opened.
+
+## `drills.json` covers every drill
+
+It was regenerated from the running server on 2026-08-27 and is byte-identical
+to a live `GET /drills`, so each config schema in it — field keys, option values
+and labels — is the contract, not a guess.
+
+It has now caught the drift it exists to catch, twice. `vs_rfi` was missing
+while its UI was being built, and the schema authored in the mock happened to
+match the server by luck. `bvb` was missing for longer, and the mock's stand-in
+did **not** match: it called the field `sb_actions` with options labelled
+`SB limps` / `SB raises`, where the server has always served `situations` with
+`Facing a limp` / `Facing a raise`. Nothing failed, because nothing compared
+them. Regenerating this file for `vs_3bet` is what surfaced it, and the
+hand-authored entry is now deleted.
+
+The rule that follows: **a drill's config schema is served or it is a guess.**
+If a drill is missing here, regenerate rather than authoring around it.

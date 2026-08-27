@@ -427,10 +427,16 @@ describe('mock static endpoints', () => {
   it('serves the drills fixture', async () => {
     const client = new MockApiClient();
     const { drills } = await client.listDrills();
-    // `bvb` is appended by the mock, not served: `drills.json` still lists only
-    // the first two. Raised as a finding with FE-13 — the entry should come
-    // from a regenerated fixture, as `vs_rfi`'s eventually did.
-    expect(drills.map((drill) => drill.id)).toEqual(['rfi', 'vs_rfi', 'bvb']);
+    // Every drill now comes from the fixture, which is regenerated from the
+    // live server. Nothing is appended here any more — the hand-authored `bvb`
+    // entry that used to fill the gap was deleted when `vs_3bet` landed and
+    // the fixture was regenerated with all four.
+    expect(drills.map((drill) => drill.id)).toEqual([
+      'rfi',
+      'vs_rfi',
+      'bvb',
+      'vs_3bet',
+    ]);
     expect(drills[0]?.config_schema.fields.map((f) => f.key)).toEqual([
       'game',
       'table_format',
@@ -445,9 +451,12 @@ describe('mock static endpoints', () => {
     const all = await client.listRanges();
     expect(all.ranges.length).toBeGreaterThan(0);
 
-    // The fixture range list is 6-max only, so filtering to full ring is empty.
+    // Full ring exists only as `vs_3bet`, whose 28 matchups are all 8-max.
     const fullRing = await client.listRanges({ table_format: '8max' });
-    expect(fullRing.ranges).toHaveLength(0);
+    expect(fullRing.ranges).toHaveLength(28);
+    expect(fullRing.ranges.every((entry) => entry.spot === 'vs_3bet')).toBe(
+      true
+    );
 
     const rfi = await client.listRanges({ spot: 'rfi' });
     expect(rfi.ranges.length).toBeGreaterThan(0);
@@ -491,6 +500,13 @@ describe('mock static endpoints', () => {
     const vsBtn = await client.listRanges({ vs_position: 'BTN' });
     expect(vsBtn.ranges.map((entry) => entry.range_id)).toEqual([
       'vs_rfi_6max_SB_vs_BTN',
+      'vs_3bet_8max_UTG_vs_BTN',
+      'vs_3bet_8max_UTG1_vs_BTN',
+      'vs_3bet_8max_LJ_vs_BTN',
+      'vs_3bet_8max_HJ_vs_BTN',
+      'vs_3bet_8max_CO_vs_BTN',
+      // The one fixture-backed matchup is appended last by the catalogue, so
+      // that its stats stay the fixture's own rather than a recomputation.
       'vs_rfi_6max_BB_vs_BTN',
     ]);
 
@@ -500,12 +516,19 @@ describe('mock static endpoints', () => {
       6
     );
 
-    // The SB is villain in exactly the two blind-versus-blind charts, one per
-    // branch, and they sit in two different spots.
+    // The SB is villain in the two blind-versus-blind charts, one per branch
+    // and in two different spots — and, since full ring landed, in the six
+    // matchups where it 3-bets an earlier opener.
     const vsSb = await client.listRanges({ vs_position: 'SB' });
     expect(vsSb.ranges.map((entry) => [entry.range_id, entry.spot])).toEqual([
       ['vs_rfi_6max_BB_vs_SB', 'vs_rfi'],
       ['vs_limp_6max_BB_vs_SB', 'vs_limp'],
+      ['vs_3bet_8max_UTG_vs_SB', 'vs_3bet'],
+      ['vs_3bet_8max_UTG1_vs_SB', 'vs_3bet'],
+      ['vs_3bet_8max_LJ_vs_SB', 'vs_3bet'],
+      ['vs_3bet_8max_HJ_vs_SB', 'vs_3bet'],
+      ['vs_3bet_8max_CO_vs_SB', 'vs_3bet'],
+      ['vs_3bet_8max_BTN_vs_SB', 'vs_3bet'],
     ]);
     expect(
       (await client.listRanges({ vs_position: 'UTG' })).ranges.map(
@@ -689,7 +712,7 @@ describe('every advertised matchup is serveable', () => {
           )
         : [];
 
-    expect(offered).toHaveLength(14);
+    expect(offered).toHaveLength(15);
     for (const matchup of offered) {
       const range = await client.getRange(`vs_rfi_6max_${matchup}`);
       expect(range.actions.length).toBeGreaterThan(0);
