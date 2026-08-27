@@ -432,6 +432,7 @@ describe('mock static endpoints', () => {
     // from a regenerated fixture, as `vs_rfi`'s eventually did.
     expect(drills.map((drill) => drill.id)).toEqual(['rfi', 'vs_rfi', 'bvb']);
     expect(drills[0]?.config_schema.fields.map((f) => f.key)).toEqual([
+      'game',
       'table_format',
       'positions',
       'question_count',
@@ -472,7 +473,20 @@ describe('mock static endpoints', () => {
     expect(vsRfi.ranges.every((entry) => entry.spot === 'vs_rfi')).toBe(true);
 
     const co = await client.listRanges({ spot: 'rfi', position: 'CO' });
-    expect(co.ranges.map((entry) => entry.range_id)).toEqual(['rfi_6max_CO']);
+    expect(co.ranges.map((entry) => entry.range_id)).toEqual([
+      'rfi_6max_CO',
+      'rfi_plo_6max_CO',
+    ]);
+
+    // The game filter separates the two variants of the same seat.
+    const ploCo = await client.listRanges({
+      spot: 'rfi',
+      game: 'plo',
+      position: 'CO',
+    });
+    expect(ploCo.ranges.map((entry) => entry.range_id)).toEqual([
+      'rfi_plo_6max_CO',
+    ]);
 
     const vsBtn = await client.listRanges({ vs_position: 'BTN' });
     expect(vsBtn.ranges.map((entry) => entry.range_id)).toEqual([

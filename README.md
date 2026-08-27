@@ -9,6 +9,10 @@ Two drills ship today:
 - **Facing an RFI** — fold, call or 3-bet after someone opens, across fourteen
   hero-versus-raiser matchups.
 
+Raise First In also plays **Pot Limit Omaha** (6-max, UTG through SB): four-card
+hands are graded against solver-derived class charts, with the taxonomy and its
+calibration documented in [`docs/ranges/PLO-CALIBRATION.md`](docs/ranges/PLO-CALIBRATION.md).
+
 Plus a **chart browser** for studying the ranges directly, and for checking that
 the charts behind the drills are worth trusting.
 

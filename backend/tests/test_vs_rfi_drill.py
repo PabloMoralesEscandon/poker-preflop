@@ -23,9 +23,7 @@ def drill() -> VsRfiDrill:
     return VsRfiDrill(load_ranges())
 
 
-def config_for(
-    drill: VsRfiDrill, *matchups: str, **overrides
-) -> VsRfiConfig:
+def config_for(drill: VsRfiDrill, *matchups: str, **overrides) -> VsRfiConfig:
     raw = {
         "table_format": "6max",
         "matchups": list(matchups),

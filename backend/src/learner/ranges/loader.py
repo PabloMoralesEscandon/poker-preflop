@@ -21,6 +21,8 @@ KNOWN_SOURCE_IDS = frozenset(
     {
         "jl-6max-preflop-charts",
         "jl-fullring-preflop-charts",
+        "upswing-plo-rfi-guide",
+        "plocom-solver-data",
         "gtowizard-free-study",
         "freebetrange-open-raises",
         "pokerstars-rules",
@@ -71,6 +73,7 @@ class RangeIndex:
         self,
         *,
         spot: str | None = None,
+        game: str | None = None,
         table_format: str | None = None,
         position: str | None = None,
         vs_position: str | None = None,
@@ -80,6 +83,7 @@ class RangeIndex:
             item
             for item in self._by_id.values()
             if (spot is None or item.spot == spot)
+            and (game is None or item.game == game)
             and (table_format is None or item.table_format == table_format)
             and (position is None or item.position == position)
             and (vs_position is None or item.vs_position == vs_position)
@@ -88,6 +92,7 @@ class RangeIndex:
             filtered,
             key=lambda item: (
                 item.spot,
+                item.game,
                 item.table_format,
                 POSITION_ORDER[item.table_format].index(item.position),
                 (
@@ -140,9 +145,10 @@ def load_range_file(
         raise RangeLoadError(
             f"{file_path}: file is outside range data directory."
         ) from exc
-    if len(relative.parts) != 3 or file_path.suffix != ".json":
+    if len(relative.parts) not in (3, 4) or file_path.suffix != ".json":
         raise RangeLoadError(
-            f"{file_path}: expected path {{spot}}/{{table_format}}/{{POSITION}}.json."
+            f"{file_path}: expected path {{spot}}/{{game}}/{{table_format}}/"
+            "{POSITION}.json or the legacy three-segment Hold'em layout."
         )
 
     try:
@@ -169,9 +175,17 @@ def load_range_file(
             "register it in docs/RESOURCES.md section 2."
         )
 
-    path_spot, path_format, filename = relative.parts
+    parts = relative.parts
+    if len(parts) == 4:
+        path_spot, path_game, path_format, filename = parts
+        if path_game not in ("holdem", "plo"):
+            raise RangeLoadError(f"{file_path}: unknown game segment {path_game!r}.")
+        expected_id = f"{path_spot}_{path_game}_{path_format}_{Path(filename).stem}"
+    else:
+        path_spot, path_format, filename = parts
+        path_game = "holdem"  # legacy layout predates the game field
+        expected_id = f"{path_spot}_{path_format}_{Path(filename).stem}"
     path_matchup = Path(filename).stem
-    expected_id = f"{path_spot}_{path_format}_{path_matchup}"
     if item.range_id != expected_id:
         raise RangeLoadError(
             f"{file_path}: range_id {item.range_id!r} does not match "
@@ -183,12 +197,13 @@ def load_range_file(
         path_position, path_vs_position = path_matchup, None
     if (
         item.spot != path_spot
+        or item.game != path_game
         or item.table_format != path_format
         or item.position != path_position
         or item.vs_position != path_vs_position
     ):
         raise RangeLoadError(
-            f"{file_path}: spot, table_format, position, and vs_position "
+            f"{file_path}: spot, game, table_format, position, and vs_position "
             "must match the file path."
         )
     return item

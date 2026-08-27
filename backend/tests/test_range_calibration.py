@@ -42,6 +42,12 @@ POSITION_ORDER = {
     "8max": ("UTG", "UTG1", "LJ", "HJ", "CO", "BTN"),
 }
 
+
+def holdem_rfi_ranges(ranges: RangeIndex) -> list[RangeData]:
+    """Hold'em charts only; PLO ranges have their own calibration module."""
+    return [item for item in ranges.list(spot="rfi") if item.game == "holdem"]
+
+
 PREMIUMS = {"AA", "KK", "QQ", "JJ", "AKs", "AKo", "AQs"}
 BOTTOM = {"72o", "82o", "83o", "92o", "93o", "32o", "42o", "52o"}
 
@@ -99,7 +105,11 @@ def action_combos(range_data: RangeData, action: str) -> float:
 def test_action_size_migration_did_not_change_any_rfi_grid() -> None:
     data_root = Path(__file__).resolve().parents[1] / "data" / "ranges"
     actual: dict[str, str] = {}
-    for path in sorted((data_root / "rfi").rglob("*.json")):
+    legacy_dirs = (data_root / "rfi" / "6max", data_root / "rfi" / "8max")
+    paths = sorted(
+        path for directory in legacy_dirs for path in directory.glob("*.json")
+    )
+    for path in paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         encoded = json.dumps(
             payload["grid"], sort_keys=True, separators=(",", ":")
@@ -138,7 +148,7 @@ def test_invariant_1_raise_vpip_widens_strictly_through_button(
 
 
 def test_invariant_2_premiums_are_never_folded(ranges: RangeIndex) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         for hand in PREMIUMS:
             assert played_frequency(range_data.grid[hand]) == 1.0, (
                 f"{range_data.range_id} folds some of {hand}"
@@ -146,7 +156,7 @@ def test_invariant_2_premiums_are_never_folded(ranges: RangeIndex) -> None:
 
 
 def test_invariant_3_bottom_is_always_pure_fold(ranges: RangeIndex) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         for hand in BOTTOM:
             assert played_frequency(range_data.grid[hand]) == 0.0, (
                 f"{range_data.range_id} plays some of {hand}"
@@ -154,7 +164,7 @@ def test_invariant_3_bottom_is_always_pure_fold(ranges: RangeIndex) -> None:
 
 
 def test_invariant_4_suited_dominates_offsuit(ranges: RangeIndex) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         for high_index, high in enumerate(RANKS):
             for low in RANKS[high_index + 1 :]:
                 suited = played_frequency(range_data.grid[f"{high}{low}s"])
@@ -167,7 +177,7 @@ def test_invariant_4_suited_dominates_offsuit(ranges: RangeIndex) -> None:
 def test_invariant_5_kickers_descend_with_only_one_wheel_exception(
     ranges: RangeIndex,
 ) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         wheel_exceptions = 0
         for high_index, high in enumerate(RANKS):
             for suitedness in "so":
@@ -188,7 +198,7 @@ def test_invariant_5_kickers_descend_with_only_one_wheel_exception(
 
 
 def test_invariant_6_pairs_are_contiguous_from_aces(ranges: RangeIndex) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         folded_higher_pair = False
         for rank in RANKS:
             hand = rank * 2
@@ -204,14 +214,14 @@ def test_invariant_7_all_twelve_positions_are_covered(ranges: RangeIndex) -> Non
         *(f"rfi_6max_{position}" for position in (*POSITION_ORDER["6max"], "SB")),
         *(f"rfi_8max_{position}" for position in (*POSITION_ORDER["8max"], "SB")),
     }
-    actual_ids = {range_data.range_id for range_data in ranges.list(spot="rfi")}
+    actual_ids = {range_data.range_id for range_data in holdem_rfi_ranges(ranges)}
 
     assert actual_ids == expected_ids
     assert all(not range_id.endswith("_BB") for range_id in actual_ids)
 
 
 def test_shipped_ranges_are_pure_strategies(ranges: RangeIndex) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         for cell in range_data.grid.values():
             assert not cell or list(cell.values()) == [1.0]
 
@@ -219,7 +229,7 @@ def test_shipped_ranges_are_pure_strategies(ranges: RangeIndex) -> None:
 def test_real_borderline_sampling_deemphasizes_aa_and_72o(
     ranges: RangeIndex,
 ) -> None:
-    for range_data in ranges.list(spot="rfi"):
+    for range_data in holdem_rfi_ranges(ranges):
         weights = {
             hand: sampling_weight(hand, range_data.grid) for hand in canonical_hands()
         }

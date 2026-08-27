@@ -239,8 +239,7 @@ def actions_for_range(range_data: RangeData) -> list[Action]:
         key=lambda action: (ACTION_ORDER.get(action, 99), action),
     )
     offered = [
-        Action(id=action, label=_action_label(action, range_data))
-        for action in actions
+        Action(id=action, label=_action_label(action, range_data)) for action in actions
     ]
     if range_data.spot == "vs_rfi":
         return [Action(id="fold", label="Fold"), *offered]

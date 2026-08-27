@@ -41,6 +41,7 @@ def session_request(
     request: dict[str, Any] = {
         "drill_id": "rfi",
         "config": {
+            "game": "holdem",
             "table_format": "6max",
             "positions": positions or ["CO"],
             "question_count": 5,
@@ -115,9 +116,9 @@ async def test_drills_matches_fixture_and_lists_all_drills(
     expected = example("drills.json")
     # Matchup options are intentionally data-driven, so migrate the frozen
     # fixture to the currently loaded range set before comparing everything else.
-    expected["drills"][1]["config_schema"]["fields"][1] = drills[1][
-        "config_schema"
-    ]["fields"][1]
+    expected["drills"][1]["config_schema"]["fields"][1] = drills[1]["config_schema"][
+        "fields"
+    ][1]
     assert {"drills": drills[:2]} == expected
     assert [drill["id"] for drill in drills] == ["rfi", "vs_rfi", "bvb"]
     assert [field["key"] for field in drills[1]["config_schema"]["fields"]] == [
@@ -219,6 +220,14 @@ async def test_session_advances_until_done(client: AsyncClient) -> None:
 async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> None:
     all_ranges = await client.get("/api/v1/ranges")
     six_max = await client.get(
+        "/api/v1/ranges",
+        params={"spot": "rfi", "table_format": "6max", "game": "holdem"},
+    )
+    plo_six_max = await client.get(
+        "/api/v1/ranges",
+        params={"spot": "rfi", "game": "plo"},
+    )
+    mixed_six_max = await client.get(
         "/api/v1/ranges", params={"spot": "rfi", "table_format": "6max"}
     )
     eight_max = await client.get(
@@ -233,18 +242,25 @@ async def test_ranges_list_filters_and_matches_fixture(client: AsyncClient) -> N
     missing = await client.get("/api/v1/ranges", params={"spot": "missing"})
 
     assert all_ranges.status_code == 200
+    assert [item["range_id"] for item in plo_six_max.json()["ranges"]] == [
+        f"rfi_plo_6max_{position}" for position in ("UTG", "HJ", "CO", "BTN", "SB")
+    ]
     legacy_fields = set(example("ranges_list.json")["ranges"][0])
     assert {
         "ranges": [
             {key: item[key] for key in legacy_fields}
-            for item in six_max.json()["ranges"]
+            for item in mixed_six_max.json()["ranges"]
         ]
     } == example("ranges_list.json")
     assert all_ranges.json()["ranges"] == (
         six_max.json()["ranges"]
         + eight_max.json()["ranges"]
+        + plo_six_max.json()["ranges"]
         + vs_limp.json()["ranges"]
         + vs_rfi.json()["ranges"]
+    )
+    assert mixed_six_max.json()["ranges"] == (
+        six_max.json()["ranges"] + plo_six_max.json()["ranges"]
     )
     assert [item["range_id"] for item in eight_max.json()["ranges"]] == [
         "rfi_8max_UTG",

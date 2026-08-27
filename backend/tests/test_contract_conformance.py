@@ -24,8 +24,10 @@ CONFORMED_FIXTURES = {
     "next_done",
     "next_question",
     "next_question_bvb_limp",
+    "next_question_plo",
     "next_question_vs_rfi",
     "range_rfi_6max_CO",
+    "range_rfi_plo_6max_BTN",
     "range_vs_limp_6max_BB_vs_SB",
     "range_vs_rfi_6max_BB_vs_BTN",
     "ranges_list",
@@ -34,6 +36,8 @@ CONFORMED_FIXTURES = {
     "sources",
     "summary",
 }
+
+
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
@@ -412,12 +416,11 @@ async def test_bvb_question_range_and_both_situations_conform_end_to_end(
 
     assert limp_next.status_code == limp_range.status_code == 200
     assert_fixture_shape(limp_next.json(), fixture("next_question_bvb_limp"))
-    assert_fixture_shape(
-        limp_range.json(), fixture("range_vs_limp_6max_BB_vs_SB")
-    )
-    assert [
-        action["id"] for action in limp_next.json()["question"]["actions"]
-    ] == ["check", "raise"]
+    assert_fixture_shape(limp_range.json(), fixture("range_vs_limp_6max_BB_vs_SB"))
+    assert [action["id"] for action in limp_next.json()["question"]["actions"]] == [
+        "check",
+        "raise",
+    ]
 
     created = await client.post(
         "/api/v1/sessions",
@@ -553,3 +556,35 @@ async def test_all_error_responses_match_canonical_fixture_shapes(
     for code, response in responses.items():
         assert response.status_code == errors[code]["status"]
         assert_fixture_shape(response.json(), errors[code]["body"])
+
+
+async def test_plo_question_and_range_match_v2_fixture_shapes(
+    client: AsyncClient,
+) -> None:
+    created = await client.post(
+        "/api/v1/sessions",
+        json={
+            "drill_id": "rfi",
+            "config": {
+                "game": "plo",
+                "table_format": "6max",
+                "positions": ["BTN"],
+                "question_count": 25,
+                "weighting": "borderline",
+            },
+            "seed": 424242,
+        },
+    )
+    assert created.status_code == 201
+    session_id = created.json()["session_id"]
+
+    question = await current_question(client, session_id)
+    assert question["prompt"]["game"] == "plo"
+    assert len(question["prompt"]["hand"]["cards"]) == 4
+    assert_fixture_shape(
+        {"done": False, "question": question}, fixture("next_question_plo")
+    )
+
+    range_detail = await client.get("/api/v1/ranges/rfi_plo_6max_BTN")
+    assert range_detail.status_code == 200
+    assert_fixture_shape(range_detail.json(), fixture("range_rfi_plo_6max_BTN"))

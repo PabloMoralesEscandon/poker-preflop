@@ -1,0 +1,165 @@
+{
+  "range_id": "rfi_plo_6max_BTN",
+  "spot": "rfi",
+  "game": "plo",
+  "table_format": "6max",
+  "position": "BTN",
+  "vs_position": null,
+  "stack_bb": 100.0,
+  "facing_size_bb": null,
+  "source_id": "upswing-plo-rfi-guide",
+  "notes": "100bb PLO 6-max RFI, MonkerSolver-derived (guide states a $10/20 rake structure; ranges accurate down to $1/2 per its own note). Chart pp.11-12, rows transcribed as printed; range total 47.2%. Raise size approximates the solve's single pot-sized open (3.5bb). Taxonomy (docs/ranges/PLO-CALIBRATION.md): pair tiers by top paired rank, two-pair hands under their higher pair; ace hands cascade A[K-T] exact-2 -> A[9-6] -> A[5-2]; rundowns by internal gaps, 2G requires adjacent holes (guide example 9854); tri-/quad-suited hands are graded in the .ss cell ('play like ss, slightly tighter') and weighted 0.65x in stats only. Trips/Quads fold at every position per cross-check plocom-solver-data.",
+  "actions": [
+    "raise"
+  ],
+  "action_sizes_bb": {
+    "raise": 3.5
+  },
+  "grid": {
+    "AA.ds": {
+      "raise": 1.0
+    },
+    "AA.ss": {
+      "raise": 1.0
+    },
+    "AA.r": {
+      "raise": 1.0
+    },
+    "KK.ds": {
+      "raise": 1.0
+    },
+    "KK.ss": {
+      "raise": 0.99
+    },
+    "KK.r": {
+      "raise": 0.96
+    },
+    "QQ.ds": {
+      "raise": 1.0
+    },
+    "QQ.ss": {
+      "raise": 0.98
+    },
+    "QQ.r": {
+      "raise": 0.86
+    },
+    "JJ.ds": {
+      "raise": 1.0
+    },
+    "JJ.ss": {
+      "raise": 0.92
+    },
+    "JJ.r": {
+      "raise": 0.66
+    },
+    "TT.ds": {
+      "raise": 1.0
+    },
+    "TT.ss": {
+      "raise": 0.83
+    },
+    "TT.r": {
+      "raise": 0.63
+    },
+    "99-66.ds": {
+      "raise": 0.9
+    },
+    "99-66.ss": {
+      "raise": 0.58
+    },
+    "99-66.r": {
+      "raise": 0.19
+    },
+    "55-22.ds": {
+      "raise": 0.76
+    },
+    "55-22.ss": {
+      "raise": 0.28
+    },
+    "55-22.r": {
+      "raise": 0.03
+    },
+    "0G.ds": {
+      "raise": 0.97
+    },
+    "0G.ss": {
+      "raise": 0.8
+    },
+    "0G.r": {
+      "raise": 0.4
+    },
+    "1G.ds": {
+      "raise": 0.94
+    },
+    "1G.ss": {
+      "raise": 0.81
+    },
+    "1G.r": {
+      "raise": 0.41
+    },
+    "2G.ds": {
+      "raise": 0.72
+    },
+    "2G.ss": {
+      "raise": 0.48
+    },
+    "2G.r": {
+      "raise": 0.29
+    },
+    "A-KT.ds": {
+      "raise": 1.0
+    },
+    "A-KT.ss": {
+      "raise": 1.0
+    },
+    "A-KT.r": {
+      "raise": 1.0
+    },
+    "A-96.ds": {
+      "raise": 1.0
+    },
+    "A-96.ss": {
+      "raise": 0.73
+    },
+    "A-96.r": {
+      "raise": 0.35
+    },
+    "A-52.ds": {
+      "raise": 0.93
+    },
+    "A-52.ss": {
+      "raise": 0.43
+    },
+    "A-52.r": {
+      "raise": 0.02
+    },
+    "OA.ds": {
+      "raise": 1.0
+    },
+    "OA.ss": {
+      "raise": 0.77
+    },
+    "OA.r": {
+      "raise": 0.06
+    },
+    "Oth.ds": {
+      "raise": 0.6
+    },
+    "Oth.ss": {
+      "raise": 0.2
+    },
+    "Oth.r": {
+      "raise": 0.03
+    },
+    "Trips": {},
+    "Quads": {}
+  },
+  "stats": {
+    "combos": 124162.608,
+    "vpip": 0.4586,
+    "hands_played": 45,
+    "by_action": {
+      "raise": 124162.608
+    }
+  }
+}

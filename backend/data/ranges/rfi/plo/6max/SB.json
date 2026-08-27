@@ -1,0 +1,149 @@
+{
+  "range_id": "rfi_plo_6max_SB",
+  "spot": "rfi",
+  "game": "plo",
+  "table_format": "6max",
+  "position": "SB",
+  "stack_bb": 100,
+  "action_sizes_bb": {
+    "raise": 2.5
+  },
+  "source_id": "upswing-plo-rfi-guide",
+  "notes": "100bb PLO 6-max RFI, MonkerSolver-derived (guide states a $10/20 rake structure; ranges accurate down to $1/2 per its own note). Chart pp.13-14, rows transcribed as printed; range total 29.7%. Raise size approximates the solve's single pot-sized open (2.5bb). Taxonomy (docs/ranges/PLO-CALIBRATION.md): pair tiers by top paired rank, two-pair hands under their higher pair; ace hands cascade A[K-T] exact-2 -> A[9-6] -> A[5-2]; rundowns by internal gaps, 2G requires adjacent holes (guide example 9854); tri-/quad-suited hands are graded in the .ss cell ('play like ss, slightly tighter') and weighted 0.65x in stats only. Trips/Quads fold at every position per cross-check plocom-solver-data. ANOMALY: the SB pairs page prints AA ds 33% / ss 84% / r 93% - inverted vs every other seat and inconsistent with its own % of RFI (7.1% x 29.7% = 2.11% dealt needs ~84% of all AA played). Transcribed as printed on purpose; flagged for the boss.",
+  "actions": [
+    "raise"
+  ],
+  "grid": {
+    "AA.ds": {
+      "raise": 0.33
+    },
+    "AA.ss": {
+      "raise": 0.84
+    },
+    "AA.r": {
+      "raise": 0.93
+    },
+    "KK.ds": {
+      "raise": 0.49
+    },
+    "KK.ss": {
+      "raise": 0.74
+    },
+    "KK.r": {
+      "raise": 0.32
+    },
+    "QQ.ds": {
+      "raise": 0.72
+    },
+    "QQ.ss": {
+      "raise": 0.72
+    },
+    "QQ.r": {
+      "raise": 0.5
+    },
+    "JJ.ds": {
+      "raise": 0.74
+    },
+    "JJ.ss": {
+      "raise": 0.67
+    },
+    "JJ.r": {
+      "raise": 0.45
+    },
+    "TT.ds": {
+      "raise": 0.72
+    },
+    "TT.ss": {
+      "raise": 0.62
+    },
+    "TT.r": {
+      "raise": 0.44
+    },
+    "99-66.ds": {
+      "raise": 0.73
+    },
+    "99-66.ss": {
+      "raise": 0.4
+    },
+    "99-66.r": {
+      "raise": 0.13
+    },
+    "55-22.ds": {
+      "raise": 0.43
+    },
+    "55-22.ss": {
+      "raise": 0.08
+    },
+    "55-22.r": {
+      "raise": 0.01
+    },
+    "0G.ds": {
+      "raise": 0.67
+    },
+    "0G.ss": {
+      "raise": 0.52
+    },
+    "0G.r": {
+      "raise": 0.3
+    },
+    "1G.ds": {
+      "raise": 0.72
+    },
+    "1G.ss": {
+      "raise": 0.48
+    },
+    "1G.r": {
+      "raise": 0.19
+    },
+    "2G.ds": {
+      "raise": 0.51
+    },
+    "2G.ss": {
+      "raise": 0.39
+    },
+    "2G.r": {
+      "raise": 0.05
+    },
+    "A-KT.ds": {
+      "raise": 0.77
+    },
+    "A-KT.ss": {
+      "raise": 0.77
+    },
+    "A-KT.r": {
+      "raise": 0.25
+    },
+    "A-96.ds": {
+      "raise": 0.74
+    },
+    "A-96.ss": {
+      "raise": 0.54
+    },
+    "A-96.r": {
+      "raise": 0.18
+    },
+    "A-52.ds": {
+      "raise": 0.64
+    },
+    "A-52.ss": {
+      "raise": 0.15
+    },
+    "A-52.r": {},
+    "OA.ds": {
+      "raise": 0.84
+    },
+    "OA.ss": {
+      "raise": 0.42
+    },
+    "OA.r": {},
+    "Oth.ds": {
+      "raise": 0.39
+    },
+    "Oth.ss": {
+      "raise": 0.13
+    },
+    "Oth.r": {},
+    "Trips": {},
+    "Quads": {}
+  }
+}

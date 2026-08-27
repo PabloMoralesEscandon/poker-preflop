@@ -73,6 +73,7 @@ describe('ConfigForm rendered from the drills fixture', () => {
     );
 
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      game: 'holdem',
       table_format: '6max',
       positions: ['UTG', 'HJ', 'CO', 'BTN', 'SB'],
       question_count: 25,

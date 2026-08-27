@@ -46,9 +46,7 @@ def test_loader_accepts_matchup_path_and_metadata(
 def test_loader_accepts_fully_played_vs_limp_fixture(
     limp_range_payload, range_writer
 ) -> None:
-    root, _ = range_writer(
-        limp_range_payload(), relative="vs_limp/6max/BB_vs_SB.json"
-    )
+    root, _ = range_writer(limp_range_payload(), relative="vs_limp/6max/BB_vs_SB.json")
 
     loaded = load_ranges(root).get("vs_limp_6max_BB_vs_SB")
 

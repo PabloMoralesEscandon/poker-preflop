@@ -347,19 +347,29 @@ export function PokerTable({
   );
 }
 
-/** Hero's hand, fanned the way two cards land when they are squeezed. */
+/**
+ * Hero's hand, fanned the way two cards land when they are squeezed.
+ *
+ * Four PLO cards spread across the same arc instead: even tilt steps and no
+ * lifted first card, so DOM order stacks each card over the one before it and
+ * every rank stays readable.
+ */
 function TableCards({ cards }: { cards: readonly string[] }) {
   return (
     <span className="flex items-end -space-x-2.5">
-      {cards.map((card, index) => (
-        <Card
-          key={`${card}-${index}`}
-          card={card}
-          size="md"
-          tilt={index === 0 ? -8 : 7}
-          className={index === 0 ? 'z-10' : ''}
-        />
-      ))}
+      {cards.map((card, index) => {
+        const middle = (cards.length - 1) / 2;
+        const isPair = cards.length === 2;
+        return (
+          <Card
+            key={`${card}-${index}`}
+            card={card}
+            size="md"
+            tilt={isPair ? (index === 0 ? -8 : 7) : (index - middle) * 6}
+            {...(isPair && index === 0 ? { className: 'z-10' } : {})}
+          />
+        );
+      })}
     </span>
   );
 }

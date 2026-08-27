@@ -5,11 +5,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from learner.drills.base import DrillConfig, Explanation, Mistake, Prompt
+from learner.ranges.models import Game
 
 
 class RfiConfig(DrillConfig):
     """Validated configuration for one RFI session."""
 
+    game: Game = "holdem"
     table_format: Literal["6max", "8max"]
     positions: list[str]
     question_count: int
@@ -17,7 +19,11 @@ class RfiConfig(DrillConfig):
 
 
 class RfiHand(BaseModel):
-    """Concrete cards and their canonical 169-hand notation."""
+    """Concrete cards and their canonical notation.
+
+    Hold'em notations are the 169-hand shorthand; PLO notations are the
+    47 class keys from ``learner.ranges.plo``.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -31,6 +37,7 @@ class RfiPrompt(Prompt):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["rfi"] = "rfi"
+    game: Game = "holdem"
     table_format: Literal["6max", "8max"]
     hero_position: str
     stack_bb: float

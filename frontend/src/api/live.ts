@@ -77,6 +77,7 @@ export class LiveApiClient implements ApiClient {
   ): Promise<RangesResponse> {
     const query = new URLSearchParams();
     if (filter?.spot) query.set('spot', filter.spot);
+    if (filter?.game) query.set('game', filter.game);
     if (filter?.table_format) query.set('table_format', filter.table_format);
     if (filter?.position) query.set('position', filter.position);
     if (filter?.vs_position) query.set('vs_position', filter.vs_position);
